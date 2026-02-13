@@ -1,0 +1,41 @@
+generator client {
+  provider               = "prisma-client-js"
+  output                 = "../src/generated/prisma"
+  generatedFileExtension = "js"
+  importFileExtension    = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  DOCTOR
+  ADMIN
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+
+  doctor    Doctor?  // relation (optional)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model Doctor {
+  id       String @id @default(uuid())
+  nmid     String @unique
+  degree   String
+
+  userId   String @unique
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
