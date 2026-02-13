@@ -1,12 +1,13 @@
-import { AuthService } from "./auth.service"
+import { BadRequestError } from "../../error/error.js"
+import { AuthService } from "./auth.service.js"
 
 
-export const loginUser = async (req, res) => {
+export const loginUser = async (req, res, next) => {
     try {
         const { email, password } = req.body
 
         const user = await AuthService.login(email, password)
-        if (!user) throw new Error('login failled')
+        if (!user) throw new BadRequestError('login failled')
 
         return res.status(200).json({
             success: true,
@@ -18,12 +19,7 @@ export const loginUser = async (req, res) => {
             token: user.token,
         });
     } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: "Something went wrong. Internal Server Error",
-            error: err.message,
-        });
-
+        next(error)
     }
 }
 
