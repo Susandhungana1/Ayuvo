@@ -1,17 +1,23 @@
 import jwt from "jsonwebtoken"
 import bcrypt from "bcryptjs"
-import { AuthRepository } from "./auth.repository"
+import { AuthRepository } from "./auth.repository.js"
+import { env } from "../../config/env.js"
+import { BadRequestError, NotFoundError } from "../../error/error.js"
+
 
 
 export const AuthService = {
 
     login: async (email, password) => {
+
+        if (!email || !password) throw new BadRequestError('All field required')
+
         const user = await AuthRepository.findUser(email);
 
-        if (!user) throw new Error("User not found , please register first")
+        if (!user) throw new NotFoundError("User not found , please register first")
 
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) throw new Error("password doesnot match");
+        if (!isMatch) throw new BadRequestError("password doesnot match");
 
         const tokenPayload = {
 

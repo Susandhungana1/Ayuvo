@@ -10,32 +10,32 @@ datasource db {
 }
 
 enum Role {
-  USER
+  PATIENT
   DOCTOR
   ADMIN
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(USER)
+  id       String @id @default(uuid())
+  name     String
+  email    String @unique
+  password String
+  role     Role   @default(PATIENT)
 
-  doctor    Doctor?  // relation (optional)
+  doctor Doctor? // relation (optional)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 }
 
 model Doctor {
-  id       String @id @default(uuid())
-  nmid     String @unique
-  degree   String
+  id     String @id @default(uuid())
+  nmid   String 
+  degree String
 
-  userId   String @unique
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verified  Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 }

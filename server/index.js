@@ -1,12 +1,19 @@
 import express from "express";
-import authRouter from "./routes/authRoute.js";
+import authRouter from "./src/routes/index.js";
+import { errorHandler } from "./src/middleware/errorMiddleware.js";
 
 const app = express();
 
 app.use(express.json());
 
 
-app.use('/auth', authRouter);
+app.use('/v1/api', authRouter)
+app.use(errorHandler)
+
+app.get('/', (req, res) => {
+  res.send('Do or Die')
+})
+
 
 app.listen(3000, () => {
   console.log("Server running on http://localhost:3000");
