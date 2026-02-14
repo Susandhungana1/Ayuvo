@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
-
-const authMiddleware = (req, res, next) => {
+import { AuthRepository } from "../modules/auth/auth.repository.js";
+import { NotAuthorizedError, NotFoundError } from '../error/error.js'
+export const authMiddleware = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -12,10 +13,23 @@ const authMiddleware = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded; // decoded contains userId
+    const email = decoded.email
+    console.log(`decoded token`,decoded);
+
+    const user = await AuthRepository.findUser(email);
+    if (!user) throw new NotFoundError('User not found')
     next();
   } catch (err) {
     return res.status(401).json({ message: "Token expired or invalid" });
   }
 };
 
-export default authMiddleware;
+
+export const authorizeRoles = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      throw new NotAuthorizedError('Not Authorize')
+    }
+    next();
+  };
+};
