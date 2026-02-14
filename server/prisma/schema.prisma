@@ -22,20 +22,128 @@ model User {
   password String
   role     Role   @default(PATIENT)
 
-  doctor Doctor? // relation (optional)
+  // address & geo location
+  address   String?
+  city      String?
+  latitude  Float?
+  longitude Float?
+
+  // relations
+  doctor     Doctor?
+  blogs      Blog[]
+  blogLikes  BlogLike[]
+  comments   Comment[]
+  blogShares BlogShare[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([city])
+}
+
+model Doctor {
+  id     String @id @default(uuid())
+  nmid   String
+  degree String
+
+  userId   String  @unique
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verified Boolean @default(false)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 }
 
-model Doctor {
-  id     String @id @default(uuid())
-  nmid   String 
-  degree String
+model Blog {
+  id        String  @id @default(uuid())
+  title     String
+  content   String
+  published Boolean @default(true)
 
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  verified  Boolean  @default(false)
+  // author (any user)
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // emergency flag
+  isEmergency Boolean @default(false)
+
+  // location (for emergency & nearby alerts)
+  address   String?
+  city      String?
+  latitude  Float?
+  longitude Float?
+
+  // engagement
+  likes    BlogLike[]
+  comments Comment[]
+  shares   BlogShare[]
+
+  likeCount    Int @default(0)
+  commentCount Int @default(0)
+  shareCount   Int @default(0)
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime?
+
+  @@index([authorId])
+  @@index([isEmergency])
+  @@index([city])
+  @@index([createdAt])
+}
+
+model BlogLike {
+  id String @id @default(uuid())
+
+  blogId String
+  blog   Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([blogId, userId]) // prevent duplicate likes
+  @@index([userId])
+}
+
+model Comment {
+  id      String @id @default(uuid())
+  content String
+
+  blogId String
+  blog   Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // replies support
+  parentId String?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentReplies")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime?
+
+  @@index([blogId])
+  @@index([userId])
+  @@index([parentId])
+}
+
+model BlogShare {
+  id String @id @default(uuid())
+
+  blogId String
+  blog   Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  platform String? // facebook, whatsapp, etc.
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([blogId])
+  @@index([userId])
 }

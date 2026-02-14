@@ -25,7 +25,7 @@ export const AuthService = {
             name: user.name,
             email: user.email,
             role: user.role,
-            createdAt: user.createAt,
+            createdAt: user.createdAt,
             updatedAt: user.updatedAt,
         }
 
@@ -35,8 +35,4 @@ export const AuthService = {
         });
         return { user, token }
     }
-
-
-
-
 }
