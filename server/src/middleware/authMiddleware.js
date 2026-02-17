@@ -14,7 +14,7 @@ export const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded; // decoded contains userId
     const email = decoded.email
-    console.log(`decoded token`,decoded);
+    console.log(`decoded token`, decoded);
 
     const user = await AuthRepository.findUser(email);
     if (!user) throw new NotFoundError('User not found')
@@ -33,3 +33,5 @@ export const authorizeRoles = (...roles) => {
     next();
   };
 };
+
+
