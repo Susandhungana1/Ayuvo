@@ -55,7 +55,7 @@ export const UserService = {
     const existingUser = await UserRepository.findUserByid(id);
     if (!existingUser) throw new NotFoundError("User not found");
 
-    // 🔐 Prevent updating sensitive/system fields
+    //  Prevent updating sensitive/system fields
     const forbiddenFields = ["password", "id", "createdAt", "updatedAt"];
     forbiddenFields.forEach((field) => delete data[field]);
 

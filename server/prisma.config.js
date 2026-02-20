@@ -12,5 +12,3 @@ export default defineConfig({
     url: process.env.DIRECT_URL,
   },
 });
-// supabase Password
-// hpvZQypu0I0vU6Mq

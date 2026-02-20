@@ -5,6 +5,7 @@ import { validate } from "../../middleware/schema.validation.middleware.js"
 import { updateUserSchema, createUserSchema } from "../../modules/users/user.schema.js"
 const router = express.Router()
 
+
 router.post('/create', validate(createUserSchema), registerUser)
 router.get('/all', authMiddleware, authorizeRoles('ADMIN'), getAllUsers)
 router.get('/:id', authMiddleware, getUserBYid)

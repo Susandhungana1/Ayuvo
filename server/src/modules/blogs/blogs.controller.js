@@ -4,7 +4,8 @@ import { BlogService } from "./blogs.service.js";
 export const CreateBlog = async (req, res, next) => {
   try {
     const payload = req.body;
-    const item = await BlogService.Create(payload);
+    const user = req.user;
+    const item = await BlogService.create(payload, user);
     if (!item) throw BadRequestError("Error Creating New Blog");
     return res.status(201).json({
       success: true,
@@ -21,11 +22,11 @@ export const DeleteBlog = async (req, res, next) => {
     const { id } = req.params; //blog id
 
     const user = req.user;
-    const deleteBlog = await BlogService.Delete(user, id);
+    const deleteBlog = await BlogService.delete(id, user);
     if (!deleteBlog) throw new BadRequestError("Error Deleting Blog");
     return res.status(200).json({
       success: true,
-      message: "User Deleted Successfully",
+      message: "Blog Deleted Successfully",
       data: deleteBlog,
     });
   } catch (error) {
@@ -37,12 +38,13 @@ export const UpdateBlog = async (req, res, next) => {
   try {
     const { id } = req.params;
     const user = req.user;
-
-    const blog = await BlogService.Update(id, user, req.body);
+    const blog = await BlogService.update(id, user, req.body);
     if (!blog) throw new BadRequestError("Blog Not Found");
-    return res
-      .status(200)
-      .json({ success: true, message: "blog updated successfully" });
+    return res.status(200).json({
+      success: true,
+      message: "blog updated successfully",
+      data: blog,
+    });
   } catch (error) {
     next(error);
   }
@@ -50,7 +52,7 @@ export const UpdateBlog = async (req, res, next) => {
 
 export const getAllBlogs = async (req, res, next) => {
   try {
-    const blogs = await BlogService.FetchAllBlogs();
+    const blogs = await BlogService.fetchAllBlogs();
     if (!blogs) throw new BadRequestError("No Blogs Found");
 
     return res
