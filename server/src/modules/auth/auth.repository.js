@@ -1,12 +1,15 @@
-import prisma from "../../lib/prisma.js"
+import prisma from "../../lib/prisma.js";
 
 export const AuthRepository = {
-
-    findUser: async (email) => {
-
-        return await prisma.user.findUnique({
-            where: { email },
-        });
-    }
-
+  findUser: async (email) => {
+    return await prisma.user.findFirst({
+      where: { email },
+      select: {
+        id: true,
+        password: true,
+        email: true,
+        role: true,
+      },
+    });
+  },
 };

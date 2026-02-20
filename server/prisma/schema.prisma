@@ -82,8 +82,8 @@ model Blog {
   commentCount Int @default(0)
   shareCount   Int @default(0)
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime?
 
   @@index([authorId])

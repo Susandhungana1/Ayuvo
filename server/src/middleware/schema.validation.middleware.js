@@ -12,7 +12,6 @@ export const validate = (schema) => (req, res, next) => {
 
     return res.status(400).json({ errors: issues });
   }
-
   // Attach validated data to request object if needed
   req.body = result.data;
   next();

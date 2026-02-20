@@ -1,7 +1,19 @@
+import express from "express";
+import {
+  CreateBlog,
+  DeleteBlog,
+  UpdateBlog,
+  getAllBlogs,
+  getById,
+} from "../../modules/blogs/blogs.controller.js";
+import { authMiddleware } from "../../middleware/authMiddleware.js";
 
-import express from "express"
-import {CreateBlog,DeleteBlog,UpdateBlog,getAllBlogs,getById} from "../../modules/blogs/blogs.controller.js"
+const router = express.Router();
 
-const router=express.Router();
+router.get("/", authMiddleware, getAllBlogs);
+router.post("/", authMiddleware, CreateBlog);
+router.patch("/:id", authMiddleware, UpdateBlog);
+router.delete("/:id", authMiddleware, DeleteBlog);
+router.get("/:id", authMiddleware, getById);
 
-router.get('/')
+export default router;

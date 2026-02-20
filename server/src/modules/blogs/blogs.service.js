@@ -2,68 +2,67 @@ import {
   BadRequestError,
   NotFoundError,
   NotAuthorizedError,
-} from "../../error/error";
-import { BlogRepository } from "./blogs.repository";
+} from "../../error/error.js";
+import { BlogRepository } from "./blogs.repository.js";
 
 export const BlogService = {
-  Create: async (payload) => {
-    const { role, isEmergency, ...data } = payload;
-    if (isEmergency && role === "PATIENT")
+  create: async (payload, user) => {
+    const { isEmergency, ...data } = payload;
+
+    if (!isEmergency && user.role === "PATIENT")
       throw new BadRequestError(
         "Patient are only allowed to create Emergency Post only",
       );
-    return BlogRepository.addBlog(data);
+    const autherId = user.id;
+    return await BlogRepository.addBlog(data, autherId);
   },
 
-  Delete: async (blogId, user) => {
+  delete: async (blogId, user) => {
     const blog = await BlogRepository.getBlogByid(blogId);
-    //blog exists or not
     if (!blog) throw new NotFoundError("Blog Not Found");
 
     if (user.role === "ADMIN") {
-      return await BlogRepository.DeleteBlogById(blogId);
-      //delete blog
+      return await BlogRepository.deleteBlogById(blogId);
     }
     const blogCreator = blog.authorId;
     if (blogCreator !== user.id) {
       throw new NotAuthorizedError("Only creator can perform delete");
     }
-    return await BlogRepository.DeleteBlogById(blogId);
+    return await BlogRepository.deleteBlogById(blogId);
   },
 
-  Update: async (blogId, user, updatedBlog) => {
+  update: async (blogId, user, updatedBlog) => {
     const blog = await BlogRepository.getBlogByid(blogId);
     if (!blog) throw new NotFoundError("Blog Not Found");
 
     const { title, content, isEmergency, address, city, latitude, longitude } =
       updatedBlog;
     if (!isEmergency && user.role === "PATIENT") {
-      await BlogRepository.DeleteBlogById(blogId);
-      return BadRequestError("Only Emergency Post are Allowed For Users");
+      await BlogRepository.deleteBlogById(blogId);
+      return new BadRequestError("Only Emergency Post are Allowed For Users");
     }
 
     const data = {
-      title,
-      content,
-      isEmergency,
-      address,
-      city,
-      latitude,
-      longitude,
+      title: title,
+      content: content,
+      isEmergency: isEmergency,
+      address: address,
+      city: city,
+      latitude: latitude,
+      longitude: longitude,
     };
 
     if (user.role == "ADMIN") {
-      return await BlogRepository.UpdateBlog(id, data);
+      return await BlogRepository.updateBlogByID(blogId, data);
     }
     const blogCreator = blog.authorId;
 
     if (blogCreator !== user.id) {
       throw new NotAuthorizedError("Only Creator Can Update");
     }
-    return await BlogRepository.UpdateBlog(id, data);
+    return await BlogRepository.updateBlogByID(blogId, data);
   },
-
-  FetchAllBlogs: async () => {
+  fetchAllBlogs: async () => {
     const data = await BlogRepository.getAll();
     if (!data) {
       throw new NotFoundError("Blogs Not Found");
