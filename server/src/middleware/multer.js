@@ -1,48 +1,69 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { v4 as uuid } from "uuid";
+import { fileURLToPath } from "url";
 
-// Ensure upload directory exists
-const uploadDir = path.join(process.cwd(), "uploads/work");
+// Fix __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// ensure directories exist
+const makeDir = (dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+};
 
-// Storage config
+// create upload directories
+makeDir(path.join(__dirname, "../uploads/documents"));
+makeDir(path.join(__dirname, "../uploads/reports"));
+makeDir(path.join(__dirname, "../uploads/medicines"));
+
+// storage configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    if (file.fieldname === "files") {
+      cb(null, path.join(__dirname, "../uploads/documents"));
+    } else if (file.fieldname === "reports") {
+      cb(null, path.join(__dirname, "../uploads/reports"));
+    } else if (file.fieldname === "medicineImages") {
+      cb(null, path.join(__dirname, "../uploads/medicines"));
+    } else {
+      cb(null, path.join(__dirname, "../uploads"));
+    }
   },
 
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
-    const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, `${uniqueName}${ext}`);
+    const uniqueName = uuid() + ext;
+    cb(null, uniqueName);
   },
 });
 
-// File filter (images only)
+// file type validation
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|webp/;
-  const extname = allowedTypes.test(
-    path.extname(file.originalname).toLowerCase(),
-  );
-  const mimetype = allowedTypes.test(file.mimetype);
-  if (extname && mimetype) {
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "application/pdf",
+  ];
+
+  if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only image files are allowed"));
+    cb(new Error("Unsupported file type"), false);
   }
 };
 
-// Multer instance
-const upload = multer({
+// multer instance
+const uploadMedical = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB per image
+    fileSize: 10 * 1024 * 1024, // 10MB
   },
 });
 
-export default upload;
+export default uploadMedical;
