@@ -9,11 +9,33 @@ datasource db {
   provider = "postgresql"
 }
 
+// ENUMS
 enum Role {
   PATIENT
   DOCTOR
   ADMIN
 }
+
+enum FileType {
+  DOCTOR_TICKET
+  PRESCRIPTION
+  OTHER
+}
+
+enum MedicalReportType {
+  BLOOD_TEST
+  URINE_TEST
+  STOOL_TEST
+  XRAY
+  MRI
+  CT_SCAN
+  ECG
+  ULTRASOUND
+  LAB_REPORT
+  OTHER
+}
+
+// USER & DOCTOR
 
 model User {
   id       String @id @default(uuid())
@@ -22,37 +44,36 @@ model User {
   password String
   role     Role   @default(PATIENT)
 
-  // address & geo location
   address   String?
   city      String?
   latitude  Float?
   longitude Float?
 
-  // relations
-  doctor     Doctor?
-  blogs      Blog[]
-  blogLikes  BlogLike[]
-  comments   Comment[]
-  blogShares BlogShare[]
+  doctor           Doctor?
+  blogs            Blog[]
+  blogLikes        BlogLike[]
+  comments         Comment[]
+  blogShares       BlogShare[]
+  medicalDocuments MedicalDocument[]
+  medicalReports   MedicalReport[]
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([city])
 }
 
 model Doctor {
-  id     String @id @default(uuid())
-  nmid   String
-  degree String
-
-  userId   String  @unique
-  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id       String  @id @default(uuid())
+  nmid     String
+  degree   String
   verified Boolean @default(false)
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+// BLOG & EMERGENCY ALERT SYSTEM
 
 model Blog {
   id        String  @id @default(uuid())
@@ -60,20 +81,16 @@ model Blog {
   content   String
   published Boolean @default(true)
 
-  // author (any user)
   authorId String
   author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  // emergency flag
   isEmergency Boolean @default(false)
 
-  // location (for emergency & nearby alerts)
   address   String?
   city      String?
   latitude  Float?
   longitude Float?
 
-  // engagement
   likes    BlogLike[]
   comments Comment[]
   shares   BlogShare[]
@@ -82,29 +99,23 @@ model Blog {
   commentCount Int @default(0)
   shareCount   Int @default(0)
 
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  @@index([authorId])
-  @@index([isEmergency])
   @@index([city])
-  @@index([createdAt])
+  @@index([isEmergency])
 }
 
 model BlogLike {
-  id String @id @default(uuid())
-
+  id     String @id @default(uuid())
   blogId String
-  blog   Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade)
-
   userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now()) @map("created_at")
+  blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([blogId, userId]) // prevent duplicate likes
-  @@index([userId])
+  @@unique([blogId, userId])
 }
 
 model Comment {
@@ -112,38 +123,101 @@ model Comment {
   content String
 
   blogId String
-  blog   Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade)
-
   userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // replies support
+  blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   parentId String?
-  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
-  replies  Comment[] @relation("CommentReplies")
+  parent   Comment?  @relation("Replies", fields: [parentId], references: [id])
+  replies  Comment[] @relation("Replies")
 
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime?
-
-  @@index([blogId])
-  @@index([userId])
-  @@index([parentId])
+  createdAt DateTime @default(now())
 }
 
 model BlogShare {
-  id String @id @default(uuid())
+  id       String  @id @default(uuid())
+  blogId   String
+  userId   String
+  platform String?
 
-  blogId String
-  blog   Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// MEDICAL VISIT RECORD
+
+model MedicalDocument {
+  id String @id @default(uuid())
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  platform String? // facebook, whatsapp, etc.
+  hospital    String
+  location    String?
+  doctorName  String?
+  department  String?
+  description String?
 
-  createdAt DateTime @default(now()) @map("created_at")
+  checkupDate DateTime @default(now())
 
-  @@index([blogId])
+  medicines Medicine[]
+  files     MedicalFile[]
+  reports   MedicalReport[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
   @@index([userId])
+  @@index([checkupDate])
+}
+
+// MEDICINES PRESCRIBED
+model Medicine {
+  id       String  @id @default(uuid())
+  name     String
+  imageUrl String?
+
+  documentId String
+  document   MedicalDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+// GENERIC MEDICAL FILES
+model MedicalFile {
+  id       String   @id @default(uuid())
+  name     String
+  url      String
+  fileType FileType
+
+  documentId String
+  document   MedicalDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  uploadedAt DateTime @default(now())
+}
+
+// MEDICAL REPORTS (MULTIPLE BY TYPE)
+model MedicalReport {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  documentId String?
+  document   MedicalDocument? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  reportType MedicalReportType
+  reportDate DateTime?
+
+  fileUrl   String
+  thumbnail String?
+  notes     String?
+
+  resultSummary String? // future AI or doctor summary
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([reportType])
+  @@index([reportDate])
 }
