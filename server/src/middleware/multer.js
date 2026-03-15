@@ -67,3 +67,4 @@ const uploadMedical = multer({
 });
 
 export default uploadMedical;
+  
