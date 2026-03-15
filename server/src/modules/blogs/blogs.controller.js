@@ -75,3 +75,33 @@ export const getById = async (req, res, next) => {
     next(error);
   }
 };
+
+export const likeBlog = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+    const result = await BlogService.likeBlog(id, user);
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const addComment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+    const { content, parentId } = req.body;
+    const result = await BlogService.addComment(id, user, content, parentId);
+    return res.status(201).json({
+      success: true,
+      message: "Comment added successfully",
+      data: result[0],
+    });
+  } catch (error) {
+    next(error);
+  }
+};

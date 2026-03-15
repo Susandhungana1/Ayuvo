@@ -5,6 +5,8 @@ import {
   UpdateBlog,
   getAllBlogs,
   getById,
+  likeBlog,
+  addComment,
 } from "../../modules/blogs/blogs.controller.js";
 import { authMiddleware } from "../../middleware/authMiddleware.js";
 import BlogValidationSchema from "../../modules/blogs/blogs.schema.js";
@@ -21,5 +23,7 @@ router.patch(
 );
 router.delete("/:id", authMiddleware, DeleteBlog);
 router.get("/:id", authMiddleware, getById);
+router.post("/:id/like", authMiddleware, likeBlog);
+router.post("/:id/comment", authMiddleware, addComment);
 
 export default router;

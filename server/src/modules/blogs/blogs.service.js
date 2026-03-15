@@ -73,4 +73,15 @@ export const BlogService = {
     const data = await BlogRepository.getBlogByid(id);
     return data;
   },
+  likeBlog: async (blogId, user) => {
+    const blog = await BlogRepository.getBlogByid(blogId);
+    if (!blog) throw new NotFoundError("Blog Not Found");
+    return await BlogRepository.likeBlog(blogId, user.id);
+  },
+  addComment: async (blogId, user, content, parentId) => {
+    const blog = await BlogRepository.getBlogByid(blogId);
+    if (!blog) throw new NotFoundError("Blog Not Found");
+    if (!content) throw new BadRequestError("Comment content is required");
+    return await BlogRepository.addComment(blogId, user.id, content, parentId);
+  },
 };

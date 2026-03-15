@@ -18,7 +18,8 @@ enum Role {
 
 enum FileType {
   DOCTOR_TICKET
-  PRESCRIPTION
+  MEDICINES
+  MEDICAL_REPORTS
   OTHER
 }
 
@@ -32,7 +33,7 @@ enum MedicalReportType {
   ECG
   ULTRASOUND
   LAB_REPORT
-  OTHER
+  OTHERS
 }
 
 // USER & DOCTOR
@@ -156,7 +157,7 @@ model MedicalDocument {
   hospital    String
   location    String?
   doctorName  String?
-  department  String?
+  department  String? 
   description String?
 
   checkupDate DateTime @default(now())
