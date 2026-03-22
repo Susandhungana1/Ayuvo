@@ -215,6 +215,7 @@ model MedicalReport {
   notes     String?
 
   resultSummary String? // future AI or doctor summary
+  extractedText String? // OCR text from tesseract.js
 
   createdAt DateTime @default(now())
 
