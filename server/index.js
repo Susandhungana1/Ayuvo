@@ -2,8 +2,6 @@ import express from "express";
 import authRouter from "./src/routes/index.js";
 import { errorHandler } from "./src/middleware/errorMiddleware.js";
 
-
-
 const app = express();
 
 app.use(express.json());
