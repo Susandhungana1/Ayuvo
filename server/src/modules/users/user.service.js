@@ -90,7 +90,10 @@ export const UserService = {
   },
 
   //get all users
-  getAllUsers: async () => {
+  getAllUsers: async (role) => {
+    if (role !== "ADMIN") {
+      throw new NotAuthorizedError("Not Authorize");
+    }
     return await UserRepository.getAllUsers();
   },
 

@@ -53,16 +53,14 @@ export const updateUser = async (req, res, next) => {
 
 export const getAllUsers = async (req, res, next) => {
   try {
-    const users = await UserService.getAllUsers();
+    const users = await UserService.getAllUsers(req.user.role);
     if (!users) throw new BadRequestError("Users Not Found");
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "user fetched successfullly",
-        data: users,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "user fetched successfullly",
+      data: users,
+    });
   } catch (error) {
     next(error);
   }
@@ -74,13 +72,11 @@ export const deleteUser = async (req, res, next) => {
     const { password } = req.body;
     const deletedUser = await UserService.deleteUser(id, req.user, password);
     if (!deletedUser) throw new BadRequestError("Error deleting User");
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "user deleted successfully",
-        data: deletedUser,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "user deleted successfully",
+      data: deletedUser,
+    });
   } catch (error) {
     next(error);
   }
