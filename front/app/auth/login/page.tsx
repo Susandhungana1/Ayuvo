@@ -1,9 +1,59 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import { Card } from '@/components/card';
 import Link from 'next/link';
 
+const API_URL = 'http://127.0.0.1:3001';
+
 export default function Login() {
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          username: formData.email,
+          password: formData.password
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || 'Login failed');
+      }
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data));
+      window.dispatchEvent(new Event('localStorageUpdated'));
+      router.push('/');
+    } catch (err: any) {
+      setError(err.message || 'Invalid email or password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="bg-background min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
@@ -21,19 +71,25 @@ export default function Login() {
         </div>
 
         <Card className="p-8 shadow-sm">
-          <form className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <Input 
               label="Email Address"
+              name="email"
               type="email"
               placeholder="you@example.com"
+              value={formData.email}
+              onChange={handleChange}
               required
             />
             
             <div className="space-y-1">
               <Input 
                 label="Password"
+                name="password"
                 type="password"
                 placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
                 required
               />
               <div className="flex justify-end pt-1">
@@ -43,8 +99,12 @@ export default function Login() {
               </div>
             </div>
 
-            <Button type="button" className="w-full py-3">
-              Sign In
+            {error && (
+              <p className="text-red-500 text-sm">{error}</p>
+            )}
+
+            <Button type="submit" className="w-full py-3" disabled={loading}>
+              {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
 
