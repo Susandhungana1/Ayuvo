@@ -94,6 +94,13 @@ export default function Dashboard() {
                 <p className="text-subtext">Chronological view of all health events</p>
               </div>
             </Link>
+
+            <Link href="/export">
+              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                <h2 className="text-xl font-semibold text-text-main mb-2">Export Data</h2>
+                <p className="text-subtext">Download all your data as ZIP</p>
+              </div>
+            </Link>
           </div>
         )}
       </div>

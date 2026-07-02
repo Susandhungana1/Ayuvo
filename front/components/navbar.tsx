@@ -17,6 +17,7 @@ const moreLinks = [
   { href: '/emergency', label: 'Emergency ID' },
   { href: '/timeline', label: 'Timeline' },
   { href: '/share', label: 'Share' },
+  { href: '/export', label: 'Export Data' },
 ];
 
 const doctorLinks = [
