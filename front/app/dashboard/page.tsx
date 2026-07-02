@@ -73,6 +73,27 @@ export default function Dashboard() {
                 <p className="text-subtext">Securely share your medical data</p>
               </div>
             </Link>
+
+            <Link href="/vitals">
+              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                <h2 className="text-xl font-semibold text-text-main mb-2">Vital Signs</h2>
+                <p className="text-subtext">Track BP, heart rate, weight, blood sugar</p>
+              </div>
+            </Link>
+
+            <Link href="/emergency">
+              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                <h2 className="text-xl font-semibold text-text-main mb-2">Emergency ID</h2>
+                <p className="text-subtext">Blood type, allergies, emergency contacts</p>
+              </div>
+            </Link>
+
+            <Link href="/timeline">
+              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                <h2 className="text-xl font-semibold text-text-main mb-2">Timeline</h2>
+                <p className="text-subtext">Chronological view of all health events</p>
+              </div>
+            </Link>
           </div>
         )}
       </div>

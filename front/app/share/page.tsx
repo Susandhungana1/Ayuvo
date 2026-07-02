@@ -28,6 +28,7 @@ export default function Share() {
   const [loading, setLoading] = useState(true);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [reportQrModal, setReportQrModal] = useState<{reportId: string; reportName: string; url: string} | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -123,6 +124,25 @@ export default function Share() {
     }
   };
 
+  const handleReportQR = async (reportId: string, reportName: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/share/${reportId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const url = `${window.location.origin}/share/${data.token}`;
+        setReportQrModal({ reportId, reportName, url });
+      } else {
+        alert('Failed to create share link');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const getReportType = (reportId: string) => {
     if (reportId === '__ALL_REPORTS__') return 'All Reports (QR Code)';
     const report = reports.find(r => r.id === reportId);
@@ -152,19 +172,25 @@ export default function Share() {
                 <p className="text-subtext">No reports to share</p>
               </Card>
             ) : (
-              <div className="space-y-4">
+          <div className="space-y-4">
                 {reports.map((report) => (
                   <Card key={report.id} className="p-4">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="font-semibold text-text-main">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-text-main text-sm sm:text-base truncate">
                           {report.report_type.replace('_', ' ')}
                         </h3>
-                        <p className="text-subtext text-sm">{report.file_name}</p>
+                        <p className="text-subtext text-xs sm:text-sm truncate">{report.file_name}</p>
                       </div>
-                      <Button onClick={() => handleShare(report.id)}>
-                        Generate Link
-                      </Button>
+                      <div className="flex gap-2 w-full sm:w-auto">
+                        <button onClick={() => handleReportQR(report.id, report.report_type.replace('_', ' '))}
+                          className="text-xs sm:text-sm text-gray-600 hover:text-primary px-2 py-1.5 border rounded flex-1 sm:flex-none text-center">
+                          QR
+                        </button>
+                        <Button onClick={() => handleShare(report.id)} className="text-xs sm:text-sm flex-1 sm:flex-none">
+                          Generate Link
+                        </Button>
+                      </div>
                     </div>
                   </Card>
                 ))}
@@ -182,18 +208,18 @@ export default function Share() {
               <div className="space-y-4">
                 {shareLinks.map((link) => (
                   <Card key={link.token} className="p-4">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-semibold text-text-main">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-text-main text-sm sm:text-base truncate">
                           {getReportType(link.report_id)}
                         </p>
-                        <p className="text-subtext text-sm">
+                        <p className="text-subtext text-xs sm:text-sm">
                           Expires: {new Date(link.expires_at).toLocaleString()}
                         </p>
                       </div>
                       <button
                         onClick={() => handleDelete(link.token)}
-                        className="text-red-500 text-sm hover:underline"
+                        className="text-red-500 text-sm hover:underline self-start sm:self-auto"
                       >
                         Revoke
                       </button>
@@ -206,13 +232,13 @@ export default function Share() {
         </div>
 
         <div className="mt-8">
-          <Card className="p-6">
-            <div className="flex justify-between items-center mb-4">
+          <Card className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-text-main">Share All Reports via QR Code</h3>
-                <p className="text-subtext text-sm mt-1">Generate a QR code that contains all your medical reports</p>
+                <h3 className="text-base sm:text-lg font-semibold text-text-main">Share All Reports via QR Code</h3>
+                <p className="text-subtext text-xs sm:text-sm mt-1">Generate a QR code that contains all your medical reports</p>
               </div>
-              <Button onClick={handleGenerateQRCode} disabled={reports.length === 0}>
+              <Button onClick={handleGenerateQRCode} disabled={reports.length === 0} className="w-full sm:w-auto">
                 Generate QR Code
               </Button>
             </div>
@@ -220,8 +246,8 @@ export default function Share() {
         </div>
 
         <div className="mt-8">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-text-main mb-2">How it works</h3>
+          <Card className="p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-text-main mb-2">How it works</h3>
             <ul className="text-subtext text-sm space-y-2">
               <li>1. Select a report from your available reports</li>
               <li>2. Click "Generate Link" to create a secure share link</li>
@@ -248,6 +274,27 @@ export default function Share() {
                 Copy Link
               </Button>
               <Button onClick={() => setQrModalOpen(false)} variant="secondary">
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reportQrModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 text-center">
+            <h2 className="text-xl font-bold text-text-main mb-4">QR Code for {reportQrModal.reportName}</h2>
+            <div className="flex justify-center mb-4 p-4 bg-white">
+              <QRCodeSVG value={reportQrModal.url} size={200} />
+            </div>
+            <p className="text-subtext text-sm mb-4">Scan this QR code to view this report</p>
+            <p className="text-subtext text-xs mb-4">Link: {reportQrModal.url}</p>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={() => navigator.clipboard.writeText(reportQrModal.url).then(() => alert('Link copied!'))}>
+                Copy Link
+              </Button>
+              <Button onClick={() => setReportQrModal(null)} variant="secondary">
                 Close
               </Button>
             </div>

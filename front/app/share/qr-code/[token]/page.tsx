@@ -28,8 +28,22 @@ interface MedicineItem {
   notes?: string;
 }
 
+interface EmergencyContactItem {
+  name: string;
+  relationship: string;
+  phone: string;
+}
+
+interface EmergencyInfo {
+  blood_type: string | null;
+  allergies: string | null;
+  medical_conditions: string | null;
+  emergency_contacts: EmergencyContactItem[];
+}
+
 interface AllReportsData {
   user_name: string;
+  emergency: EmergencyInfo;
   reports: Report[];
   medicines: MedicineItem[];
 }
@@ -125,6 +139,50 @@ export default function ViewAllSharedReports() {
           Medical Information from {data?.user_name}
         </h1>
         <p className="text-subtext mb-6">{data?.reports.length} report(s) &middot; {data?.medicines.length} medicine(s)</p>
+
+        {data?.emergency && (data.emergency.blood_type || data.emergency.allergies || data.emergency.medical_conditions || data.emergency.emergency_contacts.length > 0) && (
+          <Card className="p-4 sm:p-6 mb-8 border-2 border-red-200 bg-red-50">
+            <div className="flex items-center gap-2 mb-4">
+              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-1.964-.833-2.732 0L4.068 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <h2 className="text-lg font-semibold text-red-800">Emergency Medical ID</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+              {data.emergency.blood_type && (
+                <div className="bg-white rounded-lg p-3 border border-red-200">
+                  <p className="text-xs text-red-600 font-medium uppercase tracking-wider">Blood Type</p>
+                  <p className="text-xl font-bold text-red-800 mt-1">{data.emergency.blood_type}</p>
+                </div>
+              )}
+              {data.emergency.allergies && (
+                <div className="bg-white rounded-lg p-3 border border-red-200">
+                  <p className="text-xs text-red-600 font-medium uppercase tracking-wider">Allergies</p>
+                  <p className="text-sm font-medium text-gray-800 mt-1">{data.emergency.allergies}</p>
+                </div>
+              )}
+              {data.emergency.medical_conditions && (
+                <div className="bg-white rounded-lg p-3 border border-red-200">
+                  <p className="text-xs text-red-600 font-medium uppercase tracking-wider">Medical Conditions</p>
+                  <p className="text-sm font-medium text-gray-800 mt-1">{data.emergency.medical_conditions}</p>
+                </div>
+              )}
+            </div>
+            {data.emergency.emergency_contacts.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-red-700 mb-2 uppercase tracking-wider">Emergency Contacts</p>
+                <div className="space-y-2">
+                  {data.emergency.emergency_contacts.map((c, i) => (
+                    <div key={i} className="bg-white rounded-lg p-3 border border-red-200 flex justify-between items-center">
+                      <span className="font-medium text-gray-800 text-sm">{c.name} ({c.relationship})</span>
+                      <span className="text-sm text-red-700 font-medium">{c.phone}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
 
         {data && data.medicines.length > 0 && (
           <div className="mb-8">

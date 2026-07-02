@@ -77,6 +77,10 @@ class User(SQLModel, table=True):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 
+    blood_type: Optional[str] = None
+    allergies: Optional[str] = None
+    medical_conditions: Optional[str] = None
+
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -216,4 +220,36 @@ class ShareLink(SQLModel, table=True):
     all_reports: bool = Field(default=False)
 
     expires_at: datetime
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class VitalSign(SQLModel, table=True):
+    __tablename__ = "vital_signs"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
+
+    blood_pressure_systolic: Optional[int] = None
+    blood_pressure_diastolic: Optional[int] = None
+    heart_rate: Optional[int] = None
+    weight: Optional[float] = None
+    blood_sugar: Optional[float] = None
+    temperature: Optional[float] = None
+    oxygen_saturation: Optional[int] = None
+
+    notes: Optional[str] = None
+    measured_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class EmergencyContact(SQLModel, table=True):
+    __tablename__ = "emergency_contacts"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
+
+    name: str
+    relationship: str
+    phone: str
+    email: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)

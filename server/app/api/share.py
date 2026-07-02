@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 
 from app.api.auth import get_current_user
 from app.core.config import get_session
-from app.models.models import User, MedicalReport, Medicine, ShareLink
+from app.models.models import User, MedicalReport, Medicine, ShareLink, EmergencyContact
 
 router = APIRouter()
 
@@ -56,10 +56,29 @@ class MedicineShareResponse(BaseModel):
     notes: Optional[str]
 
 
+class EmergencyContactShare(BaseModel):
+    name: str
+    relationship: str
+    phone: str
+
+
+class EmergencyShareResponse(BaseModel):
+    blood_type: Optional[str] = None
+    allergies: Optional[str] = None
+    medical_conditions: Optional[str] = None
+    emergency_contacts: List[EmergencyContactShare] = []
+
+
 class UserAllReportsResponse(BaseModel):
     user_name: str
+    emergency: EmergencyShareResponse = EmergencyShareResponse()
     reports: List[SharedReportResponse]
     medicines: List[MedicineShareResponse] = []
+
+
+class SharedReportWithEmergencyResponse(BaseModel):
+    report: SharedReportResponse
+    emergency: EmergencyShareResponse = EmergencyShareResponse()
 
 
 @router.get("", response_model=ShareLinksResponse)
@@ -92,10 +111,18 @@ async def create_all_reports_share_link(
     reports = db.exec(
         select(MedicalReport).where(MedicalReport.user_id == current_user.id)
     ).all()
-    
-    if not reports:
-        raise HTTPException(status_code=400, detail="No reports to share")
-    
+
+    medicines = db.exec(
+        select(Medicine).where(Medicine.user_id == current_user.id)
+    ).all()
+
+    emergency_contacts = db.exec(
+        select(EmergencyContact).where(EmergencyContact.user_id == current_user.id)
+    ).all()
+
+    if not reports and not medicines and not emergency_contacts and not current_user.blood_type and not current_user.allergies and not current_user.medical_conditions:
+        raise HTTPException(status_code=400, detail="Nothing to share")
+
     token = secrets.token_urlsafe(32)
     expires_at = datetime.utcnow() + timedelta(hours=expires_hours)
     
@@ -139,6 +166,8 @@ async def access_all_shared_reports(
     user = db.exec(select(User).where(User.id == share_link.user_id)).first()
     user_name = user.name if user else "Unknown"
     
+    emergency_info = _get_emergency_info(user, db)
+    
     reports_response = []
     for report in reports:
         file_content_b64 = ""
@@ -176,7 +205,29 @@ async def access_all_shared_reports(
         for m in medicines
     ]
 
-    return UserAllReportsResponse(user_name=user_name, reports=reports_response, medicines=medicines_response)
+    return UserAllReportsResponse(
+        user_name=user_name,
+        emergency=emergency_info,
+        reports=reports_response,
+        medicines=medicines_response
+    )
+
+
+def _get_emergency_info(user: User, db: Session) -> EmergencyShareResponse:
+    if not user:
+        return EmergencyShareResponse()
+    contacts = db.exec(
+        select(EmergencyContact).where(EmergencyContact.user_id == user.id)
+    ).all()
+    return EmergencyShareResponse(
+        blood_type=user.blood_type,
+        allergies=user.allergies,
+        medical_conditions=user.medical_conditions,
+        emergency_contacts=[
+            EmergencyContactShare(name=c.name, relationship=c.relationship, phone=c.phone)
+            for c in contacts
+        ],
+    )
 
 
 @router.post("/{report_id}", response_model=ShareResponse)
@@ -205,7 +256,7 @@ async def create_share_link(
     return ShareResponse(token=token, expires_at=expires_at)
 
 
-@router.get("/{token}", response_model=SharedReportResponse)
+@router.get("/{token}", response_model=SharedReportWithEmergencyResponse)
 async def access_shared_report(
     token: str,
     db: Session = Depends(get_session)
@@ -221,12 +272,13 @@ async def access_shared_report(
         raise HTTPException(status_code=410, detail="Share link expired")
     
     report = db.get(MedicalReport, share_link.report_id)
+    user = db.get(User, share_link.user_id)
     
     file_content_b64 = ""
     if report.file_content:
         file_content_b64 = base64.b64encode(report.file_content).decode("utf-8")
     
-    return SharedReportResponse(
+    report_response = SharedReportResponse(
         id=report.id,
         report_type=report.report_type,
         file_name=report.file_name,
@@ -236,6 +288,11 @@ async def access_shared_report(
         extracted_text=report.extracted_text,
         ai_report_text=report.ai_report_text,
         created_at=str(report.created_at) if report.created_at else None
+    )
+    
+    return SharedReportWithEmergencyResponse(
+        report=report_response,
+        emergency=_get_emergency_info(user, db)
     )
 
 
