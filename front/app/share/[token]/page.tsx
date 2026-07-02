@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/card';
 import { Button } from '@/components/button';
+import { FormalReportView } from '@/components/FormalReportView';
 
 const API_URL = 'http://127.0.0.1:3001';
 
@@ -13,8 +14,8 @@ interface SharedReport {
   file_name: string;
   file_content: string;
   notes?: string;
-  result_summary?: string;
-  extracted_text?: string;
+  ai_report_text?: string;
+  created_at?: string;
 }
 
 export default function ViewSharedReport() {
@@ -43,7 +44,6 @@ export default function ViewSharedReport() {
       const data = await res.json();
       setReport(data);
       
-      // Create blob URL from base64 file_content
       if (data.file_content) {
         const byteCharacters = atob(data.file_content);
         const byteNumbers = new Array(byteCharacters.length);
@@ -84,23 +84,35 @@ export default function ViewSharedReport() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <Button onClick={() => router.push('/auth/login')}>Login to HealthTracker</Button>
         </div>
         
-        <Card className="p-6">
-          <h1 className="text-2xl font-bold text-text-main mb-4">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-text-main mb-1">
             {report?.report_type.replace('_', ' ')}
           </h1>
-          
-          {fileUrl && (
-            <div className="mb-6">
-              <p className="text-sm text-subtext mb-2">Original Document</p>
-              {report?.file_name?.toLowerCase().endsWith('.pdf') ? (
+          {report?.created_at && (
+            <p className="text-subtext text-sm">
+              Uploaded: {new Date(report.created_at).toLocaleString()}
+            </p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
+                <span className="text-blue-700 text-xs font-bold">O</span>
+              </div>
+              <h2 className="text-lg font-semibold text-text-main">Original Document</h2>
+            </div>
+            {fileUrl ? (
+              report?.file_name?.toLowerCase().endsWith('.pdf') ? (
                 <iframe
                   src={fileUrl}
-                  className="w-full h-[70vh] border rounded-lg"
+                  className="w-full h-[50vh] border rounded-lg"
                   title={report?.file_name}
                 />
               ) : (
@@ -109,31 +121,36 @@ export default function ViewSharedReport() {
                   alt={report?.file_name}
                   className="max-w-full h-auto border rounded-lg"
                 />
-              )}
-            </div>
-          )}
-          
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-subtext">File Name</p>
-              <p className="text-text-main">{report?.file_name}</p>
-            </div>
-            
-            {report?.notes && (
-              <div>
-                <p className="text-sm text-subtext">Notes</p>
-                <p className="text-text-main">{report.notes}</p>
-              </div>
+              )
+            ) : (
+              <p className="text-subtext text-sm">No file preview available</p>
             )}
-            
-            {report?.result_summary && (
-              <div>
-                <p className="text-sm text-subtext">AI Summary</p>
-                <p className="text-text-main">{report.result_summary}</p>
+            <p className="text-subtext text-xs mt-2">{report?.file_name}</p>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-6 h-6 bg-purple-100 rounded flex items-center justify-center">
+                <span className="text-purple-700 text-xs font-bold">AI</span>
               </div>
+              <h2 className="text-lg font-semibold text-text-main">Formal AI Medical Report</h2>
+            </div>
+            {report?.ai_report_text ? (
+              <div className="max-h-[60vh] overflow-y-auto border rounded-lg">
+                <FormalReportView content={report.ai_report_text} />
+              </div>
+            ) : (
+              <p className="text-subtext text-sm">No AI report available for this document.</p>
             )}
-          </div>
-        </Card>
+          </Card>
+        </div>
+
+        {report?.notes && (
+          <Card className="p-4 mb-6">
+            <p className="text-sm text-subtext">Patient Notes</p>
+            <p className="text-text-main italic">{report.notes}</p>
+          </Card>
+        )}
       </div>
     </div>
   );

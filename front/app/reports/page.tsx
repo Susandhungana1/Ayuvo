@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Input } from '@/components/input';
+import { FormalReportView } from '@/components/FormalReportView';
 
 const API_URL = 'http://127.0.0.1:3001';
 
@@ -16,6 +17,7 @@ interface Report {
   notes?: string;
   result_summary?: string;
   extracted_text?: string;
+  ai_report_text?: string;
 }
 
 export default function Reports() {
@@ -27,8 +29,9 @@ export default function Reports() {
   const [reportType, setReportType] = useState('');
   const [reportDate, setReportDate] = useState('');
   const [notes, setNotes] = useState('');
-  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [uploadedReport, setUploadedReport] = useState<Report | null>(null);
   const [viewingReport, setViewingReport] = useState<{url: string; name: string} | null>(null);
+  const [viewingAiReport, setViewingAiReport] = useState<{id: string; content: string} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -63,31 +66,26 @@ export default function Reports() {
     }
   };
 
-  const handleExtractAndPreview = async () => {
+  const handleUpload = async () => {
     if (!selectedFile) return;
-    
     setUploading(true);
-    setAiSummary(null);
-    
+    setUploadedReport(null);
     try {
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('report_type', reportType || 'OTHER');
       if (reportDate) formData.append('report_date', reportDate);
       if (notes) formData.append('notes', notes);
-
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_URL}/api/reports`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
-
       if (res.ok) {
         const data = await res.json();
-        setAiSummary(data.extracted_text || data.result_summary || 'No text extracted');
+        setUploadedReport(data);
         fetchReports();
-        
         setSelectedFile(null);
         setNotes('');
         setReportType('');
@@ -101,24 +99,6 @@ export default function Reports() {
       alert(err.message || 'Failed to process file');
     } finally {
       setUploading(false);
-    }
-  };
-
-  const handleGenerateAISummary = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/reports/ai-summary`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        alert(data.summary || 'No summary available');
-      } else {
-        alert('Failed to generate summary');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Error generating summary');
     }
   };
 
@@ -164,9 +144,8 @@ export default function Reports() {
         <Card className="p-6 mb-8">
           <h2 className="text-xl font-semibold text-text-main mb-4">Upload Medical Report</h2>
           <p className="text-subtext text-sm mb-4">
-            Upload a photo or file of your medical report. AI will read the text and generate a summary.
+            Upload a photo or file of your medical report. AI will read the text and generate a formal medical report.
           </p>
-          
           <div className="space-y-4">
             <div className="flex flex-col gap-1.5 w-full">
               <label className="text-sm font-medium text-gray-700">Upload File (Photo/PDF)</label>
@@ -177,9 +156,7 @@ export default function Reports() {
                 onChange={handleFileSelect}
                 className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-white hover:file:bg-blue-700"
               />
-              {selectedFile && (
-                <p className="text-sm text-subtext">Selected: {selectedFile.name}</p>
-              )}
+              {selectedFile && <p className="text-sm text-subtext">Selected: {selectedFile.name}</p>}
             </div>
 
             <div className="flex flex-col gap-1.5 w-full">
@@ -210,38 +187,50 @@ export default function Reports() {
             />
 
             <div className="flex flex-col gap-1.5 w-full">
-              <label className="text-sm font-medium text-gray-700">
-                Your Notes (AI will use these to understand context better)
-              </label>
+              <label className="text-sm font-medium text-gray-700">Your Notes</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add any notes like: This is my annual checkup, I was feeling tired lately, Doctor asked me to take this test..."
+                placeholder="Add any notes like: This is my annual checkup, I was feeling tired lately..."
                 className="flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
                 rows={3}
               />
             </div>
 
-            <Button 
-              onClick={handleExtractAndPreview} 
-              disabled={!selectedFile || uploading}
-            >
-              {uploading ? 'AI is reading your report...' : 'Upload & Generate Summary'}
+            <Button onClick={handleUpload} disabled={!selectedFile || uploading}>
+              {uploading ? 'AI is reading your report...' : 'Upload & Generate Report'}
             </Button>
 
-            {aiSummary && (
-              <div className="mt-4 p-4 bg-green-50 rounded-lg">
-                <h3 className="font-semibold text-green-800 mb-2">AI Extracted Text:</h3>
-                <p className="text-green-700 text-sm whitespace-pre-wrap">{aiSummary}</p>
+            {uploadedReport?.ai_report_text && (
+              <div className="mt-6 border rounded-lg overflow-hidden">
+                <div className="bg-gray-50 px-6 py-3 border-b flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-purple-100 rounded flex items-center justify-center">
+                      <span className="text-purple-700 text-xs font-bold">AI</span>
+                    </div>
+                    <h3 className="font-semibold text-gray-900">Formal AI Medical Report</h3>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const blob = new Blob([uploadedReport.ai_report_text!], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url; a.download = `medical-report-${uploadedReport.id.slice(0, 8)}.txt`;
+                      a.click(); URL.revokeObjectURL(url);
+                    }}
+                    className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download
+                  </button>
+                </div>
+                <FormalReportView content={uploadedReport.ai_report_text} />
               </div>
             )}
           </div>
         </Card>
-
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-text-main">Your Reports</h2>
-          <Button onClick={handleGenerateAISummary}>Generate AI Summary</Button>
-        </div>
 
         {loading ? (
           <p className="text-subtext">Loading...</p>
@@ -251,48 +240,33 @@ export default function Reports() {
             <p className="text-subtext text-sm">Upload your first report above</p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {reports.map((report) => (
-              <Card key={report.id} className="p-6">
-                <h3 className="text-lg font-semibold text-text-main mb-2">
-                  {report.report_type.replace('_', ' ')}
-                </h3>
-                {report.report_date && (
-                  <p className="text-subtext text-sm mb-2">
-                    Date: {new Date(report.report_date).toLocaleDateString()}
-                  </p>
-                )}
-                {report.file_name && (
-                  <p className="text-subtext text-sm mb-2">File: {report.file_name}</p>
-                )}
-                {report.notes && (
-                  <p className="text-subtext text-sm mb-2 italic">Notes: {report.notes}</p>
-                )}
-                {report.result_summary && (
-                  <p className="text-subtext text-sm mb-4 truncate">{report.result_summary}</p>
-                )}
-                <div className="flex gap-2 flex-wrap">
-                  <button
-                    onClick={() => handleViewReport(report)}
-                    className="text-primary text-sm hover:underline"
-                  >
-                    View
-                  </button>
-                  <button
-                    onClick={handleGenerateAISummary}
-                    className="text-blue-600 text-sm hover:underline"
-                  >
-                    AI Summary
-                  </button>
-                  <button
-                    onClick={() => handleDelete(report.id)}
-                    className="text-red-500 text-sm hover:underline"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </Card>
-            ))}
+          <div>
+            <h2 className="text-xl font-semibold text-text-main mb-4">Your Reports</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {reports.map((report) => (
+                <Card key={report.id} className="p-6">
+                  <h3 className="text-lg font-semibold text-text-main mb-2">
+                    {report.report_type.replace('_', ' ')}
+                  </h3>
+                  {report.report_date && (
+                    <p className="text-subtext text-sm mb-2">
+                      Date: {new Date(report.report_date).toLocaleDateString()}
+                    </p>
+                  )}
+                  {report.file_name && (
+                    <p className="text-subtext text-sm mb-2">File: {report.file_name}</p>
+                  )}
+                  {report.notes && (
+                    <p className="text-subtext text-sm mb-2 italic">Notes: {report.notes}</p>
+                  )}
+                  <div className="flex gap-2 flex-wrap">
+                    <button onClick={() => handleViewReport(report)} className="text-primary text-sm hover:underline">View</button>
+                    <button onClick={() => setViewingAiReport({ id: report.id, content: report.ai_report_text || 'No AI report available' })} className="text-purple-600 text-sm hover:underline">AI Report</button>
+                    <button onClick={() => handleDelete(report.id)} className="text-red-500 text-sm hover:underline">Delete</button>
+                  </div>
+                </Card>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -302,25 +276,54 @@ export default function Reports() {
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="font-medium">{viewingReport.name}</h3>
-              <button onClick={() => setViewingReport(null)} className="text-gray-500 hover:text-gray-700">
-                ✕
-              </button>
+              <button onClick={() => { URL.revokeObjectURL(viewingReport.url); setViewingReport(null); }} className="text-gray-500 hover:text-gray-700">✕</button>
             </div>
             <div className="p-4">
               {viewingReport.name.toLowerCase().endsWith('.pdf') ? (
-                <iframe
-                  src={viewingReport.url}
-                  className="w-full h-[70vh]"
-                  title={viewingReport.name}
-                />
+                <iframe src={viewingReport.url} className="w-full h-[70vh]" title={viewingReport.name} />
               ) : (
-                <img
-                  src={viewingReport.url}
-                  alt={viewingReport.name}
-                  className="max-w-full h-auto"
-                />
+                <img src={viewingReport.url} alt={viewingReport.name} className="max-w-full h-auto" />
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {viewingAiReport && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto shadow-xl">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Formal AI Medical Report</h3>
+                  <p className="text-xs text-gray-500">Generated by HealthTracker AI</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    const blob = new Blob([viewingAiReport.content], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = `medical-report-${viewingAiReport.id.slice(0, 8)}.txt`;
+                    a.click(); URL.revokeObjectURL(url);
+                  }}
+                  className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Download
+                </button>
+                <button onClick={() => setViewingAiReport(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+              </div>
+            </div>
+            <FormalReportView content={viewingAiReport.content} />
           </div>
         </div>
       )}

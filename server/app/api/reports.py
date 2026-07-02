@@ -32,6 +32,7 @@ class ReportResponse(BaseModel):
     notes: Optional[str]
     result_summary: Optional[str]
     extracted_text: Optional[str]
+    ai_report_text: Optional[str]
 
 
 class ReportListResponse(BaseModel):
@@ -40,6 +41,10 @@ class ReportListResponse(BaseModel):
 
 class AISummary(BaseModel):
     summary: str
+
+
+class AIReport(BaseModel):
+    report: str
 
 
 import base64
@@ -113,6 +118,97 @@ Report data:
     return None
 
 
+async def generate_formal_ai_report(report_type: str, extracted_text: str, notes: Optional[str] = None, report_date: Optional[str] = None) -> Optional[str]:
+    if not settings.openrouter_api_key:
+        return None
+    
+    prompt = f"""You are a medical report analyst. Based on the following medical report data, generate a comprehensive, formal, and well-structured medical report.
+
+Format the report with the following sections:
+
+================================================================================
+                        FORMAL MEDICAL REPORT
+================================================================================
+
+REPORT TYPE: {report_type.replace('_', ' ').title()}
+REPORT DATE: {report_date or 'Not specified'}
+
+--------------------------------------------------------------------------------
+1.  PATIENT INFORMATION
+    - (Summarize patient context from notes if available)
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+2.  REPORT CLASSIFICATION
+    - Type of examination/analysis performed
+    - Date of analysis
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+3.  RESULTS & FINDINGS
+    (Present all extracted values in a structured format with reference ranges
+     where applicable. Clearly indicate which values are within normal range
+     and which are outside.)
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+4.  INTERPRETATION & ANALYSIS
+    (Provide a detailed medical interpretation of the findings. Explain what
+     abnormal results may indicate and their potential implications.)
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+5.  CLINICAL CORRELATION
+    (Correlate findings with patient notes and symptoms if provided.)
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+6.  RECOMMENDATIONS & FOLLOW-UP
+    (Provide specific recommendations based on the findings. Include suggested
+     follow-up tests, lifestyle modifications, or specialist referrals if
+     applicable.)
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+7.  CONCLUSION
+    (Summarize the overall health status based on this report.)
+--------------------------------------------------------------------------------
+
+Report data to analyze:
+{extracted_text}"""
+
+    if notes:
+        prompt += f"\n\nPatient Notes/Context:\n{notes}"
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {settings.openrouter_api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "openai/gpt-4o-mini",
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": "You are a senior medical report analyst. Generate formal, detailed, and structured medical reports. Use professional medical terminology while remaining clear and concise."
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ]
+                }
+            )
+            if response.status_code == 200:
+                return response.json()["choices"][0]["message"]["content"]
+    except Exception as e:
+        print(f"AI formal report error: {e}")
+    return None
+
+
 MAX_FILE_SIZE = 10 * 1024 * 1024
 
 
@@ -148,6 +244,23 @@ async def create_report(
     db.commit()
     db.refresh(report)
     
+    if extracted_text:
+        summary = await generate_ai_summary(extracted_text, notes)
+        if summary:
+            report.result_summary = summary
+        ai_report = await generate_formal_ai_report(
+            report_type=report.report_type,
+            extracted_text=extracted_text,
+            notes=notes,
+            report_date=str(report.report_date) if report.report_date else None
+        )
+        if ai_report:
+            report.ai_report_text = ai_report
+        if summary or ai_report:
+            db.add(report)
+            db.commit()
+            db.refresh(report)
+    
     return ReportResponse(
         id=report.id,
         report_type=report.report_type,
@@ -155,7 +268,8 @@ async def create_report(
         file_name=report.file_name,
         notes=report.notes,
         result_summary=report.result_summary,
-        extracted_text=report.extracted_text
+        extracted_text=report.extracted_text,
+        ai_report_text=report.ai_report_text
     )
 
 
@@ -203,7 +317,8 @@ async def list_reports(
                 file_name=r.file_name,
                 notes=r.notes,
                 result_summary=r.result_summary,
-                extracted_text=r.extracted_text
+                extracted_text=r.extracted_text,
+                ai_report_text=r.ai_report_text
             )
             for r in reports
         ]
@@ -248,8 +363,22 @@ async def get_report(
         file_name=report.file_name,
         notes=report.notes,
         result_summary=report.result_summary,
-        extracted_text=report.extracted_text
+        extracted_text=report.extracted_text,
+        ai_report_text=report.ai_report_text
     )
+
+
+@router.get("/{report_id}/ai-report", response_model=AIReport)
+async def get_ai_report(
+    report_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    report = db.get(MedicalReport, report_id)
+    if not report or report.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    return AIReport(report=report.ai_report_text or "No AI report available")
 
 
 @router.get("/{report_id}/file")

@@ -1,0 +1,53 @@
+DATABASE STUFF
+
+Here's how to see what's inside the database:
+
+SHOW ALL TABLES
+---------------
+psql -U healthtracker -d healthtracker -c "\dt"
+
+
+SEE ALL USERS
+-------------
+psql -U healthtracker -d healthtracker -c "SELECT * FROM users;"
+
+
+SEE ALL DOCTORS
+---------------
+psql -U healthtracker -d healthtracker -c "SELECT * FROM doctors;"
+
+
+SEE ALL APPOINTMENTS
+--------------------
+psql -U healthtracker -d healthtracker -c "SELECT * FROM appointments;"
+
+
+SEE ALL REPORTS
+---------------
+psql -U healthtracker -d healthtracker -c "SELECT * FROM medical_reports;"
+
+
+FIND SPECIFIC USER
+-------------------
+psql -U healthtracker -d healthtracker -c "SELECT * FROM users WHERE email = 'some@email.com';"
+
+
+COUNT THINGS
+------------
+psql -U healthtracker -d healthtracker -c "SELECT COUNT(*) FROM users;"
+
+
+UPDATE SOMETHING
+-----------------
+psql -U healthtracker -d healthtracker -c "UPDATE users SET role = 'DOCTOR' WHERE email = 'some@email.com';"
+
+
+TABLE NAMES
+-----------
+- users = all user accounts
+- doctors = doctor profiles
+- appointments = booked appointments
+- medical_reports = uploaded reports
+- medical_documents = uploaded documents
+- share_links = generated share links
+- chat_messages = all chat messages

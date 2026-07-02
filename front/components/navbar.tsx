@@ -10,14 +10,12 @@ const patientLinks = [
   { href: '/appointments', label: 'Appointments' },
   { href: '/reports', label: 'Reports' },
   { href: '/medicines', label: 'Medicines' },
-  { href: '/chat', label: 'Chat' },
   { href: '/share', label: 'Share' },
 ];
 
 const doctorLinks = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/doctor/appointments', label: 'Appointments' },
-  { href: '/doctor/chat', label: 'Messages' },
   { href: '/doctor/availability', label: 'Availability' },
 ];
 

@@ -93,6 +93,9 @@ export default function Share() {
       if (res.ok) {
         fetchData();
         alert('Share link revoked');
+      } else {
+        const err = await res.json();
+        alert(err.detail || 'Failed to revoke share link');
       }
     } catch (err) {
       console.error(err);
@@ -121,6 +124,7 @@ export default function Share() {
   };
 
   const getReportType = (reportId: string) => {
+    if (reportId === '__ALL_REPORTS__') return 'All Reports (QR Code)';
     const report = reports.find(r => r.id === reportId);
     return report ? report.report_type.replace('_', ' ') : 'Unknown';
   };

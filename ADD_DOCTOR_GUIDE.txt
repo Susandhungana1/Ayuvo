@@ -1,0 +1,21 @@
+ADD NEW DOCTOR
+
+Here's how to add a new doctor:
+
+1. Register the doctor
+   - Go to: http://localhost:3000/auth/register
+   - Enter their email and password
+
+2. Make them a doctor (run in terminal):
+   psql -U healthtracker -d healthtracker -c "UPDATE users SET role = 'DOCTOR' WHERE email = 'doctor@email.com';"
+
+3. Login to get token:
+   curl -s -X POST "http://localhost:3001/api/auth/login" -H "Content-Type: application/x-www-form-urlencoded" -d "username=doctor@email.com&password=THEIR_PASSWORD"
+
+4. Create doctor profile (use the token from step 3):
+   curl -X POST "http://localhost:3001/api/doctors/doctors" -H "Content-Type: application/json" -H "Authorization: Bearer PASTE_TOKEN_HERE" -d '{"nmid":"MD003","name":"Dr. Name","degree":"MD","specialty":"Specialty"}'
+
+5. Make visible to patients:
+   psql -U healthtracker -d healthtracker -c "UPDATE doctors SET verified = true WHERE nmid='MD003';"
+
+Done! Doctor will show in appointments and chat.

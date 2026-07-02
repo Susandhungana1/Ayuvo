@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/card';
 import { Button } from '@/components/button';
+import { FormalReportView } from '@/components/FormalReportView';
 
 const API_URL = 'http://127.0.0.1:3001';
 
@@ -13,12 +14,24 @@ interface Report {
   file_name: string;
   file_content: string;
   notes?: string;
-  result_summary?: string;
+  ai_report_text?: string;
+  created_at?: string;
+}
+
+interface MedicineItem {
+  id: string;
+  name: string;
+  dosage: string;
+  frequency: string;
+  start_date: string;
+  end_date?: string;
+  notes?: string;
 }
 
 interface AllReportsData {
   user_name: string;
   reports: Report[];
+  medicines: MedicineItem[];
 }
 
 export default function ViewAllSharedReports() {
@@ -30,6 +43,7 @@ export default function ViewAllSharedReports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [viewingReport, setViewingReport] = useState<{url: string; name: string} | null>(null);
+  const [expandedAiReports, setExpandedAiReports] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (token) {
@@ -70,6 +84,16 @@ export default function ViewAllSharedReports() {
     }
   };
 
+  const toggleAiReport = (id: string) => {
+    const next = new Set(expandedAiReports);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    setExpandedAiReports(next);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -92,42 +116,86 @@ export default function ViewAllSharedReports() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <Button onClick={() => router.push('/auth/login')}>Login to HealthTracker</Button>
         </div>
         
         <h1 className="text-2xl font-bold text-text-main mb-2">
-          Medical Reports from {data?.user_name}
+          Medical Information from {data?.user_name}
         </h1>
-        <p className="text-subtext mb-6">Total: {data?.reports.length} report(s)</p>
+        <p className="text-subtext mb-6">{data?.reports.length} report(s) &middot; {data?.medicines.length} medicine(s)</p>
+
+        {data && data.medicines.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-text-main mb-3 flex items-center gap-2">
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9h3m7 0h3M5 15h3m7 0h3M2 7h20v10H2V7z" />
+              </svg>
+              Medicines
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {data.medicines.map((med) => (
+                <Card key={med.id} className="p-4 border-l-4 border-l-green-400">
+                  <h3 className="font-semibold text-text-main mb-1">{med.name}</h3>
+                  <p className="text-subtext text-xs mb-0.5">Dosage: {med.dosage}</p>
+                  <p className="text-subtext text-xs mb-0.5">Frequency: {med.frequency}</p>
+                  <p className="text-subtext text-xs mb-0.5">Started: {new Date(med.start_date).toLocaleDateString()}</p>
+                  {med.end_date && <p className="text-subtext text-xs mb-0.5">Ends: {new Date(med.end_date).toLocaleDateString()}</p>}
+                  {med.notes && <p className="text-subtext text-xs mt-1 italic">{med.notes}</p>}
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <h2 className="text-lg font-semibold text-text-main mb-3">Medical Reports</h2>
         
         {data?.reports.length === 0 ? (
           <Card className="p-8 text-center">
-            <p className="text-subtext">No reports available</p>
+            <p className="text-subtext">No reports shared</p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {data?.reports.map((report) => (
-              <Card key={report.id} className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
+          <div className="space-y-6">
+            {data?.reports.map((report, index) => (
+              <Card key={report.id} className="p-5">
+                <div className="flex items-start gap-3 mb-2">
+                  <div className="w-7 h-7 bg-primary rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0">
+                    {index + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-text-main">
                       {report.report_type.replace('_', ' ')}
                     </h3>
-                    <p className="text-subtext text-sm">{report.file_name}</p>
+                    <p className="text-subtext text-xs">{report.file_name}</p>
+                    {report.created_at && (
+                      <p className="text-subtext text-xs">
+                        Uploaded: {new Date(report.created_at).toLocaleString()}
+                      </p>
+                    )}
                   </div>
-                  <Button onClick={() => handleViewReport(report)}>
-                    View
-                  </Button>
                 </div>
-                {report.notes && (
-                  <p className="text-subtext text-sm mt-2">{report.notes}</p>
-                )}
-                {report.result_summary && (
-                  <div className="mt-2 p-2 bg-green-50 rounded text-sm">
-                    <p className="font-medium text-green-800">AI Summary:</p>
-                    <p className="text-green-700">{report.result_summary}</p>
+
+                <div className="flex gap-2 mb-3">
+                  <button
+                    onClick={() => handleViewReport(report)}
+                    className="text-primary text-sm hover:underline"
+                  >
+                    View Original
+                  </button>
+                  {report.ai_report_text && (
+                    <button
+                      onClick={() => toggleAiReport(report.id)}
+                      className="text-purple-600 text-sm hover:underline"
+                    >
+                      {expandedAiReports.has(report.id) ? 'Hide AI Report' : 'AI Report'}
+                    </button>
+                  )}
+                </div>
+
+                {expandedAiReports.has(report.id) && report.ai_report_text && (
+                  <div className="border rounded-lg overflow-hidden">
+                    <FormalReportView content={report.ai_report_text} />
                   </div>
                 )}
               </Card>

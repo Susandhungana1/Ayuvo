@@ -37,13 +37,6 @@ export default function Dashboard() {
               </div>
             </Link>
 
-            <Link href="/doctor/chat">
-              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <h2 className="text-xl font-semibold text-text-main mb-2">Patient Messages</h2>
-                <p className="text-subtext">View and respond to patient chats</p>
-              </div>
-            </Link>
-
             <Link href="/doctor/availability">
               <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                 <h2 className="text-xl font-semibold text-text-main mb-2">My Availability</h2>
@@ -71,13 +64,6 @@ export default function Dashboard() {
               <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                 <h2 className="text-xl font-semibold text-text-main mb-2">Medicines</h2>
                 <p className="text-subtext">Track your medications</p>
-              </div>
-            </Link>
-
-            <Link href="/chat">
-              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <h2 className="text-xl font-semibold text-text-main mb-2">Chat with Doctor</h2>
-                <p className="text-subtext">Message your healthcare provider</p>
               </div>
             </Link>
 

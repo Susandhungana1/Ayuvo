@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://healthtracker:password@localhost:5432/healthtracker"
     jwt_secret: str = "your_jwt_secret_min_32_chars_long_key_here"
     openrouter_api_key: str = ""
+    groq_api_key: str = ""
     n8n_webhook_url: str = "http://localhost:5678/webhook"
     
     class Config:

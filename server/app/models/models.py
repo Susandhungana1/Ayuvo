@@ -132,10 +132,14 @@ class Medicine(SQLModel, table=True):
     __tablename__ = "medicines"
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
     name: str
-    image_url: Optional[str] = None
-
-    document_id: str = Field(foreign_key="medical_documents.id")
+    dosage: str
+    frequency: str
+    start_date: str
+    end_date: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class MedicalFile(SQLModel, table=True):
@@ -168,6 +172,7 @@ class MedicalReport(SQLModel, table=True):
 
     result_summary: Optional[str] = None
     extracted_text: Optional[str] = None
+    ai_report_text: Optional[str] = None
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -200,27 +205,15 @@ class Appointment(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-class ChatMessage(SQLModel, table=True):
-    __tablename__ = "chat_messages"
-
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    sender_id: str = Field(foreign_key="users.id", index=True)
-    receiver_id: str = Field(foreign_key="users.id", index=True)
-
-    message: str
-    read: bool = Field(default=False)
-
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
-
 class ShareLink(SQLModel, table=True):
     __tablename__ = "share_links"
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     token: str = Field(unique=True, index=True)
 
-    report_id: str = Field(foreign_key="medical_reports.id")
+    report_id: Optional[str] = Field(default=None)
     user_id: str = Field(foreign_key="users.id")
+    all_reports: bool = Field(default=False)
 
     expires_at: datetime
     created_at: datetime = Field(default_factory=datetime.utcnow)

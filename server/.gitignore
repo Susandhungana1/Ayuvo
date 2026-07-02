@@ -1,9 +1,11 @@
 node_modules
-# Keep environment variables out of version control
 .env
-  ../node_modules/
+__pycache__/
+*.pyc
+.venv/
+*.log
+.DS_Store
 src/generated/prisma
 /src/
 eng.traineddata
 src/upload
-node_modules

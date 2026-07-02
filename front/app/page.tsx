@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
-import { Shield, Activity, MessageSquare, Share2, UploadCloud, Clock, Lock, Users, Calendar, Stethoscope } from 'lucide-react';
+import { Shield, Activity, Share2, UploadCloud, Clock, Lock, Users, Calendar, Stethoscope } from 'lucide-react';
 
 export default function Home() {
   const router = useRouter();
@@ -121,14 +121,6 @@ export default function Home() {
 
                 <Card className="hover:shadow-md transition-shadow duration-300">
                   <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6 text-primary">
-                    <MessageSquare size={24} />
-                  </div>
-                  <h3 className="text-xl font-semibold text-text-main mb-3">Patient Messages</h3>
-                  <p className="text-subtext">Chat with patients and respond to their medical queries.</p>
-                </Card>
-
-                <Card className="hover:shadow-md transition-shadow duration-300">
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6 text-primary">
                     <Stethoscope size={24} />
                   </div>
                   <h3 className="text-xl font-semibold text-text-main mb-3">Manage Availability</h3>
@@ -151,14 +143,6 @@ export default function Home() {
                   </div>
                   <h3 className="text-xl font-semibold text-text-main mb-3">Track Health</h3>
                   <p className="text-subtext">Monitor your vitals and organize your appointments in an easy-to-read dashboard.</p>
-                </Card>
-
-                <Card className="hover:shadow-md transition-shadow duration-300">
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6 text-primary">
-                    <MessageSquare size={24} />
-                  </div>
-                  <h3 className="text-xl font-semibold text-text-main mb-3">Chat with Doctor</h3>
-                  <p className="text-subtext">Communicate securely with your healthcare providers for fast and reliable advice.</p>
                 </Card>
 
                 <Card className="hover:shadow-md transition-shadow duration-300">

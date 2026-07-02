@@ -6,6 +6,8 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Input } from '@/components/input';
 
+const API_URL = 'http://127.0.0.1:3001';
+
 interface Medicine {
   id: string;
   name: string;
@@ -36,37 +38,73 @@ export default function Medicines() {
       router.push('/auth/login');
       return;
     }
-    const stored = localStorage.getItem('medicines');
-    if (stored) {
-      setMedicines(JSON.parse(stored));
-    }
-    setLoading(false);
+    fetchMedicines();
   }, [router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newMedicine: Medicine = {
-      ...formData,
-      id: Date.now().toString()
-    };
-    const updated = [...medicines, newMedicine];
-    setMedicines(updated);
-    localStorage.setItem('medicines', JSON.stringify(updated));
-    setShowForm(false);
-    setFormData({
-      name: '',
-      dosage: '',
-      frequency: '',
-      start_date: '',
-      end_date: '',
-      notes: ''
-    });
+  const fetchMedicines = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/medicines`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMedicines(data.medicines || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    const updated = medicines.filter(m => m.id !== id);
-    setMedicines(updated);
-    localStorage.setItem('medicines', JSON.stringify(updated));
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/medicines`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          dosage: formData.dosage,
+          frequency: formData.frequency,
+          start_date: formData.start_date,
+          end_date: formData.end_date || null,
+          notes: formData.notes || null
+        })
+      });
+      if (res.ok) {
+        const newMedicine = await res.json();
+        setMedicines([newMedicine, ...medicines]);
+        setShowForm(false);
+        setFormData({ name: '', dosage: '', frequency: '', start_date: '', end_date: '', notes: '' });
+      } else {
+        const err = await res.json();
+        alert(err.detail || 'Failed to add medicine');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to add medicine');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Remove this medicine?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/medicines/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setMedicines(medicines.filter(m => m.id !== id));
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   if (loading) {
