@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/card';
 import { Button } from '@/components/button';
 import { FormalReportView } from '@/components/FormalReportView';
+import { DigitizedReport } from '@/components/DigitizedReport';
 
 const API_URL = 'http://127.0.0.1:3001';
 
@@ -15,6 +16,8 @@ interface SharedReport {
   file_content: string;
   notes?: string;
   ai_report_text?: string;
+  doctor_name?: string;
+  hospital?: string;
   created_at?: string;
 }
 
@@ -34,6 +37,9 @@ interface EmergencyInfo {
 interface SharedReportResponse {
   report: SharedReport;
   emergency: EmergencyInfo;
+  user_name?: string;
+  user_id?: string;
+  user_blood_type?: string;
 }
 
 export default function ViewSharedReport() {
@@ -45,6 +51,7 @@ export default function ViewSharedReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [digitizedReport, setDigitizedReport] = useState<SharedReport | null>(null);
 
   const report = responseData?.report ?? null;
   const emergency = responseData?.emergency;
@@ -110,15 +117,23 @@ export default function ViewSharedReport() {
           <Button onClick={() => router.push('/auth/login')}>Login to HealthTracker</Button>
         </div>
         
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-text-main mb-1">
-            {report?.report_type.replace('_', ' ')}
-          </h1>
-          {report?.created_at && (
-            <p className="text-subtext text-sm">
-              Uploaded: {new Date(report.created_at).toLocaleString()}
-            </p>
-          )}
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-text-main mb-1">
+              {report?.report_type.replace('_', ' ')}
+            </h1>
+            {report?.created_at && (
+              <p className="text-subtext text-sm">
+                Uploaded: {new Date(report.created_at).toLocaleString()}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={() => setDigitizedReport(report)}
+            className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-medium text-sm hover:bg-emerald-100 transition-colors shrink-0"
+          >
+            Digital Report
+          </button>
         </div>
 
         {emergency && (emergency.blood_type || emergency.allergies || emergency.medical_conditions || emergency.emergency_contacts.length > 0) && (
@@ -217,6 +232,19 @@ export default function ViewSharedReport() {
           </Card>
         )}
       </div>
+
+      {digitizedReport && (
+        <DigitizedReport
+          report={digitizedReport}
+          user={{
+            name: responseData?.user_name || 'Patient',
+            id: responseData?.user_id || '',
+            email: '',
+            blood_type: responseData?.user_blood_type || undefined,
+          }}
+          onClose={() => setDigitizedReport(null)}
+        />
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@ export function Footer() {
   return (
     <footer className="bg-white border-t border-gray-100 mt-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           <div className="col-span-1 md:col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-4">
               <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
@@ -26,6 +26,44 @@ export function Footer() {
               <li><Link href="/about" className="text-subtext hover:text-primary transition-colors">About Us</Link></li>
               <li><Link href="/contact" className="text-subtext hover:text-primary transition-colors">Contact</Link></li>
               <li><Link href="/blog" className="text-subtext hover:text-primary transition-colors">Blog</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-red-700 mb-4 tracking-wide uppercase text-sm">Emergency Numbers</h3>
+            <ul className="space-y-2">
+              <li className="flex justify-between text-sm">
+                <span className="text-subtext">Ambulance</span>
+                <span className="font-bold text-red-700">102</span>
+              </li>
+              <li className="flex justify-between text-sm">
+                <span className="text-subtext">Police</span>
+                <span className="font-bold text-red-700">100</span>
+              </li>
+              <li className="flex justify-between text-sm">
+                <span className="text-subtext">Fire Brigade</span>
+                <span className="font-bold text-red-700">101</span>
+              </li>
+              <li className="flex justify-between text-sm">
+                <span className="text-subtext">Traffic Police</span>
+                <span className="font-bold text-red-700">103</span>
+              </li>
+              <li className="flex justify-between text-sm">
+                <span className="text-subtext">Disaster Management</span>
+                <span className="font-bold text-red-700">1149</span>
+              </li>
+              <li className="flex justify-between text-sm">
+                <span className="text-subtext">Women's Helpline</span>
+                <span className="font-bold text-red-700">1145</span>
+              </li>
+              <li className="flex justify-between text-sm">
+                <span className="text-subtext">Child Helpline</span>
+                <span className="font-bold text-red-700">1144</span>
+              </li>
+              <li className="flex justify-between text-sm">
+                <span className="text-subtext">Health Emergency</span>
+                <span className="font-bold text-red-700">1115</span>
+              </li>
             </ul>
           </div>
 

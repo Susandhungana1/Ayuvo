@@ -27,6 +27,8 @@ class SharedReportResponse(BaseModel):
     result_summary: Optional[str]
     extracted_text: Optional[str]
     ai_report_text: Optional[str]
+    doctor_name: Optional[str] = None
+    hospital: Optional[str] = None
     created_at: Optional[str]
 
 
@@ -71,6 +73,8 @@ class EmergencyShareResponse(BaseModel):
 
 class UserAllReportsResponse(BaseModel):
     user_name: str
+    user_id: Optional[str] = None
+    user_blood_type: Optional[str] = None
     emergency: EmergencyShareResponse = EmergencyShareResponse()
     reports: List[SharedReportResponse]
     medicines: List[MedicineShareResponse] = []
@@ -79,6 +83,9 @@ class UserAllReportsResponse(BaseModel):
 class SharedReportWithEmergencyResponse(BaseModel):
     report: SharedReportResponse
     emergency: EmergencyShareResponse = EmergencyShareResponse()
+    user_name: Optional[str] = None
+    user_id: Optional[str] = None
+    user_blood_type: Optional[str] = None
 
 
 @router.get("", response_model=ShareLinksResponse)
@@ -183,6 +190,8 @@ async def access_all_shared_reports(
             result_summary=report.result_summary,
             extracted_text=report.extracted_text,
             ai_report_text=report.ai_report_text,
+            doctor_name=report.doctor_name,
+            hospital=report.hospital,
             created_at=str(report.created_at) if report.created_at else None
         ))
     
@@ -207,6 +216,8 @@ async def access_all_shared_reports(
 
     return UserAllReportsResponse(
         user_name=user_name,
+        user_id=user.id if user else None,
+        user_blood_type=user.blood_type if user else None,
         emergency=emergency_info,
         reports=reports_response,
         medicines=medicines_response
@@ -287,12 +298,17 @@ async def access_shared_report(
         result_summary=report.result_summary,
         extracted_text=report.extracted_text,
         ai_report_text=report.ai_report_text,
+        doctor_name=report.doctor_name,
+        hospital=report.hospital,
         created_at=str(report.created_at) if report.created_at else None
     )
     
     return SharedReportWithEmergencyResponse(
         report=report_response,
-        emergency=_get_emergency_info(user, db)
+        emergency=_get_emergency_info(user, db),
+        user_name=user.name if user else None,
+        user_id=user.id if user else None,
+        user_blood_type=user.blood_type if user else None
     )
 
 

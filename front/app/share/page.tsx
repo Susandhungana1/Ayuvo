@@ -219,7 +219,7 @@ export default function Share() {
                       </div>
                       <button
                         onClick={() => handleDelete(link.token)}
-                        className="text-red-500 text-sm hover:underline self-start sm:self-auto"
+                        className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-medium text-sm hover:bg-red-100 transition-colors self-start sm:self-auto"
                       >
                         Revoke
                       </button>

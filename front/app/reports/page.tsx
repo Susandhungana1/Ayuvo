@@ -6,6 +6,7 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Input } from '@/components/input';
 import { FormalReportView } from '@/components/FormalReportView';
+import { DigitizedReport } from '@/components/DigitizedReport';
 
 const API_URL = 'http://127.0.0.1:3001';
 
@@ -18,6 +19,9 @@ interface Report {
   result_summary?: string;
   extracted_text?: string;
   ai_report_text?: string;
+  document_id?: string;
+  doctor_name?: string;
+  hospital?: string;
 }
 
 export default function Reports() {
@@ -29,9 +33,12 @@ export default function Reports() {
   const [reportType, setReportType] = useState('');
   const [reportDate, setReportDate] = useState('');
   const [notes, setNotes] = useState('');
+  const [hospitalName, setHospitalName] = useState('');
+  const [verifiedBy, setVerifiedBy] = useState('');
   const [uploadedReport, setUploadedReport] = useState<Report | null>(null);
   const [viewingReport, setViewingReport] = useState<{url: string; name: string} | null>(null);
   const [viewingAiReport, setViewingAiReport] = useState<{id: string; content: string} | null>(null);
+  const [digitizedReport, setDigitizedReport] = useState<Report | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -76,6 +83,8 @@ export default function Reports() {
       formData.append('report_type', reportType || 'OTHER');
       if (reportDate) formData.append('report_date', reportDate);
       if (notes) formData.append('notes', notes);
+      if (hospitalName) formData.append('hospital', hospitalName);
+      if (verifiedBy) formData.append('doctor_name', verifiedBy);
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_URL}/api/reports`, {
         method: 'POST',
@@ -88,6 +97,8 @@ export default function Reports() {
         fetchReports();
         setSelectedFile(null);
         setNotes('');
+        setHospitalName('');
+        setVerifiedBy('');
         setReportType('');
         setReportDate('');
         if (fileInputRef.current) fileInputRef.current.value = '';
@@ -187,6 +198,28 @@ export default function Reports() {
             />
 
             <div className="flex flex-col gap-1.5 w-full">
+              <label className="text-sm font-medium text-gray-700">Hospital Name</label>
+              <input
+                type="text"
+                value={hospitalName}
+                onChange={(e) => setHospitalName(e.target.value)}
+                placeholder="e.g. Bir Hospital, Kathmandu"
+                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5 w-full">
+              <label className="text-sm font-medium text-gray-700">Verified By (Doctor)</label>
+              <input
+                type="text"
+                value={verifiedBy}
+                onChange={(e) => setVerifiedBy(e.target.value)}
+                placeholder="e.g. Dr. Ram Sharma"
+                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5 w-full">
               <label className="text-sm font-medium text-gray-700">Your Notes</label>
               <textarea
                 value={notes}
@@ -198,7 +231,15 @@ export default function Reports() {
             </div>
 
             <Button onClick={handleUpload} disabled={!selectedFile || uploading}>
-              {uploading ? 'AI is reading your report...' : 'Upload & Generate Report'}
+              {uploading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  AI is reading your report...
+                </span>
+              ) : 'Upload & Generate Report'}
             </Button>
 
             {uploadedReport?.ai_report_text && (
@@ -233,7 +274,20 @@ export default function Reports() {
         </Card>
 
         {loading ? (
-          <p className="text-subtext">Loading...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-xl border border-gray-100 p-6 animate-pulse">
+                <div className="h-5 bg-gray-200 rounded w-2/3 mb-3" />
+                <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-4" />
+                <div className="flex gap-2">
+                  <div className="h-8 bg-gray-200 rounded-lg w-16" />
+                  <div className="h-8 bg-gray-200 rounded-lg w-20" />
+                  <div className="h-8 bg-gray-200 rounded-lg w-16" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : reports.length === 0 ? (
           <Card className="p-8 text-center">
             <p className="text-subtext mb-4">No medical reports yet</p>
@@ -260,9 +314,10 @@ export default function Reports() {
                     <p className="text-subtext text-sm mb-2 italic">Notes: {report.notes}</p>
                   )}
                   <div className="flex gap-2 flex-wrap">
-                    <button onClick={() => handleViewReport(report)} className="text-primary text-sm hover:underline">View</button>
-                    <button onClick={() => setViewingAiReport({ id: report.id, content: report.ai_report_text || 'No AI report available' })} className="text-purple-600 text-sm hover:underline">AI Report</button>
-                    <button onClick={() => handleDelete(report.id)} className="text-red-500 text-sm hover:underline">Delete</button>
+                    <button onClick={() => handleViewReport(report)} className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-medium text-sm hover:bg-primary/20 transition-colors">View</button>
+                    <button onClick={() => setDigitizedReport(report)} className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-medium text-sm hover:bg-emerald-100 transition-colors">Digital Report</button>
+                    <button onClick={() => setViewingAiReport({ id: report.id, content: report.ai_report_text || 'No AI report available' })} className="px-3 py-1.5 rounded-lg bg-purple-50 text-purple-700 font-medium text-sm hover:bg-purple-100 transition-colors">AI Findings</button>
+                    <button onClick={() => handleDelete(report.id)} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-medium text-sm hover:bg-red-100 transition-colors">Delete</button>
                   </div>
                 </Card>
               ))}
@@ -288,6 +343,18 @@ export default function Reports() {
           </div>
         </div>
       )}
+
+      {digitizedReport && (() => {
+        const userData = localStorage.getItem('user');
+        const user = userData ? JSON.parse(userData) : { name: 'Unknown', id: '', email: '' };
+        return (
+          <DigitizedReport
+            report={digitizedReport}
+            user={user}
+            onClose={() => setDigitizedReport(null)}
+          />
+        );
+      })()}
 
       {viewingAiReport && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

@@ -173,6 +173,8 @@ class MedicalReport(SQLModel, table=True):
     file_content_type: Optional[str] = None
     thumbnail: Optional[str] = None
     notes: Optional[str] = None
+    hospital: Optional[str] = None
+    doctor_name: Optional[str] = None
 
     result_summary: Optional[str] = None
     extracted_text: Optional[str] = None

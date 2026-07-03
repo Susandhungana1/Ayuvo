@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/card';
 import { Button } from '@/components/button';
 import { FormalReportView } from '@/components/FormalReportView';
+import { DigitizedReport } from '@/components/DigitizedReport';
 
 const API_URL = 'http://127.0.0.1:3001';
 
@@ -15,6 +16,8 @@ interface Report {
   file_content: string;
   notes?: string;
   ai_report_text?: string;
+  doctor_name?: string;
+  hospital?: string;
   created_at?: string;
 }
 
@@ -43,6 +46,8 @@ interface EmergencyInfo {
 
 interface AllReportsData {
   user_name: string;
+  user_id?: string;
+  user_blood_type?: string;
   emergency: EmergencyInfo;
   reports: Report[];
   medicines: MedicineItem[];
@@ -58,6 +63,7 @@ export default function ViewAllSharedReports() {
   const [error, setError] = useState('');
   const [viewingReport, setViewingReport] = useState<{url: string; name: string} | null>(null);
   const [expandedAiReports, setExpandedAiReports] = useState<Set<string>>(new Set());
+  const [digitizedReport, setDigitizedReport] = useState<Report | null>(null);
 
   useEffect(() => {
     if (token) {
@@ -234,17 +240,23 @@ export default function ViewAllSharedReports() {
                   </div>
                 </div>
 
-                <div className="flex gap-2 mb-3">
+                <div className="flex gap-2 flex-wrap mb-3">
                   <button
                     onClick={() => handleViewReport(report)}
-                    className="text-primary text-sm hover:underline"
+                    className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-medium text-sm hover:bg-primary/20 transition-colors"
                   >
                     View Original
+                  </button>
+                  <button
+                    onClick={() => setDigitizedReport(report)}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-medium text-sm hover:bg-emerald-100 transition-colors"
+                  >
+                    Digital Report
                   </button>
                   {report.ai_report_text && (
                     <button
                       onClick={() => toggleAiReport(report.id)}
-                      className="text-purple-600 text-sm hover:underline"
+                      className="px-3 py-1.5 rounded-lg bg-purple-50 text-purple-700 font-medium text-sm hover:bg-purple-100 transition-colors"
                     >
                       {expandedAiReports.has(report.id) ? 'Hide AI Report' : 'AI Report'}
                     </button>
@@ -288,6 +300,19 @@ export default function ViewAllSharedReports() {
             </div>
           </div>
         </div>
+      )}
+
+      {digitizedReport && (
+        <DigitizedReport
+          report={digitizedReport}
+          user={{
+            name: data?.user_name || 'Patient',
+            id: data?.user_id || '',
+            email: '',
+            blood_type: data?.user_blood_type || undefined,
+          }}
+          onClose={() => setDigitizedReport(null)}
+        />
       )}
     </div>
   );

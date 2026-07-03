@@ -13,9 +13,32 @@ import pytesseract
 
 from app.api.auth import get_current_user
 from app.core.config import get_session, settings
-from app.models.models import User, MedicalReport, MedicalReportType
+from app.models.models import User, MedicalReport, MedicalReportType, MedicalDocument
 
 router = APIRouter()
+
+
+def _build_report_response(report: MedicalReport, db: Session) -> ReportResponse:
+    doctor_name = report.doctor_name
+    hospital = report.hospital
+    if not doctor_name and not hospital and report.document_id:
+        doc = db.exec(select(MedicalDocument).where(MedicalDocument.id == report.document_id)).first()
+        if doc:
+            doctor_name = doc.doctor_name
+            hospital = doc.hospital
+    return ReportResponse(
+        id=report.id,
+        report_type=report.report_type,
+        report_date=report.report_date,
+        file_name=report.file_name,
+        notes=report.notes,
+        result_summary=report.result_summary,
+        extracted_text=report.extracted_text,
+        ai_report_text=report.ai_report_text,
+        document_id=report.document_id,
+        doctor_name=doctor_name,
+        hospital=hospital
+    )
 
 
 class ReportCreate(BaseModel):
@@ -33,6 +56,9 @@ class ReportResponse(BaseModel):
     result_summary: Optional[str]
     extracted_text: Optional[str]
     ai_report_text: Optional[str]
+    document_id: Optional[str] = None
+    doctor_name: Optional[str] = None
+    hospital: Optional[str] = None
 
 
 class ReportListResponse(BaseModel):
@@ -218,6 +244,8 @@ async def create_report(
     report_type: str = Form(...),
     notes: Optional[str] = Form(None),
     report_date: Optional[str] = Form(None),
+    hospital: Optional[str] = Form(None),
+    doctor_name: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
@@ -238,6 +266,8 @@ async def create_report(
         file_content=content,
         file_content_type=file.content_type,
         notes=notes,
+        hospital=hospital,
+        doctor_name=doctor_name,
         extracted_text=extracted_text
     )
     db.add(report)
@@ -261,16 +291,7 @@ async def create_report(
             db.commit()
             db.refresh(report)
     
-    return ReportResponse(
-        id=report.id,
-        report_type=report.report_type,
-        report_date=report.report_date,
-        file_name=report.file_name,
-        notes=report.notes,
-        result_summary=report.result_summary,
-        extracted_text=report.extracted_text,
-        ai_report_text=report.ai_report_text
-    )
+    return _build_report_response(report, db)
 
 
 @router.get("/ai-summary", response_model=AISummary)
@@ -309,19 +330,7 @@ async def list_reports(
     ).all()
     
     return ReportListResponse(
-        reports=[
-            ReportResponse(
-                id=r.id,
-                report_type=r.report_type,
-                report_date=r.report_date,
-                file_name=r.file_name,
-                notes=r.notes,
-                result_summary=r.result_summary,
-                extracted_text=r.extracted_text,
-                ai_report_text=r.ai_report_text
-            )
-            for r in reports
-        ]
+        reports=[_build_report_response(r, db) for r in reports]
     )
 
 
@@ -356,16 +365,7 @@ async def get_report(
     if not report or report.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Report not found")
     
-    return ReportResponse(
-        id=report.id,
-        report_type=report.report_type,
-        report_date=report.report_date,
-        file_name=report.file_name,
-        notes=report.notes,
-        result_summary=report.result_summary,
-        extracted_text=report.extracted_text,
-        ai_report_text=report.ai_report_text
-    )
+    return _build_report_response(report, db)
 
 
 @router.get("/{report_id}/ai-report", response_model=AIReport)
