@@ -1,184 +1,261 @@
 # HealthTracker - Project Setup Guide
+
 ## Prerequisites
-Before starting, ensure you have:
-- PostgreSQL installed locally (via Homebrew: `brew install postgresql@18`)
-- Python 3.10+ installed
-- Node.js 18+ installed
+
+- **PostgreSQL** 16+ — `brew install postgresql@18`
+- **Python** 3.12+
+- **Node.js** 20+
+
 ---
-## Step 1: Start PostgreSQL Database
-1. Start PostgreSQL if it's not already running:
+
+## Step 1: Start PostgreSQL
+
 ```bash
 brew services start postgresql@18
 ```
-2. Create the database and user (one-time setup):
+
+One-time database setup:
+
 ```bash
 psql postgres -c "CREATE USER healthtracker WITH PASSWORD 'password';"
 psql postgres -c "CREATE DATABASE healthtracker OWNER healthtracker;"
 ```
-3. Verify it's running:
+
+Verify:
+
 ```bash
 pg_isready
+# → /tmp:5432 - accepting connections
 ```
-You should see `/tmp:5432 - accepting connections`.
+
 ---
-## Step 2: Backend Setup
-1. Navigate to the server directory:
+
+## Step 2: Backend Setup (FastAPI)
+
 ```bash
 cd server
 ```
-2. Create a `.env` file with your settings:
+
+Create `.env`:
+
 ```bash
 cat > .env << 'EOF'
 DATABASE_URL=postgresql://healthtracker:password@localhost:5432/healthtracker
 JWT_SECRET=your_jwt_secret_min_32_chars_very_secure_key_here_2024
-OPENROUTER_API_KEY=your_openrouter_api_key_here
+OPENROUTER_API_KEY=sk-or-v1-your_openrouter_api_key_here
+GROQ_API_KEY=gsk_your_groq_api_key_here
 N8N_WEBHOOK_URL=http://localhost:5678/webhook
 EOF
 ```
-3. Install Python dependencies:
+
+Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
-4. Start the backend server:
+
+Start the server:
+
 ```bash
 python -m uvicorn main:app --reload --port 3001
 ```
-5. You should see:
-```
-Uvicorn running on http://127.0.0.1:3001
-```
+
+Tables are auto-created on startup.  
+API available at **http://127.0.0.1:3001**
+
 ---
-## Step 3: Frontend Setup
-1. Open a new terminal
-2. Navigate to the frontend directory:
+
+## Step 3: Frontend Setup (Next.js)
+
+Open a **new terminal**:
+
 ```bash
 cd front
-```
-3. Install Node.js dependencies:
-```bash
 npm install
-```
-4. Start the frontend:
-```bash
 npm run dev
 ```
-5. You should see:
-```
-VITE ready at http://localhost:3000
-```
+
+App available at **http://localhost:3000**
+
 ---
-## Step 4: Testing the API
-### Register a User (Patient)
+
+## Step 4: Quick Test
+
+### Register a Patient
+
 ```bash
 curl -X POST http://localhost:3001/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"name": "John Doe", "email": "john@example.com", "password": "password123"}'
 ```
-Response:
-```json
-{"id": "#hos001", "name": "John Doe", "email": "john@example.com", "role": "PATIENT", "token": "eyJ..."}
-```
-### Register as Doctor
+
+Response includes `token` — save it as `YOUR_TOKEN`.
+
+### Register a Doctor
+
 ```bash
-# First register as a user
+# Register as a user first
 curl -X POST http://localhost:3001/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"name": "Dr. Smith", "email": "doctor@example.com", "password": "password123"}'
-# Then create doctor profile (need to update role to DOCTOR in database manually)
-# And set availability
+
+# Create doctor profile (use the token from above)
 curl -X POST http://localhost:3001/api/doctors/doctors \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{"nmid": "MD12345", "degree": "MD", "specialty": "General"}'
+
+# Set weekly availability
+curl -X POST http://localhost:3001/api/doctors/availability \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"day_of_week": "MONDAY", "start_time": "09:00", "end_time": "17:00", "slot_duration_minutes": 30}'
 ```
+
 ### Book an Appointment
-1. List available doctors:
+
 ```bash
+# List doctors
 curl http://localhost:3001/api/doctors/doctors \
   -H "Authorization: Bearer YOUR_TOKEN"
-```
-2. Check doctor availability:
-```bash
-curl "http://localhost:3001/api/doctors/availability/DOCTOR_ID" \
+
+# Get available slots on a date
+curl "http://localhost:3001/api/appointments/available-slots/DOCTOR_ID?date=2026-07-10" \
   -H "Authorization: Bearer YOUR_TOKEN"
-```
-3. Get available slots for a specific date:
-```bash
-curl "http://localhost:3001/api/appointments/available-slots/DOCTOR_ID?date=2026-05-15T00:00:00" \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
-4. Book the appointment:
-```bash
+
+# Book
 curl -X POST http://localhost:3001/api/appointments \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
     "title": "Annual Checkup",
     "doctor_id": "DOCTOR_ID",
-    "appointment_date": "2026-05-15T10:00:00",
+    "appointment_date": "2026-07-10T10:00:00",
     "duration_minutes": 30,
     "reason": "Regular health checkup"
   }'
 ```
+
 ---
-## Common Issues & Solutions
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| **Auth** | | |
+| POST | `/api/auth/register` | Register new user |
+| POST | `/api/auth/login` | Login |
+| GET | `/api/auth/me` | Current user |
+| **Users** | | |
+| GET | `/api/users/me` | Get profile |
+| PUT | `/api/users/me` | Update profile |
+| **Doctors** | | |
+| POST | `/api/doctors/doctors` | Create doctor profile |
+| GET | `/api/doctors/doctors` | List all doctors |
+| GET | `/api/doctors/me` | My doctor profile |
+| POST | `/api/doctors/availability` | Set availability |
+| GET | `/api/doctors/availability` | My availability |
+| GET | `/api/doctors/availability/{id}` | Doctor's availability |
+| PUT | `/api/doctors/availability/{id}` | Update availability slot |
+| DELETE | `/api/doctors/availability/{id}` | Delete availability |
+| **Appointments** | | |
+| POST | `/api/appointments` | Book appointment |
+| GET | `/api/appointments` | My appointments |
+| PUT | `/api/appointments/{id}` | Update appointment |
+| DELETE | `/api/appointments/{id}` | Cancel appointment |
+| PATCH | `/api/appointments/{id}/status` | Update status |
+| GET | `/api/appointments/available-slots/{doctor_id}` | Available slots |
+| GET | `/api/appointments/doctor/my-appointments` | Doctor's appointments |
+| **Documents** | | |
+| POST | `/api/documents` | Create document |
+| GET | `/api/documents` | List documents |
+| GET | `/api/documents/{id}` | Get document |
+| DELETE | `/api/documents/{id}` | Delete document (soft) |
+| POST | `/api/documents/{id}/files` | Upload file |
+| GET | `/api/documents/{id}/files/{fid}` | Download file |
+| **Reports** | | |
+| POST | `/api/reports` | Upload report (OCR + AI) |
+| GET | `/api/reports` | List reports |
+| GET | `/api/reports/{id}` | Get report |
+| DELETE | `/api/reports/{id}` | Delete report |
+| GET | `/api/reports/{id}/file` | Download report file |
+| GET | `/api/reports/{id}/ai-report` | Get AI report |
+| GET | `/api/reports/ai-summary` | AI summary of all reports |
+| **Medicines** | | |
+| GET | `/api/medicines` | List medicines |
+| POST | `/api/medicines` | Add medicine |
+| PUT | `/api/medicines/{id}` | Update medicine |
+| DELETE | `/api/medicines/{id}` | Delete medicine |
+| **Vitals** | | |
+| GET | `/api/vitals` | List vitals |
+| POST | `/api/vitals` | Log vitals |
+| DELETE | `/api/vitals/{id}` | Delete vitals entry |
+| **Emergency** | | |
+| GET | `/api/emergency/profile` | Get emergency profile |
+| PUT | `/api/emergency/profile` | Update emergency profile |
+| POST | `/api/emergency/contacts` | Add emergency contact |
+| DELETE | `/api/emergency/contacts/{id}` | Remove contact |
+| GET | `/api/emergency/public/{user_id}` | Public emergency data |
+| **Share** | | |
+| GET | `/api/share` | Active share links |
+| POST | `/api/share/{report_id}` | Create share link |
+| GET | `/api/share/{token}` | Access shared report |
+| DELETE | `/api/share/{token}` | Revoke share link |
+| GET | `/api/share/qr-code` | Generate QR code |
+| GET | `/api/share/qr-code/{token}` | Access shared data via QR |
+| **Chatbot** | | |
+| POST | `/api/chatbot` | AI health assistant (Groq) |
+| **Search** | | |
+| GET | `/api/search?q=...` | Full-text search |
+| **Timeline** | | |
+| GET | `/api/timeline` | Health timeline |
+| **Export** | | |
+| GET | `/api/export` | Download all data (ZIP) |
+
+---
+
+## Troubleshooting
+
 ### "Port 5432 already in use"
+
 ```bash
-# Check what's using the port
 lsof -i :5432
-# If it's another PostgreSQL instance, stop it:
 brew services stop postgresql@18
-# Or find and kill the process:
-kill $(lsof -ti :5432)
 ```
+
 ### "Module not found"
+
 ```bash
 pip install -r requirements.txt
 ```
-### "Connection refused" on API calls
-- Backend must be running before making API calls
-- Check backend terminal for errors
-- Ensure port 3001 is not blocked by firewall
-### Database connection error
-- Verify PostgreSQL is running: `pg_isready`
-- Check `.env` file exists in server directory
-- Verify DATABASE_URL is correct
----
-## API Endpoints Summary
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/auth/register` | POST | Register new user |
-| `/api/auth/login` | POST | Login user |
-| `/api/auth/me` | GET | Get current user |
-| `/api/users/me` | GET/PUT | Get/Update profile |
-| `/api/documents` | GET/POST | List/Create documents |
-| `/api/documents/{id}` | GET/DELETE | Get/Delete document |
-| `/api/documents/{id}/files` | POST/GET | Upload/List files |
-| `/api/reports` | GET/POST | List/Create reports |
-| `/api/reports/{id}` | GET | Get report |
-| `/api/reports/{id}/file` | GET | Download report file |
-| `/api/reports/ai-summary` | GET | AI summary of reports |
-| `/api/appointments` | GET/POST | List/Book appointments |
-| `/api/appointments/{id}` | PUT/DELETE | Update/Delete appointment |
-| `/api/appointments/{id}/status` | PATCH | Update status |
-| `/api/appointments/available-slots/{doctor_id}` | GET | Get available slots |
-| `/api/doctors/doctors` | GET | List doctors |
-| `/api/doctors/availability` | GET/POST | Get/Set availability |
-| `/api/doctors/availability/{doctor_id}` | GET | Get doctor availability |
 
-| `/api/share` | GET | List active share links |
-| `/api/share/{report_id}` | POST | Create share link |
-| `/api/share/{token}` | GET/DELETE | Access/Revoke share |
+### Database connection error
+
+- Verify PostgreSQL: `pg_isready`
+- Check `.env` exists in `server/`
+- Confirm `DATABASE_URL` is correct
+
+### "Connection refused"
+
+- Backend must be running on port 3001
+- Check backend terminal for errors
+
 ---
-## Key Features
-### Report Deletion
-When deleting a report, all associated share links are automatically removed.
-### AI Summary
-Upload medical report images (JPG, PNG) or PDFs to extract text and generate AI-powered health summaries with key findings and recommendations.
-### Share Links
-Share links expire after 24 hours. List all active links and revoke them anytime from /share page.
+
+## Stopping
+
+| Service | Command |
+|---------|---------|
+| Frontend | `Ctrl+C` |
+| Backend | `Ctrl+C` |
+| PostgreSQL | `brew services stop postgresql@18` |
+
 ---
-## Stopping the Project
-1. Stop frontend: `Ctrl+C` in frontend terminal
-2. Stop backend: `Ctrl+C` in backend terminal
-3. Stop database: `brew services stop postgresql@18`
+
+## Notes
+
+- User IDs are auto-generated as `#hos001`, `#hos002`, etc.
+- Medical files are stored in the database as BYTEA (not on disk).
+- Share links expire after 24 hours by default.
+- OCR is supported for JPG, PNG, and PDF uploads.
+- Two AI providers: **OpenRouter** (report summaries) and **Groq** (chatbot).
