@@ -4,6 +4,7 @@ import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { ChatBot } from "@/components/ChatBot";
+import { HideOnShare } from "@/components/hide-on-share";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,12 +29,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
       <body className="min-h-screen flex flex-col font-sans">
-        <Navbar />
+        <HideOnShare><Navbar /></HideOnShare>
         <main className="flex-grow">
           {children}
         </main>
-        <Footer />
-        <ChatBot />
+        <HideOnShare><Footer /></HideOnShare>
+        <HideOnShare><ChatBot /></HideOnShare>
       </body>
     </html>
   );
