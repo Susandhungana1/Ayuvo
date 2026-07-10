@@ -1,0 +1,14 @@
+# Local-only backup docs — contains the DB backup decryption passphrase.
+# NEVER commit: co-locating the passphrase with the repo would undermine the
+# encryption of the patient-data backups.
+DB_BACKUP_RESTORE.md
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Python bytecode cache (should never be tracked)
+__pycache__/
+*.py[cod]
