@@ -1,0 +1,89 @@
+name: Database Backup
+
+# Encrypted daily backup of the Supabase Postgres database (holds real patient
+# data, so the dump is always encrypted at rest before it leaves the runner).
+#
+# Flow:
+#   1. pg_dump the `public` schema (our app's tables) in custom format (-Fc).
+#   2. Encrypt with GPG (AES-256, symmetric) using the BACKUP_PASSPHRASE secret.
+#      The plaintext dump is deleted immediately after; only the .gpg is kept.
+#   3. Store the encrypted dump as a 90-day GitHub artifact (off-provider copy).
+#   4. Best-effort upload to the Supabase storage bucket under db-backups/ for
+#      longer-term retention (does not fail the run if it errors).
+#
+# Restore (see also: docs at bottom):
+#   gpg --batch --pinentry-mode loopback --passphrase '<BACKUP_PASSPHRASE>' \
+#       -d backup-XXXX.dump.gpg > backup.dump
+#   pg_restore --no-owner --no-acl --clean --if-exists -d "$DATABASE_URL" backup.dump
+
+on:
+  schedule:
+    # 18:15 UTC == 00:00 Nepal time (UTC+5:45) — a daily backup at local midnight.
+    - cron: "15 18 * * *"
+  workflow_dispatch: {}   # allow manual runs from the Actions tab / API
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install PostgreSQL 17 client
+        # Server is Postgres 17.x; pg_dump must be >= server major version.
+        run: |
+          set -euo pipefail
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Dump + encrypt
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          STAMP="$(date -u +%Y%m%d-%H%M%SZ)"
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+          # -n public: only our app schema (skip Supabase-managed auth/storage schemas).
+          # --no-owner --no-acl: portable restore into any Postgres / fresh project.
+          /usr/lib/postgresql/17/bin/pg_dump "$DATABASE_URL" \
+            -Fc -n public --no-owner --no-acl -f "backup-$STAMP.dump"
+          echo "Plaintext dump size:"; ls -lh "backup-$STAMP.dump" | awk '{print $5, $9}'
+          gpg --batch --yes --pinentry-mode loopback \
+              --passphrase "$BACKUP_PASSPHRASE" \
+              --symmetric --cipher-algo AES256 \
+              -o "backup-$STAMP.dump.gpg" "backup-$STAMP.dump"
+          rm -f "backup-$STAMP.dump"   # never keep plaintext patient data around
+          echo "Encrypted size:"; ls -lh "backup-$STAMP.dump.gpg" | awk '{print $5, $9}'
+
+      - name: Upload artifact (90-day off-provider copy)
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ env.STAMP }}
+          path: backup-${{ env.STAMP }}.dump.gpg
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Upload to Supabase storage (long-term copy, best-effort)
+        continue-on-error: true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.S3_REGION }}
+          S3_ENDPOINT_URL: ${{ secrets.S3_ENDPOINT_URL }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          set -euo pipefail
+          # Supabase's S3 endpoint requires path-style addressing.
+          aws configure set default.s3.addressing_style path
+          aws s3 cp "backup-$STAMP.dump.gpg" \
+            "s3://$S3_BUCKET/db-backups/backup-$STAMP.dump.gpg" \
+            --endpoint-url "$S3_ENDPOINT_URL"
+          echo "Uploaded to s3://$S3_BUCKET/db-backups/backup-$STAMP.dump.gpg"
