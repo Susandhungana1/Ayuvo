@@ -13,6 +13,11 @@ boto3==1.35.90
 # Auth
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+# passlib 1.7.4 (2020) is incompatible with bcrypt >= 4.1: its backend self-test
+# feeds a >72-byte string to bcrypt, which now raises ValueError instead of
+# truncating, crashing the first hash/verify with a 500. Pin the last compatible
+# bcrypt release. Do NOT unpin without also replacing passlib.
+bcrypt==4.0.1
 python-multipart==0.0.20
 pyotp==2.9.0            # TOTP 2FA
 qrcode[pil]==7.4.2     # QR provisioning image for authenticator apps
