@@ -1,0 +1,21 @@
+# Keep the build context small and, critically, keep secrets/local state OUT of
+# the image. Mirrors .gitignore + build-only cruft.
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.log
+.pytest_cache/
+.git/
+.gitignore
+.DS_Store
+
+# Local object storage (STORAGE_BACKEND=local) — never bake patient files in.
+storage/
+/storage/
+
+tests/
