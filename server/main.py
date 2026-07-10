@@ -25,7 +25,14 @@ if settings.sentry_dsn:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     SQLModel.metadata.create_all(engine)
-    yield
+    # Deliver medicine reminders via Web Push even when the app is closed.
+    from app.core.reminder_scheduler import start_scheduler, stop_scheduler
+
+    start_scheduler()
+    try:
+        yield
+    finally:
+        stop_scheduler()
 
 
 app = FastAPI(
@@ -46,7 +53,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.api import auth, users, documents, reports, appointments, share, availability, medicines, chatbot, vitals, emergency, search, timeline, family
+from app.api import auth, users, documents, reports, appointments, share, availability, medicines, chatbot, vitals, emergency, search, timeline, family, push
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
@@ -62,6 +69,7 @@ app.include_router(emergency.router, prefix="/api/emergency", tags=["emergency"]
 app.include_router(search.router, prefix="/api/search", tags=["search"])
 app.include_router(timeline.router, prefix="/api/timeline", tags=["timeline"])
 app.include_router(family.router, prefix="/api/family", tags=["family"])
+app.include_router(push.router, prefix="/api/push", tags=["push"])
 
 
 @app.get("/")

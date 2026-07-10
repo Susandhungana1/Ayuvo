@@ -26,6 +26,14 @@ class Settings(BaseSettings):
     # --- Error monitoring ---
     sentry_dsn: str = ""                    # empty = disabled
 
+    # --- Web Push (medicine reminders that fire when the app is closed) ---
+    # Generate a keypair once with:  ./.venv/bin/vapid --gen  (py-vapid) or
+    # `npx web-push generate-vapid-keys`. Leave blank to disable push entirely
+    # (the in-app alarm keeps working regardless).
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:admin@medistore.app"  # contact for push services
+
     # --- CORS ---
     # Comma-separated list of allowed origins. "*" allowed only in development.
     cors_origins: str = "*"
@@ -36,6 +44,10 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment.lower() == "production"
+
+    @property
+    def push_enabled(self) -> bool:
+        return bool(self.vapid_public_key and self.vapid_private_key)
 
     @property
     def cors_origin_list(self) -> list[str]:

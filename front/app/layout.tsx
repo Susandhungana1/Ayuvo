@@ -5,6 +5,7 @@ import { Footer } from "@/components/footer";
 import { ChatBot } from "@/components/ChatBot";
 import { HideOnShare } from "@/components/hide-on-share";
 import { PwaRegister } from "@/components/pwa-register";
+import { MedicineAlarm } from "@/components/medicine-alarm";
 import { I18nProvider } from "@/lib/i18n";
 
 export const metadata: Metadata = {
@@ -54,6 +55,7 @@ export default function RootLayout({
           <HideOnShare><Footer /></HideOnShare>
           <HideOnShare><ChatBot /></HideOnShare>
           <PwaRegister />
+          <MedicineAlarm />
         </I18nProvider>
       </body>
     </html>

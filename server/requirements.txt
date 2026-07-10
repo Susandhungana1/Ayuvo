@@ -39,6 +39,14 @@ PyMuPDF==1.24.14
 # HTTP Client for AI
 httpx==0.28.1
 
+# Web Push (VAPID) — server-sent medicine reminders that arrive when the app is
+# closed. Pulls py-vapid + http-ece; reuses the cryptography already installed
+# via python-jose[cryptography].
+pywebpush==1.14.1
+# IANA timezone database so the reminder scheduler can resolve user timezones
+# (e.g. "Asia/Kathmandu") even on minimal images without system tz data.
+tzdata==2024.2
+
 # Utils
 python-dotenv==1.0.1
 pydantic==2.10.5

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
@@ -175,8 +175,6 @@ export default function Medicines() {
     updated[i] = val;
     setTakingTimes(updated);
   };
-
-  useMedicineNotifications(medicines);
 
   if (loading) {
     return (
@@ -360,72 +358,4 @@ export default function Medicines() {
       </div>
     </div>
   );
-}
-
-// Show a reminder via the service worker when available (required for
-// installed PWAs / mobile), falling back to the Notification constructor.
-async function showMedicineReminder(name: string, dosage: string, tag: string) {
-  const title = 'Medicine Reminder';
-  const options: NotificationOptions = {
-    body: `Time to take ${name} (${dosage})`,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    tag,
-  };
-  try {
-    if ('serviceWorker' in navigator) {
-      const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification(title, options);
-      return;
-    }
-  } catch {
-    // fall through to the basic constructor
-  }
-  try {
-    new Notification(title, options);
-  } catch {
-    // notifications unavailable in this context
-  }
-}
-
-function useMedicineNotifications(medicines: Medicine[]) {
-  const notifiedRef = useRef<Set<string>>(new Set());
-
-  const checkAndNotify = useCallback(() => {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
-
-    const now = new Date();
-    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const today = now.toISOString().slice(0, 10);
-
-    for (const med of medicines) {
-      if (med.end_date && med.end_date < today) continue;
-      if (med.start_date > today) continue;
-
-      let times: string[] = [];
-      if (med.taking_times) {
-        try { times = JSON.parse(med.taking_times); } catch { times = []; }
-      }
-
-      for (const t of times) {
-        const key = `${med.id}-${t}-${today}`;
-        if (notifiedRef.current.has(key)) continue;
-
-        if (t === currentTime) {
-          notifiedRef.current.add(key);
-          showMedicineReminder(med.name, med.dosage, key);
-        }
-      }
-    }
-  }, [medicines]);
-
-  useEffect(() => {
-    const interval = setInterval(checkAndNotify, 30000);
-    checkAndNotify();
-    return () => clearInterval(interval);
-  }, [checkAndNotify]);
-
-  useEffect(() => {
-    notifiedRef.current.clear();
-  }, [medicines]);
 }

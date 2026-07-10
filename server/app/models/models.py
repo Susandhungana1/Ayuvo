@@ -151,6 +151,38 @@ class Medicine(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class MedicineIntakeLog(SQLModel, table=True):
+    """Adherence record: one row each time a dose is acted on (taken/snoozed)."""
+
+    __tablename__ = "medicine_intake_logs"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
+    medicine_id: str = Field(foreign_key="medicines.id", index=True)
+    # The scheduled clock time this dose was for, e.g. "08:00".
+    scheduled_time: str
+    # "taken" | "snoozed" | "skipped"
+    status: str = "taken"
+    recorded_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class PushSubscription(SQLModel, table=True):
+    """A browser/device Web Push subscription used to deliver medicine reminders
+    when the app is closed. One user may have several (phone, laptop, …)."""
+
+    __tablename__ = "push_subscriptions"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
+    endpoint: str = Field(unique=True)
+    p256dh: str
+    auth: str
+    # IANA tz (e.g. "Asia/Kathmandu") so the scheduler fires at the user's local
+    # clock time, not the server's UTC.
+    timezone: str = "UTC"
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class MedicalFile(SQLModel, table=True):
     __tablename__ = "medical_files"
 

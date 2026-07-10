@@ -44,7 +44,10 @@ Status & runbook: see [PHASE0.md](PHASE0.md).
 ## Phase 1 — Mobile app
 - [ ] **Wrap frontend with Capacitor** (recommended) — reuse existing Next.js UI, target iOS + Android.
       _Alt: Expo/React Native rewrite (native feel, more work) or PWA-only (no store listing)._
-- [ ] **Native push notifications** — meds due, appointment reminders, new results (FCM/APNs).
+- [~] **Push notifications** — meds due: DONE via Web Push/VAPID (`app/api/push.py` +
+      `reminder_scheduler.py`) with an app-wide alarm (sound/vibrate/Taken/Snooze + adherence log)
+      that fires even when the app is closed. Remaining: appointment reminders, new-results push,
+      and native FCM/APNs once wrapped with Capacitor. Needs VAPID_* env vars set (see render.yaml).
 - [ ] **Biometric app lock** — Face ID / fingerprint gate on open (health data is sensitive).
 - [ ] **App Store + Play Store listing** — accounts, privacy labels, screenshots, review submission.
 - [ ] **Deep links** — share/emergency-ID links open the app when installed.

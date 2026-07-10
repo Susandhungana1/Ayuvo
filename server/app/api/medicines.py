@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 from app.api.auth import get_current_user
 from app.core.config import get_session
 from app.core.drug_interactions import check_interactions
-from app.models.models import User, Medicine
+from app.models.models import User, Medicine, MedicineIntakeLog
 
 router = APIRouter()
 
@@ -106,6 +106,85 @@ async def get_medicine_interactions(
     return InteractionsResponse(
         interactions=[InteractionItem(**i) for i in interactions],
         checked_count=len(names),
+    )
+
+
+class IntakeCreate(BaseModel):
+    scheduled_time: str
+    status: str = "taken"  # taken | snoozed | skipped
+
+
+class IntakeItem(BaseModel):
+    id: str
+    medicine_id: str
+    scheduled_time: str
+    status: str
+    recorded_at: str
+
+
+class IntakeLogResponse(BaseModel):
+    intakes: List[IntakeItem]
+
+
+_ALLOWED_INTAKE_STATUS = {"taken", "snoozed", "skipped"}
+
+
+@router.post("/{medicine_id}/intake", response_model=IntakeItem)
+async def record_intake(
+    medicine_id: str,
+    data: IntakeCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    """Record that a scheduled dose was taken / snoozed / skipped (adherence log)."""
+    medicine = db.get(Medicine, medicine_id)
+    if not medicine or medicine.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Medicine not found")
+
+    status = data.status if data.status in _ALLOWED_INTAKE_STATUS else "taken"
+    log = MedicineIntakeLog(
+        user_id=current_user.id,
+        medicine_id=medicine_id,
+        scheduled_time=data.scheduled_time,
+        status=status,
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(log)
+    return IntakeItem(
+        id=log.id,
+        medicine_id=log.medicine_id,
+        scheduled_time=log.scheduled_time,
+        status=log.status,
+        recorded_at=str(log.recorded_at),
+    )
+
+
+@router.get("/intake/log", response_model=IntakeLogResponse)
+async def list_intake_log(
+    limit: int = 100,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    """Recent adherence history for the current user, newest first."""
+    limit = max(1, min(limit, 500))
+    logs = db.exec(
+        select(MedicineIntakeLog)
+        .where(MedicineIntakeLog.user_id == current_user.id)
+        .order_by(MedicineIntakeLog.recorded_at.desc())
+        .limit(limit)
+    ).all()
+    return IntakeLogResponse(
+        intakes=[
+            IntakeItem(
+                id=log.id,
+                medicine_id=log.medicine_id,
+                scheduled_time=log.scheduled_time,
+                status=log.status,
+                recorded_at=str(log.recorded_at),
+            )
+            for log in logs
+        ]
     )
 
 

@@ -1,0 +1,337 @@
+"use client";
+
+/**
+ * MedicineAlarm — app-wide medicine intake alarm.
+ *
+ * Mounted once in the root layout so reminders fire on ANY page (not just the
+ * Medicines page). While the app is open/backgrounded it:
+ *   - polls the user's medicines and watches the clock,
+ *   - at each `taking_time` raises an alarm-grade notification (persistent,
+ *     vibrating, with Taken / Snooze action buttons) via the service worker,
+ *   - plays a looping alarm tone in the foreground until the user acts,
+ *   - records "Taken" to the adherence log and reschedules "Snooze" for +10min.
+ *
+ * NOTE: a plain PWA cannot wake itself when fully closed — that reliability is
+ * handled separately by server Web Push (Phase B). This covers open/background.
+ */
+
+import { useCallback, useEffect, useRef } from "react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3001";
+
+const SNOOZE_MINUTES = 10;
+const POLL_MEDICINES_MS = 5 * 60 * 1000; // refetch medicines every 5 min
+const TICK_MS = 20 * 1000; // check the clock every 20s
+const NOTIFIED_KEY = "medAlarm:notified"; // {date, keys[]} in localStorage
+
+interface Medicine {
+  id: string;
+  name: string;
+  dosage: string;
+  start_date: string;
+  end_date?: string;
+  taking_times?: string;
+}
+
+function parseTimes(tt?: string): string[] {
+  if (!tt) return [];
+  try {
+    const v = JSON.parse(tt);
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+
+function todayStr(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
+}
+
+function hhmm(d: Date) {
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+// --- de-dupe store (per calendar day, survives navigation & reloads) ---------
+function loadNotified(today: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(NOTIFIED_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.date === today && Array.isArray(parsed.keys)) {
+        return new Set(parsed.keys);
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return new Set();
+}
+
+function saveNotified(today: string, keys: Set<string>) {
+  try {
+    localStorage.setItem(NOTIFIED_KEY, JSON.stringify({ date: today, keys: [...keys] }));
+  } catch {
+    /* ignore */
+  }
+}
+
+// --- foreground alarm tone (Web Audio; best-effort, may be blocked) ----------
+let audioCtx: AudioContext | null = null;
+let toneTimer: ReturnType<typeof setInterval> | null = null;
+let toneStop: ReturnType<typeof setTimeout> | null = null;
+
+function beep() {
+  try {
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!Ctx) return;
+      audioCtx = new Ctx();
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.5);
+  } catch {
+    /* audio unavailable */
+  }
+}
+
+function startAlarmTone() {
+  stopAlarmTone();
+  beep();
+  toneTimer = setInterval(beep, 900);
+  // Safety cap: never ring forever if the user never interacts.
+  toneStop = setTimeout(stopAlarmTone, 60 * 1000);
+}
+
+function stopAlarmTone() {
+  if (toneTimer) clearInterval(toneTimer);
+  if (toneStop) clearTimeout(toneStop);
+  toneTimer = null;
+  toneStop = null;
+}
+
+async function showAlarm(med: { id: string; name: string; dosage: string }, time: string, tag: string) {
+  const title = "💊 Medicine Reminder";
+  const options: NotificationOptions & {
+    actions?: { action: string; title: string }[];
+    vibrate?: number[];
+    renotify?: boolean;
+    requireInteraction?: boolean;
+  } = {
+    body: `Time to take ${med.name} (${med.dosage})`,
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    tag,
+    renotify: true,
+    requireInteraction: true, // stays on screen until the user acts
+    vibrate: [400, 200, 400, 200, 400],
+    data: { medId: med.id, name: med.name, dosage: med.dosage, time },
+    actions: [
+      { action: "taken", title: "✓ Taken" },
+      { action: "snooze", title: `Snooze ${SNOOZE_MINUTES}m` },
+    ],
+  };
+
+  try {
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, options as NotificationOptions);
+      startAlarmTone();
+      return;
+    }
+  } catch {
+    /* fall through */
+  }
+  try {
+    new Notification(title, options as NotificationOptions);
+    startAlarmTone();
+  } catch {
+    /* notifications unavailable */
+  }
+}
+
+async function recordIntake(medId: string, time: string, status: "taken" | "snoozed") {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    await fetch(`${API_URL}/api/medicines/${medId}/intake`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ scheduled_time: time, status }),
+    });
+  } catch {
+    /* offline — adherence log is best-effort */
+  }
+}
+
+// --- Web Push registration (closed-app reminders, Phase B) -------------------
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const output = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) output[i] = raw.charCodeAt(i);
+  return output;
+}
+
+async function ensurePushSubscription() {
+  try {
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const keyRes = await fetch(`${API_URL}/api/push/vapid-public-key`);
+    if (!keyRes.ok) return;
+    const { public_key: publicKey, enabled } = await keyRes.json();
+    if (!enabled || !publicKey) return; // push not configured on the server
+
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
+      });
+    }
+
+    const json = sub.toJSON();
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    await fetch(`${API_URL}/api/push/subscribe`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        endpoint: json.endpoint,
+        keys: json.keys,
+        timezone,
+      }),
+    });
+  } catch {
+    /* push is best-effort; the in-app alarm still works without it */
+  }
+}
+
+export function MedicineAlarm() {
+  const medsRef = useRef<Medicine[]>([]);
+  const snoozeTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const fetchMedicines = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      medsRef.current = [];
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/medicines`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        medsRef.current = data.medicines || [];
+      }
+    } catch {
+      /* keep previous list */
+    }
+  }, []);
+
+  const fireAlarm = useCallback((med: Medicine, time: string, key: string) => {
+    const today = todayStr(new Date());
+    const notified = loadNotified(today);
+    notified.add(key);
+    saveNotified(today, notified);
+    showAlarm(med, time, key);
+  }, []);
+
+  const checkNow = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    if (!localStorage.getItem("token")) return;
+
+    const now = new Date();
+    const current = hhmm(now);
+    const today = todayStr(now);
+    const notified = loadNotified(today);
+
+    for (const med of medsRef.current) {
+      if (med.end_date && med.end_date < today) continue;
+      if (med.start_date && med.start_date > today) continue;
+
+      for (const t of parseTimes(med.taking_times)) {
+        const key = `${med.id}-${t}-${today}`;
+        if (notified.has(key)) continue;
+        if (t === current) fireAlarm(med, t, key);
+      }
+    }
+  }, [fireAlarm]);
+
+  // Handle Taken / Snooze coming back from the service worker.
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+
+    const onMessage = (event: MessageEvent) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== "object") return;
+      if (msg.type !== "medicine-alarm-action") return;
+
+      stopAlarmTone();
+      const { action, medId, time, name, dosage } = msg;
+
+      if (action === "taken") {
+        recordIntake(medId, time, "taken");
+      } else if (action === "snooze") {
+        recordIntake(medId, time, "snoozed");
+        // Re-alarm after the snooze window (client-side; lost if app is closed).
+        const timerKey = `${medId}-${time}`;
+        const existing = snoozeTimers.current.get(timerKey);
+        if (existing) clearTimeout(existing);
+        const timer = setTimeout(
+          () => {
+            snoozeTimers.current.delete(timerKey);
+            showAlarm({ id: medId, name, dosage }, time, `${medId}-${time}-snooze-${Date.now()}`);
+          },
+          SNOOZE_MINUTES * 60 * 1000,
+        );
+        snoozeTimers.current.set(timerKey, timer);
+      }
+    };
+
+    navigator.serviceWorker.addEventListener("message", onMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", onMessage);
+  }, []);
+
+  // Poll medicines + tick the clock.
+  useEffect(() => {
+    fetchMedicines();
+    ensurePushSubscription(); // register for closed-app reminders (Phase B)
+    const medsInterval = setInterval(fetchMedicines, POLL_MEDICINES_MS);
+    return () => clearInterval(medsInterval);
+  }, [fetchMedicines]);
+
+  useEffect(() => {
+    checkNow();
+    const tick = setInterval(checkNow, TICK_MS);
+    return () => clearInterval(tick);
+  }, [checkNow]);
+
+  // Re-check when the tab regains focus (catches missed minutes while hidden).
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") checkNow();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [checkNow]);
+
+  return null;
+}

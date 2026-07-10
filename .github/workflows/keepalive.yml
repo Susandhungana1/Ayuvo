@@ -1,0 +1,52 @@
+name: Keep-alive / uptime ping
+
+# Pings the backend's /health endpoint on a schedule. Two purposes in one:
+#   1. Uptime check — a non-200 fails the run and surfaces in the Actions tab.
+#   2. Keep-alive — Render's free plan sleeps a web service after ~15 min with
+#      no inbound traffic, and our medicine-reminder scheduler sleeps with it.
+#      A request every 10 min resets that idle timer so reminders keep firing
+#      even when no user is browsing.
+#
+# Defaults to this deployment's health URL. To point it elsewhere without
+# editing the file, set a repo Actions *variable* named HEALTHCHECK_URL
+# (Settings > Secrets and variables > Actions > Variables).
+#
+# Caveat: GitHub's scheduled runs are best-effort and can be delayed several
+# minutes under load. For guaranteed sub-15-min pings, also point an external
+# monitor (UptimeRobot / BetterStack free tier) at the same /health URL.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # every 10 minutes
+  workflow_dispatch: {}       # manual trigger from the Actions tab
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping /health
+        env:
+          HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL || 'https://medistore-api-vwyr.onrender.com/health' }}
+        run: |
+          set -euo pipefail
+          echo "Pinging $HEALTHCHECK_URL"
+          # Retry a few times: a cold Render instance can take 30-60s to wake.
+          for attempt in 1 2 3 4 5; do
+            code="$(curl -sS -o /tmp/health.out -w '%{http_code}' --max-time 60 "$HEALTHCHECK_URL" || echo 000)"
+            echo "Attempt $attempt -> HTTP $code"
+            if [ "$code" = "200" ]; then
+              echo "Healthy:"; cat /tmp/health.out; echo
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "Health check failed after retries. Last body:"; cat /tmp/health.out || true
+          exit 1

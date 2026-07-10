@@ -51,6 +51,21 @@ services:
         sync: false
       - key: SENTRY_DSN
         sync: false
+      # Web Push (medicine reminders when the app is closed).
+      # The PUBLIC key is not a secret — browsers receive it — so it's committed
+      # here; this also guarantees it matches the private key. Set the matching
+      # VAPID_PRIVATE_KEY in the dashboard (sync:false). To rotate, regenerate a
+      # pair (`npx web-push generate-vapid-keys`) and update BOTH together.
+      # NOTE: the free plan sleeps after ~15 min idle and the reminder scheduler
+      # sleeps with it — the keep-alive GitHub Action (.github/workflows/
+      # keepalive.yml) pings /health every 10 min to hold it awake; an external
+      # uptime monitor (UptimeRobot) at 5 min is a more reliable alternative.
+      - key: VAPID_PUBLIC_KEY
+        value: BERDuKJaoYAjfFSDTLbMLztfcx59zTeDZUYo6tu9T04BuPtcNn2b7JR0aCpZ0fkKq4cyiEVimBYFqLvBaFXbpgw
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        value: mailto:admin@medistore.app
       # Frontend origin(s) for CORS — set once the frontend is deployed.
       # Comma-separated, e.g. https://medistore.vercel.app
       - key: CORS_ORIGINS
