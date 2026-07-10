@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSpeechRecognition } from '@/lib/useSpeechRecognition';
 
-const API_URL = 'http://127.0.0.1:3001';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
 interface Message {
   role: 'user' | 'assistant';

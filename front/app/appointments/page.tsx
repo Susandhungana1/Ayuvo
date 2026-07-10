@@ -7,7 +7,7 @@ import { Card } from '@/components/card';
 import { Input } from '@/components/input';
 import { downloadIcs } from '@/lib/ics';
 
-const API_URL = 'http://127.0.0.1:3001';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
 interface Appointment {
   id: string;

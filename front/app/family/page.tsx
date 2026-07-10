@@ -6,7 +6,7 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Input } from '@/components/input';
 
-const API_URL = 'http://127.0.0.1:3001';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
 interface Dependent {
   id: string;

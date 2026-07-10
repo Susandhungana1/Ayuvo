@@ -7,7 +7,7 @@ import { Input } from '@/components/input';
 import { Card } from '@/components/card';
 import Link from 'next/link';
 
-const API_URL = 'http://127.0.0.1:3001';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
 export default function Register() {
   const router = useRouter();
