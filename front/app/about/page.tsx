@@ -7,10 +7,9 @@ export default function About() {
         
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-20">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-text-main mb-6">About HealthTracker</h1>
+          <h1 className="text-4xl md:text-5xl font-extrabold text-text-main mb-6">About MediStore</h1>
           <p className="text-lg text-subtext leading-relaxed">
-            Our mission is to empower individuals to take control of their medical records. 
-            We believe that managing your health should be simple, secure, and accessible from anywhere.
+            MediStore is your personal digital health store — a secure platform to store medical records, track vital signs, manage medications, book appointments, generate reports, and share your health data with doctors — all in one place.
           </p>
         </div>
 
@@ -20,11 +19,7 @@ export default function About() {
             <div className="flex-1">
               <h2 className="text-3xl font-bold text-text-main mb-6">What We Do</h2>
               <p className="text-subtext mb-4 leading-relaxed">
-                HealthTracker provides a centralized, digital vault for all your personal healthcare information. 
-                Instead of scattered physical documents and multiple patient portals, we give you one secure place to store, track, and share your medical history.
-              </p>
-              <p className="text-subtext leading-relaxed">
-                Whether you're managing a chronic condition, keeping track of family vaccinations, or just trying to stay organized, our platform gives you the tools you need to stay on top of your well-being.
+                MediStore lets you upload and organize lab results, prescriptions, and medical history, track vital signs like blood pressure, heart rate, blood sugar, and weight, manage your medications with dose reminders, book appointments with doctors, generate AI-powered medical reports, and share records securely via encrypted links.
               </p>
             </div>
             <div className="flex-1 w-full bg-blue-50 rounded-xl p-8 flex items-center justify-center min-h-[300px]">
@@ -47,24 +42,24 @@ export default function About() {
               <div className="w-16 h-16 bg-blue-100 text-primary rounded-full flex items-center justify-center mx-auto mb-6">
                 <Shield size={32} />
               </div>
-              <h3 className="text-xl font-bold text-text-main mb-3">Bank-Level Security</h3>
-              <p className="text-subtext">Your data is encrypted end-to-end. Only you decide who gets access to your medical records.</p>
+              <h3 className="text-xl font-bold text-text-main mb-3">Vitals & Medicines</h3>
+              <p className="text-subtext">Track blood pressure, heart rate, blood sugar, and more. Manage your medications with intelligent dose reminders.</p>
             </div>
 
             <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center">
               <div className="w-16 h-16 bg-green-100 text-secondary rounded-full flex items-center justify-center mx-auto mb-6">
                 <Users size={32} />
               </div>
-              <h3 className="text-xl font-bold text-text-main mb-3">Easy Sharing</h3>
-              <p className="text-subtext">Instantly share relevant documents with new specialists or family members with a single click.</p>
+              <h3 className="text-xl font-bold text-text-main mb-3">Reports & Appointments</h3>
+              <p className="text-subtext">Generate detailed medical reports and book appointments with doctors directly through the platform.</p>
             </div>
 
             <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center">
               <div className="w-16 h-16 bg-blue-100 text-primary rounded-full flex items-center justify-center mx-auto mb-6">
                 <Heart size={32} />
               </div>
-              <h3 className="text-xl font-bold text-text-main mb-3">Patient First</h3>
-              <p className="text-subtext">Designed with patients in mind, ensuring an intuitive, frustration-free experience for users of all ages.</p>
+              <h3 className="text-xl font-bold text-text-main mb-3">Secure & Private</h3>
+              <p className="text-subtext">Your data is encrypted end-to-end. Share records securely via encrypted links — only you control access.</p>
             </div>
           </div>
         </div>

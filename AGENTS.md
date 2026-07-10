@@ -1,6 +1,6 @@
-# HealthTracker - Personal Digital Health Tracker
+# MediStore - Personal Digital Health Store
 
-FastAPI backend for the HealthTracker web application.
+FastAPI backend for the MediStore web application.
 
 ## Quick Start
 

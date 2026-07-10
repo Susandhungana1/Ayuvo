@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useSpeechRecognition } from '@/lib/useSpeechRecognition';
 
 const API_URL = 'http://127.0.0.1:3001';
 
@@ -11,12 +12,34 @@ interface Message {
 
 export function ChatBot() {
   const [open, setOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: 'Hi! I\'m your health assistant. Ask me anything about health, diseases, medicines, nutrition, or wellness.' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { listening, supported, toggle } = useSpeechRecognition(
+    (text) => setInput((prev) => (prev ? prev + ' ' : '') + text)
+  );
+
+  // Only expose the assistant to logged-in users. React to login/logout so the
+  // widget appears/disappears without a page refresh.
+  useEffect(() => {
+    const sync = () => setIsLoggedIn(!!localStorage.getItem('token'));
+    sync();
+    window.addEventListener('storage', sync);
+    window.addEventListener('localStorageUpdated', sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener('localStorageUpdated', sync);
+    };
+  }, []);
+
+  // Close the panel when the user logs out.
+  useEffect(() => {
+    if (!isLoggedIn) setOpen(false);
+  }, [isLoggedIn]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -84,8 +107,32 @@ export function ChatBot() {
         )}
       </button>
 
-      {open && (
-        <div className="fixed bottom-24 right-6 z-50 w-80 sm:w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
+      {open && !isLoggedIn && (
+        <div className="fixed bottom-24 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 max-w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
+          <div className="bg-blue-600 text-white px-4 py-3 flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse" />
+            <span className="font-semibold text-sm">Health Assistant</span>
+          </div>
+          <div className="p-6 text-center">
+            <div className="mx-auto mb-3 w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0-1.1.9-2 2-2s2 .9 2 2m-8 0V7a4 4 0 118 0m-9 4h10a2 2 0 012 2v6a2 2 0 01-2 2H7a2 2 0 01-2-2v-6a2 2 0 012-2z" />
+              </svg>
+            </div>
+            <p className="text-sm font-semibold text-gray-800 mb-1">Please log in to use the chatbot</p>
+            <p className="text-xs text-gray-500 mb-4">The health assistant is available for logged-in users.</p>
+            <a
+              href="/auth/login"
+              className="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl px-5 py-2 transition-colors"
+            >
+              Log in
+            </a>
+          </div>
+        </div>
+      )}
+
+      {open && isLoggedIn && (
+        <div className="fixed bottom-24 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 max-w-96 h-[500px] max-h-[calc(100vh-8rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
           <div className="bg-blue-600 text-white px-4 py-3 flex items-center gap-2">
             <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse" />
             <span className="font-semibold text-sm">Health Assistant</span>
@@ -125,10 +172,22 @@ export function ChatBot() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask about health..."
+                placeholder={listening ? 'Listening…' : 'Ask about health...'}
                 className="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={loading}
               />
+              {supported && (
+                <button
+                  onClick={toggle}
+                  title={listening ? 'Stop voice input' : 'Speak your question'}
+                  aria-label="Voice input"
+                  className={`rounded-xl px-3 py-2 transition-colors ${listening ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-14 0m7 7v3m-3 0h6M12 1a3 3 0 00-3 3v7a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                  </svg>
+                </button>
+              )}
               <button
                 onClick={handleSend}
                 disabled={!input.trim() || loading}

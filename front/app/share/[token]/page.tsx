@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/card';
 import { Button } from '@/components/button';
-import { FormalReportView } from '@/components/FormalReportView';
 import { DigitizedReport } from '@/components/DigitizedReport';
 
 const API_URL = 'http://127.0.0.1:3001';
@@ -20,6 +19,27 @@ interface SharedReport {
   hospital?: string;
   created_at?: string;
 }
+
+interface LabFinding {
+  name: string;
+  value: number;
+  unit: string;
+  status: 'HIGH' | 'LOW' | 'NORMAL';
+  reference_range: string;
+  category: string;
+}
+
+interface LabAnalysis {
+  overall: string;
+  abnormal_count: number;
+  findings: LabFinding[];
+}
+
+const STATUS_STYLES: Record<string, string> = {
+  HIGH: 'bg-red-100 text-red-800',
+  LOW: 'bg-amber-100 text-amber-800',
+  NORMAL: 'bg-green-100 text-green-800',
+};
 
 interface EmergencyContact {
   name: string;
@@ -52,6 +72,10 @@ export default function ViewSharedReport() {
   const [error, setError] = useState('');
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [digitizedReport, setDigitizedReport] = useState<SharedReport | null>(null);
+  const [labAnalysis, setLabAnalysis] = useState<LabAnalysis | null>(null);
+  const [labLoading, setLabLoading] = useState(true);
+  const [explanation, setExplanation] = useState<string | null>(null);
+  const [explainLoading, setExplainLoading] = useState(false);
 
   const report = responseData?.report ?? null;
   const emergency = responseData?.emergency;
@@ -59,8 +83,36 @@ export default function ViewSharedReport() {
   useEffect(() => {
     if (token) {
       fetchReport();
+      fetchLabAnalysis();
     }
   }, [token]);
+
+  const fetchLabAnalysis = async () => {
+    setLabLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/share/${token}/lab-analysis`);
+      if (res.ok) {
+        setLabAnalysis(await res.json());
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLabLoading(false);
+    }
+  };
+
+  const handleExplain = async () => {
+    setExplainLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/share/${token}/explain`);
+      const data = await res.json();
+      setExplanation(res.ok ? data.explanation : `Could not generate explanation: ${data.detail || 'unknown error'}`);
+    } catch {
+      setExplanation('Network error. Please try again.');
+    } finally {
+      setExplainLoading(false);
+    }
+  };
 
   const fetchReport = async () => {
     try {
@@ -114,7 +166,7 @@ export default function ViewSharedReport() {
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <Button onClick={() => router.push('/auth/login')}>Login to HealthTracker</Button>
+          <Button onClick={() => router.push('/auth/login')}>Login to MediStore</Button>
         </div>
         
         <div className="mb-6 flex items-start justify-between gap-4">
@@ -210,20 +262,68 @@ export default function ViewSharedReport() {
 
           <Card className="p-6">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-6 h-6 bg-purple-100 rounded flex items-center justify-center">
-                <span className="text-purple-700 text-xs font-bold">AI</span>
+              <div className="w-6 h-6 bg-teal-100 rounded flex items-center justify-center">
+                <span className="text-teal-700 text-xs font-bold">L</span>
               </div>
-              <h2 className="text-lg font-semibold text-text-main">Formal AI Medical Report</h2>
+              <h2 className="text-lg font-semibold text-text-main">Lab Findings</h2>
             </div>
-            {report?.ai_report_text ? (
-              <div className="max-h-[60vh] overflow-y-auto border rounded-lg">
-                <FormalReportView content={report.ai_report_text} />
-              </div>
+            {labLoading ? (
+              <p className="text-subtext text-sm py-4">Analyzing lab values…</p>
+            ) : !labAnalysis || labAnalysis.findings.length === 0 ? (
+              <p className="text-subtext text-sm">No recognizable lab values found in this report.</p>
             ) : (
-              <p className="text-subtext text-sm">No AI report available for this document.</p>
+              <>
+                <div className="mb-3 flex items-center gap-2">
+                  <span className={`text-xs font-semibold px-2 py-1 rounded ${labAnalysis.overall === 'ABNORMAL' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                    {labAnalysis.overall}
+                  </span>
+                  <span className="text-sm text-subtext">{labAnalysis.abnormal_count} value(s) outside normal range</span>
+                </div>
+                <div className="space-y-2 max-h-[52vh] overflow-y-auto">
+                  {labAnalysis.findings.map((f, i) => (
+                    <div key={i} className="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="font-medium text-text-main text-sm truncate">{f.name}</p>
+                        <p className="text-[11px] text-subtext">{f.category} · Normal {f.reference_range} {f.unit}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-semibold text-text-main text-sm">{f.value} <span className="text-xs text-subtext">{f.unit}</span></span>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${STATUS_STYLES[f.status]}`}>{f.status}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px] text-subtext mt-3">Flagged against typical adult reference ranges (educational).</p>
+              </>
             )}
           </Card>
         </div>
+
+        <Card className="p-6 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center">
+                <span className="text-sky-700 text-xs font-bold">AI</span>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-text-main">In Plain Language</h2>
+                <p className="text-xs text-subtext">Simplified by MediStore AI · not medical advice</p>
+              </div>
+            </div>
+            {!explanation && (
+              <Button onClick={handleExplain} disabled={explainLoading} className="shrink-0">
+                {explainLoading ? 'Explaining…' : 'Explain Simply'}
+              </Button>
+            )}
+          </div>
+          {explainLoading ? (
+            <p className="text-subtext text-sm py-4">AI is explaining this report…</p>
+          ) : explanation ? (
+            <p className="text-sm text-text-main whitespace-pre-wrap leading-relaxed mt-2">{explanation}</p>
+          ) : (
+            <p className="text-subtext text-sm mt-2">Get a patient-friendly, jargon-free summary of this report.</p>
+          )}
+        </Card>
 
         {report?.notes && (
           <Card className="p-4 mb-6">

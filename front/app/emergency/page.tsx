@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Input } from '@/components/input';
@@ -30,12 +31,28 @@ export default function Emergency() {
   const [showContactForm, setShowContactForm] = useState(false);
   const [contactForm, setContactForm] = useState({ name: '', relationship: '', phone: '', email: '' });
   const [profileForm, setProfileForm] = useState({ blood_type: '', allergies: '', medical_conditions: '' });
+  const [publicUrl, setPublicUrl] = useState('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) { router.push('/auth/login'); return; }
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      // User IDs contain a leading '#' (e.g. "#hos013"), which is a URL
+      // fragment delimiter — encode it so the link/QR resolve correctly.
+      if (user.id) setPublicUrl(`${window.location.origin}/emergency/id/${encodeURIComponent(user.id)}`);
+    } catch {}
     fetchProfile();
   }, [router]);
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* clipboard unavailable */ }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -204,25 +221,29 @@ export default function Emergency() {
 
         <Card className="p-4 sm:p-6">
           <h2 className="text-lg sm:text-xl font-semibold text-text-main mb-4">Preview - Emergency ID Card</h2>
-          <div className="p-4 sm:p-6 border-2 border-red-300 rounded-xl bg-red-50 max-w-md mx-auto">
+          {/* Emergency ID is a mock printed card: keep it a fixed high-contrast
+              light-red card with dark-red text in BOTH light and dark themes.
+              Colors are inline so they never depend on inherited theme tokens
+              or the global .dark utility overrides. */}
+          <div className="p-4 sm:p-6 rounded-xl max-w-md mx-auto" style={{ backgroundColor: '#fef2f2', border: '2px solid #fca5a5', color: '#7f1d1d' }}>
             <div className="text-center mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: '#fee2e2' }}>
+                <svg className="w-6 h-6" style={{ color: '#dc2626' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-1.964-.833-2.732 0L4.068 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-red-800">EMERGENCY MEDICAL ID</h3>
+              <h3 className="text-lg font-bold" style={{ color: '#991b1b' }}>EMERGENCY MEDICAL ID</h3>
             </div>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="font-medium">Blood Type:</span> <span className="font-bold text-red-700">{profileForm.blood_type || 'Not set'}</span></div>
+            <div className="space-y-2 text-sm" style={{ color: '#7f1d1d' }}>
+              <div className="flex justify-between"><span className="font-medium">Blood Type:</span> <span className="font-bold" style={{ color: '#b91c1c' }}>{profileForm.blood_type || 'Not set'}</span></div>
               <div className="flex justify-between"><span className="font-medium">Allergies:</span> <span>{profileForm.allergies || 'None listed'}</span></div>
               <div className="flex justify-between"><span className="font-medium">Conditions:</span> <span>{profileForm.medical_conditions || 'None listed'}</span></div>
             </div>
             {profile && profile.emergency_contacts.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-red-200">
-                <p className="text-xs font-medium text-red-700 mb-2">EMERGENCY CONTACTS</p>
+              <div className="mt-4 pt-4" style={{ borderTop: '1px solid #fca5a5' }}>
+                <p className="text-xs font-medium mb-2" style={{ color: '#b91c1c' }}>EMERGENCY CONTACTS</p>
                 {profile.emergency_contacts.map(c => (
-                  <p key={c.id} className="text-xs">{c.name} ({c.relationship}): {c.phone}</p>
+                  <p key={c.id} className="text-xs" style={{ color: '#7f1d1d' }}>{c.name} ({c.relationship}): {c.phone}</p>
                 ))}
               </div>
             )}
@@ -230,6 +251,44 @@ export default function Emergency() {
           <p className="text-xs text-subtext text-center mt-4">
             This info can be accessed via the public emergency API. Share your user ID with healthcare providers.
           </p>
+        </Card>
+
+        <Card className="p-4 sm:p-6 mt-8">
+          <h2 className="text-lg sm:text-xl font-semibold text-text-main mb-1">Emergency QR Code</h2>
+          <p className="text-sm text-subtext mb-4">
+            First responders can scan this to view your medical ID — no login needed. Print it and keep it in your wallet or on your phone case.
+          </p>
+          {publicUrl ? (
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              <div className="bg-white p-3 rounded-lg border border-gray-200 shrink-0">
+                <QRCodeSVG value={publicUrl} size={160} level="M" />
+              </div>
+              <div className="flex-1 w-full min-w-0">
+                <label className="text-xs font-medium text-subtext block mb-1">Public link</label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    readOnly
+                    value={publicUrl}
+                    onFocus={(e) => e.target.select()}
+                    className="flex-1 h-10 rounded-md border border-gray-300 bg-gray-50 px-3 text-sm min-w-0"
+                  />
+                  <Button type="button" onClick={handleCopyLink} className="w-full sm:w-auto">
+                    {copied ? 'Copied!' : 'Copy Link'}
+                  </Button>
+                </div>
+                <a
+                  href={publicUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-3 text-sm text-primary hover:underline"
+                >
+                  Open public emergency ID →
+                </a>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-subtext">Sign in again to generate your emergency QR code.</p>
+          )}
         </Card>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Input } from '@/components/input';
+import { downloadIcs } from '@/lib/ics';
 
 const API_URL = 'http://127.0.0.1:3001';
 
@@ -94,7 +95,7 @@ export default function Appointments() {
     const submitData = {
       ...formData,
       doctor_name: selectedDoctor?.name || formData.doctor_name,
-      appointment_date: new Date(formData.appointment_date).toISOString()
+      appointment_date: formData.appointment_date + ':00'
     };
 
     try {
@@ -139,6 +140,23 @@ export default function Appointments() {
     } catch (err: any) {
       setError(err.message);
     }
+  };
+
+  const handleAddToCalendar = (apt: Appointment) => {
+    const parts = [
+      apt.doctor_name ? `Doctor: Dr. ${apt.doctor_name}` : '',
+      apt.hospital ? `Location: ${apt.hospital}` : '',
+      apt.reason ? `Reason: ${apt.reason}` : '',
+      apt.description || '',
+    ].filter(Boolean);
+    downloadIcs({
+      id: apt.id,
+      title: apt.title,
+      description: parts.join('\n'),
+      location: apt.hospital,
+      start: apt.appointment_date,
+      durationMinutes: apt.duration_minutes || 30,
+    });
   };
 
   const handleCancel = async (id: string) => {
@@ -273,12 +291,20 @@ export default function Appointments() {
                 {apt.reason && (
                   <p className="text-subtext text-sm mb-4">{apt.reason}</p>
                 )}
-                <button
-                  onClick={() => handleCancel(apt.id)}
-                  className="text-red-500 text-sm hover:underline"
-                >
-                  Cancel Appointment
-                </button>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => handleAddToCalendar(apt)}
+                    className="text-primary text-sm font-medium hover:underline"
+                  >
+                    Add to Calendar
+                  </button>
+                  <button
+                    onClick={() => handleCancel(apt.id)}
+                    className="text-red-500 text-sm hover:underline"
+                  >
+                    Cancel Appointment
+                  </button>
+                </div>
               </Card>
             ))}
           </div>
@@ -305,7 +331,10 @@ export default function Appointments() {
               </p>
               <p className="text-xs text-gray-500 mt-2">ID: {successAppointment.id}</p>
             </div>
-            <Button onClick={() => setShowSuccess(false)}>Done</Button>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <Button variant="secondary" onClick={() => handleAddToCalendar(successAppointment)}>Add to Calendar</Button>
+              <Button onClick={() => setShowSuccess(false)}>Done</Button>
+            </div>
           </div>
         </div>
       )}

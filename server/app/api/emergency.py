@@ -1,11 +1,12 @@
 from datetime import datetime
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from app.api.auth import get_current_user
 from app.core.config import get_session
+from app.core.audit import record_access
 from app.models.models import User, EmergencyContact
 
 router = APIRouter()
@@ -148,11 +149,18 @@ async def delete_emergency_contact(
 @router.get("/public/{user_id}", response_model=EmergencyProfileResponse)
 async def get_public_emergency_profile(
     user_id: str,
+    request: Request,
     db: Session = Depends(get_session),
 ):
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    record_access(
+        db, "emergency.view",
+        subject_id=user_id, resource_type="User", resource_id=user_id,
+        request=request,
+    )
 
     contacts = db.exec(
         select(EmergencyContact)

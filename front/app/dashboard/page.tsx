@@ -3,106 +3,53 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+const links = [
+  { href: '/reports', title: 'Medical Reports', desc: 'View and generate health reports' },
+  { href: '/appointments', title: 'Appointments', desc: 'Schedule and manage appointments' },
+  { href: '/medicines', title: 'Medicines', desc: 'Track your medications' },
+  { href: '/vitals', title: 'Vital Signs', desc: 'Track BP, heart rate, weight, blood sugar' },
+  { href: '/documents', title: 'Documents', desc: 'Upload and manage medical documents' },
+  { href: '/share', title: 'Share Records', desc: 'Securely share your medical data' },
+  { href: '/emergency', title: 'Emergency ID', desc: 'Blood type, allergies, emergency contacts' },
+  { href: '/timeline', title: 'Timeline', desc: 'Chronological view of all health events' },
+];
+
+const doctorLinks = [
+  { href: '/doctor/appointments', title: 'Patient Appointments', desc: 'View appointments booked by patients' },
+  { href: '/doctor/availability', title: 'My Availability', desc: 'Set your working hours' },
+];
+
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
-    if (!userData) {
-      window.location.href = '/auth/login';
-    } else {
-      setUser(JSON.parse(userData));
-    }
+    if (!userData) { window.location.href = '/auth/login'; return; }
+    setUser(JSON.parse(userData));
   }, []);
 
   if (!user) return null;
 
   const isDoctor = user.role === 'DOCTOR';
+  const items = isDoctor ? doctorLinks : links;
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-text-main">
-            {isDoctor ? 'Doctor Dashboard' : `Welcome, ${user.name}`}
-          </h1>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-text-main mb-8">
+          {isDoctor ? 'Doctor Dashboard' : `Welcome, ${user.name}`}
+        </h1>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {items.map(link => (
+            <Link key={link.href} href={link.href}>
+              <div className="bg-white rounded-xl p-5 border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all cursor-pointer">
+                <h2 className="text-base font-semibold text-text-main mb-1">{link.title}</h2>
+                <p className="text-sm text-subtext">{link.desc}</p>
+              </div>
+            </Link>
+          ))}
         </div>
-
-        {isDoctor ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Link href="/doctor/appointments">
-              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <h2 className="text-xl font-semibold text-text-main mb-2">Patient Appointments</h2>
-                <p className="text-subtext">View appointments booked by patients</p>
-              </div>
-            </Link>
-
-            <Link href="/doctor/availability">
-              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <h2 className="text-xl font-semibold text-text-main mb-2">My Availability</h2>
-                <p className="text-subtext">Set your working hours</p>
-              </div>
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Link href="/reports">
-              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <h2 className="text-xl font-semibold text-text-main mb-2">Medical Reports</h2>
-                <p className="text-subtext">View and generate health reports</p>
-              </div>
-            </Link>
-
-            <Link href="/appointments">
-              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <h2 className="text-xl font-semibold text-text-main mb-2">Appointments</h2>
-                <p className="text-subtext">Schedule and manage appointments</p>
-              </div>
-            </Link>
-
-            <Link href="/medicines">
-              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <h2 className="text-xl font-semibold text-text-main mb-2">Medicines</h2>
-                <p className="text-subtext">Track your medications</p>
-              </div>
-            </Link>
-
-            <Link href="/share">
-              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <h2 className="text-xl font-semibold text-text-main mb-2">Share Records</h2>
-                <p className="text-subtext">Securely share your medical data</p>
-              </div>
-            </Link>
-
-            <Link href="/vitals">
-              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <h2 className="text-xl font-semibold text-text-main mb-2">Vital Signs</h2>
-                <p className="text-subtext">Track BP, heart rate, weight, blood sugar</p>
-              </div>
-            </Link>
-
-            <Link href="/emergency">
-              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <h2 className="text-xl font-semibold text-text-main mb-2">Emergency ID</h2>
-                <p className="text-subtext">Blood type, allergies, emergency contacts</p>
-              </div>
-            </Link>
-
-            <Link href="/timeline">
-              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <h2 className="text-xl font-semibold text-text-main mb-2">Timeline</h2>
-                <p className="text-subtext">Chronological view of all health events</p>
-              </div>
-            </Link>
-
-            <Link href="/export">
-              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <h2 className="text-xl font-semibold text-text-main mb-2">Export Data</h2>
-                <p className="text-subtext">Download all your data as ZIP</p>
-              </div>
-            </Link>
-          </div>
-        )}
       </div>
     </div>
   );

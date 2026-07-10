@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/card';
 import { Button } from '@/components/button';
-import { FormalReportView } from '@/components/FormalReportView';
 import { DigitizedReport } from '@/components/DigitizedReport';
 
 const API_URL = 'http://127.0.0.1:3001';
@@ -20,6 +19,27 @@ interface Report {
   hospital?: string;
   created_at?: string;
 }
+
+interface LabFinding {
+  name: string;
+  value: number;
+  unit: string;
+  status: 'HIGH' | 'LOW' | 'NORMAL';
+  reference_range: string;
+  category: string;
+}
+
+interface LabAnalysis {
+  overall: string;
+  abnormal_count: number;
+  findings: LabFinding[];
+}
+
+const STATUS_STYLES: Record<string, string> = {
+  HIGH: 'bg-red-100 text-red-800',
+  LOW: 'bg-amber-100 text-amber-800',
+  NORMAL: 'bg-green-100 text-green-800',
+};
 
 interface MedicineItem {
   id: string;
@@ -62,8 +82,11 @@ export default function ViewAllSharedReports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [viewingReport, setViewingReport] = useState<{url: string; name: string} | null>(null);
-  const [expandedAiReports, setExpandedAiReports] = useState<Set<string>>(new Set());
   const [digitizedReport, setDigitizedReport] = useState<Report | null>(null);
+  // Which panel (if any) is open per report, plus caches for fetched data.
+  const [panels, setPanels] = useState<Record<string, 'lab' | 'explain' | null>>({});
+  const [labCache, setLabCache] = useState<Record<string, LabAnalysis | 'loading' | 'error'>>({});
+  const [explainCache, setExplainCache] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (token) {
@@ -104,14 +127,30 @@ export default function ViewAllSharedReports() {
     }
   };
 
-  const toggleAiReport = (id: string) => {
-    const next = new Set(expandedAiReports);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
+  const showLab = async (id: string) => {
+    setPanels(p => ({ ...p, [id]: p[id] === 'lab' ? null : 'lab' }));
+    if (labCache[id]) return;
+    setLabCache(c => ({ ...c, [id]: 'loading' }));
+    try {
+      const res = await fetch(`${API_URL}/api/share/${token}/lab-analysis?report_id=${id}`);
+      const result: LabAnalysis | 'error' = res.ok ? (await res.json()) as LabAnalysis : 'error';
+      setLabCache(c => ({ ...c, [id]: result }));
+    } catch {
+      setLabCache(c => ({ ...c, [id]: 'error' }));
     }
-    setExpandedAiReports(next);
+  };
+
+  const showExplain = async (id: string) => {
+    setPanels(p => ({ ...p, [id]: p[id] === 'explain' ? null : 'explain' }));
+    if (explainCache[id]) return;
+    setExplainCache(c => ({ ...c, [id]: '__loading__' }));
+    try {
+      const res = await fetch(`${API_URL}/api/share/${token}/explain?report_id=${id}`);
+      const data = await res.json();
+      setExplainCache(c => ({ ...c, [id]: res.ok ? data.explanation : `Could not generate explanation: ${data.detail || 'unknown error'}` }));
+    } catch {
+      setExplainCache(c => ({ ...c, [id]: 'Network error. Please try again.' }));
+    }
   };
 
   if (loading) {
@@ -138,7 +177,7 @@ export default function ViewAllSharedReports() {
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <Button onClick={() => router.push('/auth/login')}>Login to HealthTracker</Button>
+          <Button onClick={() => router.push('/auth/login')}>Login to MediStore</Button>
         </div>
         
         <h1 className="text-2xl font-bold text-text-main mb-2">
@@ -253,19 +292,67 @@ export default function ViewAllSharedReports() {
                   >
                     Digital Report
                   </button>
-                  {report.ai_report_text && (
-                    <button
-                      onClick={() => toggleAiReport(report.id)}
-                      className="px-3 py-1.5 rounded-lg bg-purple-50 text-purple-700 font-medium text-sm hover:bg-purple-100 transition-colors"
-                    >
-                      {expandedAiReports.has(report.id) ? 'Hide AI Report' : 'AI Report'}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => showLab(report.id)}
+                    className="px-3 py-1.5 rounded-lg bg-teal-50 text-teal-700 font-medium text-sm hover:bg-teal-100 transition-colors"
+                  >
+                    {panels[report.id] === 'lab' ? 'Hide Lab Values' : 'Lab Values'}
+                  </button>
+                  <button
+                    onClick={() => showExplain(report.id)}
+                    className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 font-medium text-sm hover:bg-sky-100 transition-colors"
+                  >
+                    {panels[report.id] === 'explain' ? 'Hide Explanation' : 'Explain Simply'}
+                  </button>
                 </div>
 
-                {expandedAiReports.has(report.id) && report.ai_report_text && (
-                  <div className="border rounded-lg overflow-hidden">
-                    <FormalReportView content={report.ai_report_text} />
+                {panels[report.id] === 'lab' && (
+                  <div className="border border-gray-100 rounded-lg p-4">
+                    {labCache[report.id] === 'loading' || labCache[report.id] === undefined ? (
+                      <p className="text-subtext text-sm">Analyzing lab values…</p>
+                    ) : labCache[report.id] === 'error' ? (
+                      <p className="text-subtext text-sm">Could not analyze lab values for this report.</p>
+                    ) : (() => {
+                      const lab = labCache[report.id] as LabAnalysis;
+                      if (lab.findings.length === 0) {
+                        return <p className="text-subtext text-sm">No recognizable lab values found in this report.</p>;
+                      }
+                      return (
+                        <>
+                          <div className="mb-3 flex items-center gap-2">
+                            <span className={`text-xs font-semibold px-2 py-1 rounded ${lab.overall === 'ABNORMAL' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                              {lab.overall}
+                            </span>
+                            <span className="text-sm text-subtext">{lab.abnormal_count} value(s) outside normal range</span>
+                          </div>
+                          <div className="space-y-2">
+                            {lab.findings.map((f, i) => (
+                              <div key={i} className="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2">
+                                <div className="min-w-0">
+                                  <p className="font-medium text-text-main text-sm truncate">{f.name}</p>
+                                  <p className="text-[11px] text-subtext">{f.category} · Normal {f.reference_range} {f.unit}</p>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="font-semibold text-text-main text-sm">{f.value} <span className="text-xs text-subtext">{f.unit}</span></span>
+                                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${STATUS_STYLES[f.status]}`}>{f.status}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {panels[report.id] === 'explain' && (
+                  <div className="border border-gray-100 rounded-lg p-4">
+                    <p className="text-xs text-subtext mb-2">Simplified by MediStore AI · not medical advice</p>
+                    {!explainCache[report.id] || explainCache[report.id] === '__loading__' ? (
+                      <p className="text-subtext text-sm">AI is explaining this report…</p>
+                    ) : (
+                      <p className="text-sm text-text-main whitespace-pre-wrap leading-relaxed">{explainCache[report.id]}</p>
+                    )}
                   </div>
                 )}
               </Card>

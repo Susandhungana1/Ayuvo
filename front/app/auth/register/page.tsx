@@ -75,7 +75,7 @@ export default function Register() {
           </div>
           <h2 className="text-3xl font-extrabold text-text-main mb-2">Create an Account</h2>
           <p className="text-subtext text-sm">
-            Join HealthTracker to securely manage your medical records
+            Join MediStore to securely manage your medical records
           </p>
         </div>
 

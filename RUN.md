@@ -1,4 +1,4 @@
-# HealthTracker - Project Setup Guide
+# MediStore - Project Setup Guide
 
 ## Prerequisites
 

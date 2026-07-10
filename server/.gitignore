@@ -9,3 +9,7 @@ src/generated/prisma
 /src/
 eng.traineddata
 src/upload
+
+# Local object storage (STORAGE_BACKEND=local) — never commit patient files
+/storage/
+storage/

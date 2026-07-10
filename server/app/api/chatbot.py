@@ -1,9 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional
 import httpx
 
 from app.core.config import settings
+from app.api.auth import get_current_user
+from app.models.models import User
 
 router = APIRouter()
 
@@ -30,7 +32,7 @@ class ChatResponse(BaseModel):
 
 
 @router.post("", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+async def chat(request: ChatRequest, current_user: User = Depends(get_current_user)):
     if not settings.groq_api_key:
         raise HTTPException(status_code=500, detail="Groq API key not configured")
 

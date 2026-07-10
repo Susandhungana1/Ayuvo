@@ -4,30 +4,37 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from './button';
+import { ThemeToggle } from './theme-toggle';
+import { LanguageToggle } from './language-toggle';
+import { useI18n } from '@/lib/i18n';
 
 const primaryLinks = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/reports', label: 'Reports' },
-  { href: '/medicines', label: 'Medicines' },
-  { href: '/vitals', label: 'Vitals' },
+  { href: '/', tKey: 'nav.home' },
+  { href: '/dashboard', tKey: 'nav.dashboard' },
+  { href: '/reports', tKey: 'nav.reports' },
+  { href: '/medicines', tKey: 'nav.medicines' },
+  { href: '/vitals', tKey: 'nav.vitals' },
 ];
 
 const moreLinks = [
-  { href: '/appointments', label: 'Appointments' },
-  { href: '/emergency', label: 'Emergency ID' },
-  { href: '/timeline', label: 'Timeline' },
-  { href: '/share', label: 'Share' },
-  { href: '/export', label: 'Export Data' },
+  { href: '/appointments', tKey: 'nav.appointments' },
+  { href: '/emergency', tKey: 'nav.emergency' },
+  { href: '/family', tKey: 'nav.family' },
+  { href: '/nearby', tKey: 'nav.nearby' },
+  { href: '/timeline', tKey: 'nav.timeline' },
+  { href: '/share', tKey: 'nav.share' },
 ];
 
 const doctorLinks = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/doctor/appointments', label: 'Appointments' },
-  { href: '/doctor/availability', label: 'Availability' },
+  { href: '/', tKey: 'nav.home' },
+  { href: '/dashboard', tKey: 'nav.dashboard' },
+  { href: '/doctor/appointments', tKey: 'nav.appointments' },
+  { href: '/doctor/availability', tKey: 'nav.availability' },
 ];
 
 export function Navbar() {
   const router = useRouter();
+  const { t } = useI18n();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -88,6 +95,7 @@ export function Navbar() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setIsLoggedIn(false);
+    window.dispatchEvent(new Event('localStorageUpdated'));
     router.push('/');
     setMobileMenuOpen(false);
   };
@@ -115,7 +123,7 @@ export function Navbar() {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xl">+</span>
               </div>
-              <span className="font-bold text-xl text-text-main tracking-tight">HealthTracker</span>
+              <span className="font-bold text-xl text-text-main tracking-tight">MediStore</span>
             </Link>
           </div>
 
@@ -124,7 +132,7 @@ export function Navbar() {
             <div className="hidden lg:flex items-center gap-6">
               {navLinks.map((link) => (
                 <Link key={link.href} href={link.href} className="text-subtext hover:text-primary transition-colors font-medium text-sm whitespace-nowrap">
-                  {link.label}
+                  {t(link.tKey)}
                 </Link>
               ))}
               {moreNavLinks.length > 0 && (
@@ -133,7 +141,7 @@ export function Navbar() {
                     onClick={() => setMoreOpen(!moreOpen)}
                     className="text-subtext hover:text-primary transition-colors font-medium text-sm flex items-center gap-1"
                   >
-                    More
+                    {t('nav.more')}
                     <svg className={`w-3 h-3 transition-transform ${moreOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
@@ -147,7 +155,7 @@ export function Navbar() {
                           onClick={() => setMoreOpen(false)}
                           className="block px-4 py-2 text-sm text-subtext hover:text-primary hover:bg-gray-50 transition-colors"
                         >
-                          {link.label}
+                          {t(link.tKey)}
                         </Link>
                       ))}
                     </div>
@@ -159,6 +167,8 @@ export function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-1 sm:gap-3">
+            <LanguageToggle />
+            <ThemeToggle />
             {isLoggedIn && (
               <>
                 {/* Search - desktop */}
@@ -170,7 +180,7 @@ export function Navbar() {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search reports, medicines..."
+                        placeholder={t('nav.search')}
                         className="w-40 lg:w-56 h-9 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         onBlur={() => { if (!searchQuery) setSearchOpen(false); }}
                       />
@@ -191,7 +201,7 @@ export function Navbar() {
 
                 {/* Logout - desktop */}
                 <button onClick={handleLogout} className="hidden sm:block text-red-500 hover:text-red-700 font-medium transition-colors text-sm whitespace-nowrap">
-                  Logout
+                  {t('nav.logout')}
                 </button>
               </>
             )}
@@ -199,10 +209,10 @@ export function Navbar() {
             {!isLoggedIn && (
               <>
                 <Link href="/auth/login" className="text-text-main hover:text-primary font-medium transition-colors hidden sm:block text-sm">
-                  Log in
+                  {t('nav.login')}
                 </Link>
                 <Link href="/auth/register">
-                  <Button variant="primary" className="text-sm">Get Started</Button>
+                  <Button variant="primary" className="text-sm">{t('nav.getStarted')}</Button>
                 </Link>
               </>
             )}
@@ -230,7 +240,7 @@ export function Navbar() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search reports, medicines..."
+                  placeholder={t('nav.search')}
                   className="flex-1 h-10 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
                 <button type="submit" className="bg-primary text-white px-4 py-2 rounded-md text-sm font-medium">
@@ -247,21 +257,21 @@ export function Navbar() {
                   className="text-subtext hover:text-primary hover:bg-gray-50 transition-colors font-medium py-2.5 px-3 rounded-md"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  {link.label}
+                  {t(link.tKey)}
                 </Link>
               ))}
               <div className="pt-3 mt-2 border-t border-gray-100">
                 {isLoggedIn ? (
                   <button onClick={handleLogout} className="text-red-500 hover:text-red-700 hover:bg-red-50 font-medium text-left py-2.5 px-3 rounded-md w-full transition-colors">
-                    Logout
+                    {t('nav.logout')}
                   </button>
                 ) : (
                   <div className="flex flex-col space-y-2 px-1">
                     <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)} className="text-center py-2 text-text-main hover:text-primary font-medium">
-                      Log in
+                      {t('nav.login')}
                     </Link>
                     <Link href="/auth/register" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="primary" className="w-full">Get Started</Button>
+                      <Button variant="primary" className="w-full">{t('nav.getStarted')}</Button>
                     </Link>
                   </div>
                 )}

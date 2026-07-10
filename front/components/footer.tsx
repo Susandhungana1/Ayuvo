@@ -12,7 +12,7 @@ export function Footer() {
               <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
                 <span className="text-white font-bold text-sm">+</span>
               </div>
-              <span className="font-bold text-lg text-text-main tracking-tight">HealthTracker</span>
+              <span className="font-bold text-lg text-text-main tracking-tight">MediStore</span>
             </Link>
             <p className="text-subtext max-w-sm">
               Your trusted digital healthcare platform. Manage your medical records securely and stay on top of your health journey.
@@ -77,9 +77,9 @@ export function Footer() {
         </div>
         
         <div className="border-t border-gray-100 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-subtext">
-          <p>&copy; {currentYear} HealthTracker. All rights reserved.</p>
+          <p>&copy; {currentYear} MediStore. All rights reserved.</p>
           <div className="mt-4 md:mt-0">
-            <p>support@healthtracker.com | +1 (555) 123-4567</p>
+            <p>susandhungana20@gmail.com | +977 9812345678</p>
           </div>
         </div>
       </div>

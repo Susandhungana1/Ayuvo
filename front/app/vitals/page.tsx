@@ -8,6 +8,7 @@ import { Input } from '@/components/input';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
+import { useSpeechRecognition } from '@/lib/useSpeechRecognition';
 
 const API_URL = 'http://127.0.0.1:3001';
 
@@ -41,18 +42,18 @@ function analyzeBP(systolic: number, diastolic: number): VitalReading {
   let color: string, bg: string, status: string;
   if (systolic < 90 || diastolic < 60) {
     color = 'text-rose-800'; bg = 'bg-rose-100'; status = 'Low';
-  } else if (systolic < 120 && diastolic < 80) {
+  } else if (systolic <= 120 && diastolic <= 80) {
     color = 'text-green-800'; bg = 'bg-green-100'; status = 'Normal';
-  } else if (systolic < 130 && diastolic < 80) {
+  } else if (systolic <= 129 && diastolic <= 80) {
     color = 'text-yellow-800'; bg = 'bg-yellow-100'; status = 'Elevated';
-  } else if (systolic < 140 || diastolic < 90) {
+  } else if (systolic <= 139 || diastolic <= 89) {
     color = 'text-orange-800'; bg = 'bg-orange-100'; status = 'Stage 1 High';
-  } else if (systolic < 180 || diastolic < 120) {
+  } else if (systolic <= 179 || diastolic <= 119) {
     color = 'text-red-800'; bg = 'bg-red-100'; status = 'Stage 2 High';
   } else {
     color = 'text-red-900'; bg = 'bg-red-200'; status = 'Crisis';
   }
-  return { label, value, unit, color, bg, status, range: '<120/80' };
+  return { label, value, unit, color, bg, status, range: '\u2264120/80' };
 }
 
 function analyzeHR(hr: number): VitalReading {
@@ -155,6 +156,9 @@ export default function Vitals() {
     weight: '', blood_sugar: '', temperature: '', oxygen_saturation: '', notes: ''
   });
   const [chartType, setChartType] = useState('bp');
+  const { listening, supported, toggle } = useSpeechRecognition(
+    (text) => setFormData((prev) => ({ ...prev, notes: (prev.notes ? prev.notes + ' ' : '') + text }))
+  );
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -274,7 +278,19 @@ export default function Vitals() {
                   onChange={e => setFormData({ ...formData, oxygen_saturation: e.target.value })} />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-sm font-medium text-gray-700">Notes</label>
+                  {supported && (
+                    <button type="button" onClick={toggle}
+                      title={listening ? 'Stop voice input' : 'Dictate notes'}
+                      className={`flex items-center gap-1 text-xs rounded px-2 py-1 transition-colors ${listening ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-14 0m7 7v3m-3 0h6M12 1a3 3 0 00-3 3v7a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                      </svg>
+                      {listening ? 'Listening…' : 'Speak'}
+                    </button>
+                  )}
+                </div>
                 <textarea value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Feeling dizzy, after exercise, etc."
                   className="flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"

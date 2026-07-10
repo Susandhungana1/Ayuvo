@@ -29,8 +29,7 @@ class AppointmentCreate(BaseModel):
     @field_validator('appointment_date')
     @classmethod
     def appointment_must_be_future(cls, v: datetime) -> datetime:
-        now = datetime.now(timezone.utc)
-        if v.replace(tzinfo=timezone.utc) <= now:
+        if v <= datetime.now():
             raise ValueError('Appointment date must be in the future')
         return v
 
@@ -142,9 +141,6 @@ def get_available_slots_for_doctor(db: Session, doctor_id: str, date: datetime, 
 
 
 def is_slot_available(db: Session, doctor_id: str, appointment_date: datetime, duration_minutes: int) -> bool:
-    if appointment_date.tzinfo is None:
-        appointment_date = appointment_date.replace(tzinfo=timezone.utc)
-    
     day_of_week = get_day_of_week(appointment_date)
 
     availabilities = db.exec(
@@ -179,15 +175,13 @@ def is_slot_available(db: Session, doctor_id: str, appointment_date: datetime, d
         select(Appointment).where(
             and_(
                 Appointment.doctor_id == doctor_id,
-                Appointment.appointment_date < appt_end.replace(tzinfo=None)
+                Appointment.appointment_date < appt_end
             )
         )
     ).first()
 
     if overlapping and overlapping.status in [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED]:
         appt_start = overlapping.appointment_date
-        if appt_start.tzinfo is None:
-            appt_start = appt_start.replace(tzinfo=timezone.utc)
         appt_dur = overlapping.duration_minutes
         if appt_start + timedelta(minutes=appt_dur) > appointment_date:
             return False

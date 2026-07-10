@@ -81,6 +81,10 @@ class User(SQLModel, table=True):
     allergies: Optional[str] = None
     medical_conditions: Optional[str] = None
 
+    # Two-factor auth (TOTP). Secret is base32; only set once the user enables 2FA.
+    totp_secret: Optional[str] = None
+    totp_enabled: bool = Field(default=False)
+
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -142,6 +146,7 @@ class Medicine(SQLModel, table=True):
     frequency: str
     start_date: str
     end_date: Optional[str] = None
+    taking_times: Optional[str] = None
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -152,7 +157,14 @@ class MedicalFile(SQLModel, table=True):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     name: str
     file_type: FileType
-    content: bytes = Field(default=None, sa_type=LargeBinary())
+
+    # New: object-storage key (Phase 0). Bytes live in storage, not Postgres.
+    storage_key: Optional[str] = None
+    content_type: Optional[str] = None
+
+    # Legacy: inline blob. Kept nullable so pre-migration rows still read; new
+    # uploads leave this NULL and use storage_key instead.
+    content: Optional[bytes] = Field(default=None, sa_type=LargeBinary())
 
     document_id: str = Field(foreign_key="medical_documents.id")
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
@@ -169,7 +181,10 @@ class MedicalReport(SQLModel, table=True):
     report_date: Optional[datetime] = None
 
     file_name: str
-    file_content: bytes = Field(default=None, sa_type=LargeBinary())
+    # New: object-storage key (Phase 0). Legacy file_content kept nullable for
+    # pre-migration rows; new uploads use storage_key.
+    storage_key: Optional[str] = None
+    file_content: Optional[bytes] = Field(default=None, sa_type=LargeBinary())
     file_content_type: Optional[str] = None
     thumbnail: Optional[str] = None
     notes: Optional[str] = None
@@ -255,3 +270,51 @@ class EmergencyContact(SQLModel, table=True):
     phone: str
     email: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Dependent(SQLModel, table=True):
+    """A family member (child, elderly parent, etc.) whose basic medical
+    profile is managed by a guardian account."""
+    __tablename__ = "dependents"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    # The guardian account that owns/manages this dependent's records.
+    guardian_id: str = Field(foreign_key="users.id", index=True)
+
+    name: str
+    relationship: str  # e.g. Child, Parent, Spouse
+    date_of_birth: Optional[str] = None
+    blood_type: Optional[str] = None
+    allergies: Optional[str] = None
+    medical_conditions: Optional[str] = None
+    notes: Optional[str] = None
+
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class AuditLog(SQLModel, table=True):
+    """Append-only record of sensitive access events (who / when / what / IP).
+
+    Required for privacy compliance and hospital trust: every read of a report,
+    every share-link view, and every emergency-ID lookup is logged here. Rows
+    are only ever inserted, never updated or deleted by application code.
+    """
+    __tablename__ = "audit_logs"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+
+    # The actor. NULL for anonymous/public access (e.g. a share-link viewer).
+    actor_id: Optional[str] = Field(default=None, index=True)
+    # Whose data was touched (the data subject).
+    subject_id: Optional[str] = Field(default=None, index=True)
+
+    action: str = Field(index=True)          # e.g. "report.read", "share.view"
+    resource_type: Optional[str] = None      # e.g. "MedicalReport"
+    resource_id: Optional[str] = None
+
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    detail: Optional[str] = None             # short free-text / token, no PII blobs
+
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)

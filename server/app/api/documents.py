@@ -1,11 +1,13 @@
 from datetime import datetime
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from app.api.auth import get_current_user
 from app.core.config import get_session
+from app.core import storage
+from app.core.audit import record_access
 from app.models.models import User, MedicalDocument, MedicalFile
 
 router = APIRouter()
@@ -98,8 +100,9 @@ async def delete_document(
     
     files = db.exec(select(MedicalFile).where(MedicalFile.document_id == doc_id)).all()
     for f in files:
+        storage.delete_file(f.storage_key)
         db.delete(f)
-    
+
     db.delete(document)
     db.commit()
     return {"message": "Document deleted"}
@@ -120,14 +123,20 @@ async def upload_document_file(
         raise HTTPException(status_code=404, detail="Document not found")
     
     content = await file.read()
-    
+
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="File size exceeds 10MB limit")
-    
+
+    storage_key = storage.save_file(
+        content, original_name=file.filename, prefix="documents",
+        content_type=file.content_type,
+    )
+
     medical_file = MedicalFile(
         name=file.filename,
         file_type="OTHER",
-        content=content,
+        storage_key=storage_key,
+        content_type=file.content_type,
         document_id=doc_id
     )
     db.add(medical_file)
@@ -161,6 +170,7 @@ async def get_document_files(
 async def download_document_file(
     doc_id: str,
     file_id: str,
+    request: Request,
     inline: bool = False,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session)
@@ -168,11 +178,21 @@ async def download_document_file(
     document = db.get(MedicalDocument, doc_id)
     if not document or document.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Document not found")
-    
+
     file = db.get(MedicalFile, file_id)
     if not file or file.document_id != doc_id:
         raise HTTPException(status_code=404, detail="File not found")
-    
+
+    if file.storage_key:
+        try:
+            data = storage.read_file(file.storage_key)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail="File not found")
+    else:
+        data = file.content
+    if not data:
+        raise HTTPException(status_code=404, detail="File not found")
+
     content_type = "application/octet-stream"
     if file.name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
         if file.name.lower().endswith('.png'):
@@ -187,10 +207,16 @@ async def download_document_file(
         content_type = "application/pdf"
     
     disposition = "inline" if inline else "attachment"
-    
+
+    record_access(
+        db, "document.file.read",
+        actor_id=current_user.id, subject_id=document.user_id,
+        resource_type="MedicalFile", resource_id=file.id, request=request,
+    )
+
     from fastapi.responses import Response
     return Response(
-        content=file.content,
+        content=data,
         media_type=content_type,
         headers={"Content-Disposition": f"{disposition}; filename={file.name}"}
     )

@@ -6,10 +6,22 @@ uvicorn[standard]==0.34.0
 sqlmodel==0.0.14
 psycopg2-binary==2.9.10
 
+# Object storage (S3-compatible: AWS S3 / Cloudflare R2 / Supabase / MinIO).
+# Only needed when STORAGE_BACKEND=s3; harmless to install otherwise.
+boto3==1.35.90
+
 # Auth
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.20
+pyotp==2.9.0            # TOTP 2FA
+qrcode[pil]==7.4.2     # QR provisioning image for authenticator apps
+
+# Rate limiting
+slowapi==0.1.9
+
+# Error monitoring
+sentry-sdk[fastapi]==2.19.2
 
 # HTTP Client for AI
 httpx==0.28.1
@@ -18,3 +30,6 @@ httpx==0.28.1
 python-dotenv==1.0.1
 pydantic==2.10.5
 pydantic-settings==2.7.1
+
+# Testing
+pytest==8.3.4
