@@ -35,8 +35,33 @@ logger = logging.getLogger("medicine_reminders")
 
 _TICK_SECONDS = 60
 
+# Fire a dose if its scheduled minute is within the last GRACE_MINUTES, not only
+# the exact current minute. This is what makes reminders survive a free-tier
+# instance that was asleep (or a delayed tick): when it wakes, it still delivers
+# any dose due in the recent window instead of missing it forever. Dedupe keeps
+# each dose to a single push per day, so the window never double-sends.
+GRACE_MINUTES = 10
+
 # { "YYYY-MM-DD": set("<user>:<med>:<HH:MM>") } — cleared as the date rolls over.
 _sent: dict[str, set[str]] = {}
+
+
+def _minutes_of_day(hhmm: str) -> int | None:
+    try:
+        h, m = hhmm.split(":")
+        return int(h) * 60 + int(m)
+    except Exception:
+        return None
+
+
+def _is_due(scheduled: str, now: datetime) -> bool:
+    """True if `scheduled` (HH:MM) falls in [now - GRACE_MINUTES, now] today."""
+    sched = _minutes_of_day(scheduled)
+    if sched is None:
+        return False
+    now_min = now.hour * 60 + now.minute
+    delta = now_min - sched
+    return 0 <= delta <= GRACE_MINUTES
 
 
 def _local_now(tz_name: str) -> datetime:
@@ -58,15 +83,19 @@ def _parse_times(taking_times) -> list[str]:
         return []
 
 
-def _run_tick() -> None:
-    """One synchronous pass over all subscriptions (runs in a worker thread)."""
-    if not push_available():
-        return
+def _run_tick() -> int:
+    """One synchronous pass over all subscriptions (runs in a worker thread).
 
+    Returns the number of pushes sent — handy for the external-cron endpoint.
+    """
+    if not push_available():
+        return 0
+
+    sent_count = 0
     with Session(engine) as db:
         subs = db.exec(select(PushSubscription)).all()
         if not subs:
-            return
+            return 0
 
         # Cache medicines per user so N subscriptions for one user hit the DB once.
         meds_by_user: dict[str, list[Medicine]] = {}
@@ -74,7 +103,6 @@ def _run_tick() -> None:
 
         for sub in subs:
             now = _local_now(sub.timezone)
-            current = now.strftime("%H:%M")
             today = now.strftime("%Y-%m-%d")
 
             day_sent = _sent.setdefault(today, set())
@@ -94,7 +122,7 @@ def _run_tick() -> None:
                 if med.start_date and med.start_date > today:
                     continue
                 for t in _parse_times(med.taking_times):
-                    if t != current:
+                    if not _is_due(t, now):
                         continue
                     key = f"{sub.user_id}:{med.id}:{t}:{today}"
                     if key in day_sent:
@@ -111,6 +139,7 @@ def _run_tick() -> None:
                     result = send_push(sub.endpoint, sub.p256dh, sub.auth, payload)
                     if result.ok:
                         day_sent.add(key)
+                        sent_count += 1
                     elif result.gone:
                         dead.append(sub)
 
@@ -121,6 +150,15 @@ def _run_tick() -> None:
                 pass
         if dead:
             db.commit()
+
+    return sent_count
+
+
+async def run_tick_once() -> int:
+    """Run a single tick off the event loop. Used by the external-cron endpoint
+    so a reliable scheduler (cron-job.org / UptimeRobot) can drive — and wake —
+    a sleepy free-tier instance every minute."""
+    return await asyncio.to_thread(_run_tick)
 
 
 async def _loop() -> None:

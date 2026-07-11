@@ -1,24 +1,27 @@
-name: Keep-alive / uptime ping
+name: Keep-alive + reminder tick
 
-# Pings the backend's /health endpoint on a schedule. Two purposes in one:
-#   1. Uptime check — a non-200 fails the run and surfaces in the Actions tab.
-#   2. Keep-alive — Render's free plan sleeps a web service after ~15 min with
-#      no inbound traffic, and our medicine-reminder scheduler sleeps with it.
-#      A request every 10 min resets that idle timer so reminders keep firing
-#      even when no user is browsing.
+# Runs on a schedule and does two things in one request:
+#   1. Wakes the backend — Render's free plan sleeps a web service after ~15 min
+#      of no inbound traffic, and our medicine-reminder scheduler sleeps with it.
+#   2. Drives the reminder tick — if a CRON_SECRET repo secret is set, it POSTs
+#      to /api/push/run-tick so due reminders are delivered on THIS request,
+#      even if the in-process scheduler had been asleep. The server's 10-minute
+#      catch-up window covers the gap between runs.
 #
-# Defaults to this deployment's health URL. To point it elsewhere without
-# editing the file, set a repo Actions *variable* named HEALTHCHECK_URL
-# (Settings > Secrets and variables > Actions > Variables).
+# Without CRON_SECRET it falls back to a plain /health ping (keep-alive only).
 #
-# Caveat: GitHub's scheduled runs are best-effort and can be delayed several
-# minutes under load. For guaranteed sub-15-min pings, also point an external
-# monitor (UptimeRobot / BetterStack free tier) at the same /health URL.
+# Reliability note: GitHub's scheduled runs are best-effort and can be delayed
+# several minutes. For minute-accurate reminders, ALSO point a free external
+# cron at the same run-tick URL every 1 minute (cron-job.org, UptimeRobot):
+#   POST https://<host>/api/push/run-tick   header  X-Cron-Secret: <secret>
+#
+# Override the target host without editing this file by setting a repo Actions
+# *variable* named HEALTHCHECK_URL (Settings > Secrets and variables > Actions).
 
 on:
   schedule:
-    - cron: "*/10 * * * *"   # every 10 minutes
-  workflow_dispatch: {}       # manual trigger from the Actions tab
+    - cron: "*/5 * * * *"    # every 5 minutes (GitHub's practical minimum)
+  workflow_dispatch: {}        # manual trigger from the Actions tab
 
 permissions:
   contents: read
@@ -32,21 +35,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Ping /health
+      - name: Wake backend and run reminder tick
         env:
-          HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL || 'https://medistore-api-vwyr.onrender.com/health' }}
+          BASE_URL: ${{ vars.HEALTHCHECK_URL || 'https://medistore-api-vwyr.onrender.com' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           set -euo pipefail
-          echo "Pinging $HEALTHCHECK_URL"
+          echo "Target: $BASE_URL"
           # Retry a few times: a cold Render instance can take 30-60s to wake.
           for attempt in 1 2 3 4 5; do
-            code="$(curl -sS -o /tmp/health.out -w '%{http_code}' --max-time 60 "$HEALTHCHECK_URL" || echo 000)"
-            echo "Attempt $attempt -> HTTP $code"
+            if [ -n "${CRON_SECRET:-}" ]; then
+              code="$(curl -sS -o /tmp/out -w '%{http_code}' --max-time 60 \
+                -X POST -H "X-Cron-Secret: $CRON_SECRET" "$BASE_URL/api/push/run-tick" || echo 000)"
+              echo "Attempt $attempt (run-tick) -> HTTP $code"
+            else
+              code="$(curl -sS -o /tmp/out -w '%{http_code}' --max-time 60 "$BASE_URL/health" || echo 000)"
+              echo "Attempt $attempt (health) -> HTTP $code"
+            fi
             if [ "$code" = "200" ]; then
-              echo "Healthy:"; cat /tmp/health.out; echo
+              echo "OK:"; cat /tmp/out; echo
               exit 0
             fi
             sleep 15
           done
-          echo "Health check failed after retries. Last body:"; cat /tmp/health.out || true
+          echo "Failed after retries. Last body:"; cat /tmp/out || true
           exit 1

@@ -22,6 +22,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3001";
 const SNOOZE_MINUTES = 10;
 const POLL_MEDICINES_MS = 5 * 60 * 1000; // refetch medicines every 5 min
 const TICK_MS = 20 * 1000; // check the clock every 20s
+const GRACE_MINUTES = 10; // fire a dose due within the last N min, not just now
 const NOTIFIED_KEY = "medAlarm:notified"; // {date, keys[]} in localStorage
 
 interface Medicine {
@@ -49,8 +50,14 @@ function todayStr(d: Date) {
   ).padStart(2, "0")}`;
 }
 
-function hhmm(d: Date) {
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+// True if `scheduled` (HH:MM) falls within the last GRACE_MINUTES up to `now`.
+// A window (not an exact-minute match) lets an app that was backgrounded or
+// throttled for a few minutes still catch a dose it would otherwise skip.
+function isDue(scheduled: string, now: Date): boolean {
+  const [h, m] = scheduled.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return false;
+  const delta = now.getHours() * 60 + now.getMinutes() - (h * 60 + m);
+  return delta >= 0 && delta <= GRACE_MINUTES;
 }
 
 // --- de-dupe store (per calendar day, survives navigation & reloads) ---------
@@ -259,7 +266,6 @@ export function MedicineAlarm() {
     if (!localStorage.getItem("token")) return;
 
     const now = new Date();
-    const current = hhmm(now);
     const today = todayStr(now);
     const notified = loadNotified(today);
 
@@ -270,7 +276,7 @@ export function MedicineAlarm() {
       for (const t of parseTimes(med.taking_times)) {
         const key = `${med.id}-${t}-${today}`;
         if (notified.has(key)) continue;
-        if (t === current) fireAlarm(med, t, key);
+        if (isDue(t, now)) fireAlarm(med, t, key);
       }
     }
   }, [fireAlarm]);

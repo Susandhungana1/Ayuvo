@@ -1,12 +1,13 @@
 """Web Push subscription management for medicine reminders."""
 
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from app.api.auth import get_current_user
 from app.core.config import get_session, settings
+from app.core.reminder_scheduler import run_tick_once
 from app.models.models import User, PushSubscription
 
 router = APIRouter()
@@ -74,6 +75,17 @@ async def subscribe(
         )
     db.commit()
     return {"message": "subscribed"}
+
+
+@router.post("/run-tick")
+async def run_tick(x_cron_secret: str = Header(default="")):
+    """Deliver any reminders due right now. Meant to be called every minute by an
+    external scheduler on hosts that sleep. Guarded by CRON_SECRET; disabled
+    (404) when the secret is unset so it is never publicly triggerable."""
+    if not settings.cron_secret or x_cron_secret != settings.cron_secret:
+        raise HTTPException(status_code=404, detail="Not found")
+    sent = await run_tick_once()
+    return {"ok": True, "sent": sent}
 
 
 @router.post("/unsubscribe")

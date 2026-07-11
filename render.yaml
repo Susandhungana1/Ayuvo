@@ -56,16 +56,23 @@ services:
       # here; this also guarantees it matches the private key. Set the matching
       # VAPID_PRIVATE_KEY in the dashboard (sync:false). To rotate, regenerate a
       # pair (`npx web-push generate-vapid-keys`) and update BOTH together.
-      # NOTE: the free plan sleeps after ~15 min idle and the reminder scheduler
-      # sleeps with it — the keep-alive GitHub Action (.github/workflows/
-      # keepalive.yml) pings /health every 10 min to hold it awake; an external
-      # uptime monitor (UptimeRobot) at 5 min is a more reliable alternative.
+      # NOTE: the free plan sleeps after ~15 min idle and the in-process reminder
+      # scheduler sleeps with it. To deliver reliably anyway, set CRON_SECRET
+      # (below) and have a cron POST /api/push/run-tick every minute — that wakes
+      # the instance AND flushes due reminders. The keep-alive GitHub Action
+      # (.github/workflows/keepalive.yml) does this every 5 min out of the box;
+      # add a free cron-job.org / UptimeRobot hit at 1 min for minute accuracy.
       - key: VAPID_PUBLIC_KEY
         value: BERDuKJaoYAjfFSDTLbMLztfcx59zTeDZUYo6tu9T04BuPtcNn2b7JR0aCpZ0fkKq4cyiEVimBYFqLvBaFXbpgw
       - key: VAPID_PRIVATE_KEY
         sync: false
       - key: VAPID_SUBJECT
         value: mailto:admin@medistore.app
+      # Shared secret guarding POST /api/push/run-tick (external reminder cron).
+      # Generate any long random string; set the SAME value as the CRON_SECRET
+      # GitHub Actions secret and in any external cron's X-Cron-Secret header.
+      - key: CRON_SECRET
+        sync: false
       # Frontend origin(s) for CORS — set once the frontend is deployed.
       # Comma-separated, e.g. https://medistore.vercel.app
       - key: CORS_ORIGINS

@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     vapid_private_key: str = ""
     vapid_subject: str = "mailto:admin@medistore.app"  # contact for push services
 
+    # Shared secret that lets an external scheduler drive the reminder tick via
+    # POST /api/push/run-tick (X-Cron-Secret header). On a free host that sleeps,
+    # a 1-min cron hitting this endpoint both WAKES the instance and delivers due
+    # reminders. Leave blank to disable the endpoint entirely (returns 404).
+    cron_secret: str = ""
+
     # --- CORS ---
     # Comma-separated list of allowed origins. "*" allowed only in development.
     cors_origins: str = "*"

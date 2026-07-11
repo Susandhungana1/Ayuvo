@@ -153,6 +153,52 @@ def test_scheduler_pushes_due_medicine(auth_client, monkeypatch):
     assert len(sent) == 1
 
 
+def test_scheduler_catch_up_window(auth_client, monkeypatch):
+    """A dose whose minute passed a few minutes ago must still fire (covers a
+    free-tier instance that was asleep and woke late)."""
+    client, _ = auth_client
+    from datetime import timedelta
+
+    past = (scheduler._local_now("UTC") - timedelta(minutes=5)).strftime("%H:%M")
+    stale = (scheduler._local_now("UTC") - timedelta(minutes=30)).strftime("%H:%M")
+    med_id = _add_medicine(client, [past, stale])
+
+    with Session(engine) as db:
+        user_id = db.get(Medicine, med_id).user_id
+        db.add(
+            PushSubscription(
+                user_id=user_id, endpoint="https://push.example/late-1",
+                p256dh="p", auth="a", timezone="UTC",
+            )
+        )
+        db.commit()
+
+    sent = []
+    monkeypatch.setattr(scheduler, "push_available", lambda: True)
+    monkeypatch.setattr(scheduler, "send_push", lambda ep, p, a, payload: (sent.append(payload) or PushResult(ok=True)))
+    scheduler._sent.clear()
+
+    scheduler._run_tick()
+
+    # The 5-min-ago dose fires; the 30-min-ago one is outside the window.
+    times = [p["time"] for p in sent]
+    assert past in times
+    assert stale not in times
+
+
+def test_run_tick_endpoint_requires_secret(client, monkeypatch):
+    monkeypatch.setattr(settings, "cron_secret", "", raising=False)
+    assert client.post("/api/push/run-tick").status_code == 404
+
+    monkeypatch.setattr(settings, "cron_secret", "s3cret", raising=False)
+    assert client.post("/api/push/run-tick", headers={"X-Cron-Secret": "wrong"}).status_code == 404
+
+    monkeypatch.setattr(scheduler, "push_available", lambda: False)
+    ok = client.post("/api/push/run-tick", headers={"X-Cron-Secret": "s3cret"})
+    assert ok.status_code == 200
+    assert ok.json()["ok"] is True
+
+
 def test_scheduler_deletes_dead_subscription(auth_client, monkeypatch):
     client, _ = auth_client
     now_hhmm = scheduler._local_now("UTC").strftime("%H:%M")
