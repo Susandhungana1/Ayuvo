@@ -191,18 +191,18 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return output;
 }
 
-async function ensurePushSubscription() {
+export async function ensurePushSubscription(): Promise<boolean> {
   try {
-    if (typeof window === "undefined") return;
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
-    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    if (typeof window === "undefined") return false;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+    if (!("Notification" in window) || Notification.permission !== "granted") return false;
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) return false;
 
     const keyRes = await fetch(`${API_URL}/api/push/vapid-public-key`);
-    if (!keyRes.ok) return;
+    if (!keyRes.ok) return false;
     const { public_key: publicKey, enabled } = await keyRes.json();
-    if (!enabled || !publicKey) return; // push not configured on the server
+    if (!enabled || !publicKey) return false; // push not configured on the server
 
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
@@ -215,7 +215,7 @@ async function ensurePushSubscription() {
 
     const json = sub.toJSON();
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-    await fetch(`${API_URL}/api/push/subscribe`, {
+    const res = await fetch(`${API_URL}/api/push/subscribe`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -224,8 +224,10 @@ async function ensurePushSubscription() {
         timezone,
       }),
     });
+    return res.ok;
   } catch {
     /* push is best-effort; the in-app alarm still works without it */
+    return false;
   }
 }
 
@@ -330,10 +332,15 @@ export function MedicineAlarm() {
     return () => clearInterval(tick);
   }, [checkNow]);
 
-  // Re-check when the tab regains focus (catches missed minutes while hidden).
+  // Re-check when the tab regains focus (catches missed minutes while hidden)
+  // and (re)register the push subscription — permission may have been granted
+  // after mount, and iOS can silently drop a subscription that needs refreshing.
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === "visible") checkNow();
+      if (document.visibilityState === "visible") {
+        checkNow();
+        ensurePushSubscription();
+      }
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);

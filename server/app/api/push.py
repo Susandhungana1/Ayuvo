@@ -5,9 +5,12 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
+import asyncio
+
 from app.api.auth import get_current_user
 from app.core.config import get_session, settings
 from app.core.reminder_scheduler import run_tick_once
+from app.core.webpush import send_push
 from app.models.models import User, PushSubscription
 
 router = APIRouter()
@@ -75,6 +78,46 @@ async def subscribe(
         )
     db.commit()
     return {"message": "subscribed"}
+
+
+@router.post("/test")
+async def test_push(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """Send a test reminder to all of the current user's devices right now.
+
+    Returns how many subscriptions exist and how many pushes actually went out —
+    lets a user verify end-to-end delivery without waiting for a clock time, and
+    tells us whether a failure is registration (subscriptions=0) or delivery."""
+    if not settings.push_enabled:
+        raise HTTPException(status_code=503, detail="Push notifications are not configured")
+
+    subs = db.exec(
+        select(PushSubscription).where(PushSubscription.user_id == current_user.id)
+    ).all()
+
+    payload = {
+        "title": "✅ Test reminder",
+        "body": "Your medicine reminders are working.",
+        "tag": "medicine-test",
+    }
+
+    sent = 0
+    dead: list[PushSubscription] = []
+    for sub in subs:
+        result = await asyncio.to_thread(send_push, sub.endpoint, sub.p256dh, sub.auth, payload)
+        if result.ok:
+            sent += 1
+        elif result.gone:
+            dead.append(sub)
+
+    for sub in dead:
+        db.delete(sub)
+    if dead:
+        db.commit()
+
+    return {"subscriptions": len(subs), "sent": sent, "removed": len(dead)}
 
 
 @router.post("/run-tick")

@@ -6,6 +6,7 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Input } from '@/components/input';
 import { cacheGet, cacheSet } from '@/lib/offlineCache';
+import { ensurePushSubscription } from '@/components/medicine-alarm';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
@@ -49,6 +50,8 @@ export default function Medicines() {
   });
   const [takingTimes, setTakingTimes] = useState<string[]>(['']);
   const [interactions, setInteractions] = useState<Interaction[]>([]);
+  const [reminderStatus, setReminderStatus] = useState('');
+  const [enablingReminders, setEnablingReminders] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -78,6 +81,49 @@ export default function Medicines() {
     if (!('Notification' in window)) return;
     if (Notification.permission === 'default') {
       await Notification.requestPermission();
+    }
+  };
+
+  // Explicit user tap: request permission (iOS requires a gesture), register
+  // this device, then send a test push so the user can confirm delivery.
+  const enableAndTestReminders = async () => {
+    setEnablingReminders(true);
+    setReminderStatus('');
+    try {
+      if (!('Notification' in window)) {
+        setReminderStatus('This device does not support notifications.');
+        return;
+      }
+      let perm = Notification.permission;
+      if (perm === 'default') perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        setReminderStatus('Notifications are off. On iPhone, install the app to your Home Screen, then allow notifications.');
+        return;
+      }
+      const subscribed = await ensurePushSubscription();
+      if (!subscribed) {
+        setReminderStatus('Could not register this device. Make sure the app is opened from your Home Screen icon.');
+        return;
+      }
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/push/test`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        setReminderStatus('Reminders are enabled, but the test could not be sent. Try again in a moment.');
+        return;
+      }
+      const data = await res.json();
+      if (data.sent > 0) {
+        setReminderStatus(`✅ Reminders enabled. Test sent to ${data.sent} device(s) — check your lock screen.`);
+      } else {
+        setReminderStatus('Enabled, but no device received the test. Close and reopen the app from the Home Screen, then try again.');
+      }
+    } catch {
+      setReminderStatus('Something went wrong enabling reminders. Please try again.');
+    } finally {
+      setEnablingReminders(false);
     }
   };
 
@@ -228,11 +274,25 @@ export default function Medicines() {
           </div>
         )}
 
-        <div className="mb-6">
+        <div className="mb-6 flex flex-wrap items-center gap-3">
           <Button onClick={() => setShowForm(!showForm)}>
             {showForm ? 'Cancel' : '+ Add Medicine'}
           </Button>
+          <button
+            type="button"
+            onClick={enableAndTestReminders}
+            disabled={enablingReminders}
+            className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-60"
+          >
+            🔔 {enablingReminders ? 'Enabling…' : 'Enable & test reminders'}
+          </button>
         </div>
+
+        {reminderStatus && (
+          <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm text-blue-800">
+            {reminderStatus}
+          </div>
+        )}
 
         {showForm && (
           <Card className="p-6 mb-8">

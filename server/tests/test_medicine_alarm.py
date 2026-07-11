@@ -186,6 +186,30 @@ def test_scheduler_catch_up_window(auth_client, monkeypatch):
     assert stale not in times
 
 
+def test_test_push_reports_subscription_count(auth_client, monkeypatch):
+    client, _ = auth_client
+    monkeypatch.setattr(settings, "vapid_public_key", "PUB", raising=False)
+    monkeypatch.setattr(settings, "vapid_private_key", "PRIV", raising=False)
+
+    # No device registered yet → nothing sent, and we can see subscriptions=0.
+    import app.api.push as push_api
+
+    monkeypatch.setattr(push_api, "send_push", lambda *a, **k: PushResult(ok=True))
+    r0 = client.post("/api/push/test")
+    assert r0.status_code == 200
+    assert r0.json() == {"subscriptions": 0, "sent": 0, "removed": 0}
+
+    # Register a device, then the test push reports it delivered.
+    client.post(
+        "/api/push/subscribe",
+        json={"endpoint": "https://push.example/test-1", "keys": {"p256dh": "p", "auth": "a"}},
+    )
+    r1 = client.post("/api/push/test")
+    assert r1.status_code == 200
+    body = r1.json()
+    assert body["subscriptions"] == 1 and body["sent"] == 1
+
+
 def test_run_tick_endpoint_requires_secret(client, monkeypatch):
     monkeypatch.setattr(settings, "cron_secret", "", raising=False)
     assert client.post("/api/push/run-tick").status_code == 404
