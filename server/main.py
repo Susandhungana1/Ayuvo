@@ -45,9 +45,18 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Beyond the explicit CORS_ORIGINS allowlist, also accept THIS project's Vercel
+# domains via regex: the production alias (front-*.vercel.app, incl.
+# front-five-woad-12), the medistore-health.vercel.app rename, and git preview
+# deploys. Scoped to our own project's subdomains — NOT all of *.vercel.app — so
+# renaming or redeploying the frontend never silently breaks API calls, without
+# hand-editing CORS_ORIGINS on Render each time.
+VERCEL_ORIGIN_REGEX = r"^https://(medistore-health|front[\w-]*)\.vercel\.app$"
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
+    allow_origin_regex=VERCEL_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
