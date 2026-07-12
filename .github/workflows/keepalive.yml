@@ -40,23 +40,36 @@ jobs:
           BASE_URL: ${{ vars.HEALTHCHECK_URL || 'https://medistore-api-vwyr.onrender.com' }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           echo "Target: $BASE_URL"
-          # Retry a few times: a cold Render instance can take 30-60s to wake.
-          for attempt in 1 2 3 4 5; do
-            if [ -n "${CRON_SECRET:-}" ]; then
-              code="$(curl -sS -o /tmp/out -w '%{http_code}' --max-time 60 \
-                -X POST -H "X-Cron-Secret: $CRON_SECRET" "$BASE_URL/api/push/run-tick" || echo 000)"
-              echo "Attempt $attempt (run-tick) -> HTTP $code"
-            else
-              code="$(curl -sS -o /tmp/out -w '%{http_code}' --max-time 60 "$BASE_URL/health" || echo 000)"
-              echo "Attempt $attempt (health) -> HTTP $code"
+
+          # Best-effort reminder tick. This NEVER fails the job: the minute-accurate
+          # tick is also driven every 1 min by an external cron (cron-job.org), so
+          # GitHub's real job here is keep-alive. A 404 means the CRON_SECRET stored
+          # in this repo doesn't match the server's — we warn instead of erroring.
+          if [ -n "${CRON_SECRET:-}" ]; then
+            tick="$(curl -sS -o /tmp/tick -w '%{http_code}' --max-time 60 \
+              -X POST -H "X-Cron-Secret: $CRON_SECRET" "$BASE_URL/api/push/run-tick" || echo 000)"
+            echo "run-tick -> HTTP $tick"
+            if [ "$tick" = "404" ]; then
+              echo "::warning::run-tick 404 — the CRON_SECRET repo secret does not match the server's CRON_SECRET. Reminders via GitHub are off until they match (external cron still covers this). Keep-alive continues below."
+            elif [ "$tick" = "200" ]; then
+              cat /tmp/tick 2>/dev/null; echo
             fi
+          else
+            echo "No CRON_SECRET set — keep-alive only."
+          fi
+
+          # Keep-alive is the job's success criterion. Retry for cold starts:
+          # a sleeping Render instance can take 30-60s to wake.
+          for attempt in 1 2 3 4 5; do
+            code="$(curl -sS -o /tmp/out -w '%{http_code}' --max-time 60 "$BASE_URL/health" || echo 000)"
+            echo "Attempt $attempt (health) -> HTTP $code"
             if [ "$code" = "200" ]; then
               echo "OK:"; cat /tmp/out; echo
               exit 0
             fi
             sleep 15
           done
-          echo "Failed after retries. Last body:"; cat /tmp/out || true
+          echo "Health check failed after retries. Last body:"; cat /tmp/out || true
           exit 1
