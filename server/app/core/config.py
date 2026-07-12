@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     jwt_secret: str = "your_jwt_secret_min_32_chars_long_key_here"
     openrouter_api_key: str = ""
     groq_api_key: str = ""
+    # Multimodal model used to read report images/scanned PDFs (primary OCR).
+    # Runs on the OpenRouter key above; defaults to a free vision model. Override
+    # via VISION_OCR_MODEL if the free model is retired or rate-limited.
+    vision_ocr_model: str = "meta-llama/llama-3.2-11b-vision-instruct:free"
     n8n_webhook_url: str = "http://localhost:5678/webhook"
 
     # --- File storage (Phase 0: blobs out of Postgres) ---

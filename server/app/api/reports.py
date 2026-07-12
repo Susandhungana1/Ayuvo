@@ -7,15 +7,13 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, R
 from pydantic import BaseModel
 from sqlmodel import Session, select
 import json
-import io
-from PIL import Image
-import pytesseract
 
 from app.api.auth import get_current_user
 from app.core.config import get_session, settings
 from app.core import storage
 from app.core.audit import record_access
 from app.core.lab_analysis import analyze_lab_text, summarize_findings
+from app.core.ocr import extract_report_text
 from app.models.models import User, MedicalReport, MedicalReportType, MedicalDocument
 
 router = APIRouter()
@@ -122,29 +120,6 @@ def _build_report_response(report: MedicalReport, db: Session) -> ReportResponse
         doctor_name=doctor_name,
         hospital=hospital
     )
-
-
-import base64
-
-
-def extract_text_from_file(content: bytes, filename: str) -> Optional[str]:
-    try:
-        if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp')):
-            image = Image.open(io.BytesIO(content))
-            text = pytesseract.image_to_string(image)
-            if text.strip():
-                return text.strip()
-        elif filename.lower().endswith('.pdf'):
-            import fitz
-            doc = fitz.open(stream=io.BytesIO(content), filetype="pdf")
-            text = ""
-            for page in doc:
-                text += page.get_text()
-            if text.strip():
-                return text.strip()
-    except Exception as e:
-        print(f"OCR error: {e}")
-    return None
 
 
 async def generate_ai_summary(report_data: str, notes: Optional[str] = None) -> Optional[str]:
@@ -346,7 +321,7 @@ async def create_report(
     
     file_name = file.filename
     
-    extracted_text = extract_text_from_file(content, file_name)
+    extracted_text = await extract_report_text(content, file_name)
 
     storage_key = storage.save_file(
         content, original_name=file_name, prefix="reports",
