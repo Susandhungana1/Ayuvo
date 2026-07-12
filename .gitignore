@@ -12,3 +12,4 @@ DB_BACKUP_RESTORE.md
 # Python bytecode cache (should never be tracked)
 __pycache__/
 *.py[cod]
+.vercel
