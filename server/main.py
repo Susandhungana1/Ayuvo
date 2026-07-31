@@ -91,14 +91,28 @@ async def health():
     """Liveness + DB readiness probe for uptime monitoring."""
     from sqlalchemy import text
 
+    import json
+
     db_ok = True
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
     except Exception:
         db_ok = False
+
+    # Which mail transport is live, so a misconfigured deploy is one curl away.
+    # /forgot-password answers identically whether or not mail went out, so
+    # without this the only symptom of an unset key is a reset email that
+    # never arrives. Names the transport, never the credential.
+    if settings.brevo_api_key:
+        email = "brevo"
+    elif settings.smtp_host:
+        email = "smtp"
+    else:
+        email = "none"
+
     return Response(
-        content='{"status": "ok", "database": %s}' % ("true" if db_ok else "false"),
+        content=json.dumps({"status": "ok", "database": db_ok, "email": email}),
         media_type="application/json",
         status_code=200 if db_ok else 503,
     )
