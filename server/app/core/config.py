@@ -49,13 +49,23 @@ class Settings(BaseSettings):
     cors_origins: str = "*"
 
     # --- Outbound email (password reset) ---
-    # Any SMTP provider works (Gmail app password, Brevo, Mailgun SMTP, ...).
-    # Leave smtp_host blank to disable sending; in development the email body
-    # is logged to the console instead so the flow stays testable locally.
+    # Two transports, tried in this order (see app/core/email.py):
+    #
+    #  1. Brevo HTTP API — talks HTTPS on 443. REQUIRED on Render's free plan,
+    #     which blocks outbound SMTP ports 25/465/587 entirely, so an SMTP send
+    #     there can only ever time out:
+    #     https://render.com/changelog/free-web-services-will-no-longer-allow-outbound-traffic-to-smtp-ports
+    #  2. Plain SMTP — fine locally and on paid hosts.
+    #
+    # With neither configured the email is logged instead of sent, so the flow
+    # stays testable locally without a mail account.
+    brevo_api_key: str = ""
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
+    # Sender identity for both transports. The address must be one the provider
+    # has verified, or the send is rejected.
     smtp_from: str = "MediStore <no-reply@medistore.app>"
 
     # Base URL of the deployed frontend, used to build password-reset links.
@@ -74,7 +84,7 @@ class Settings(BaseSettings):
 
     @property
     def email_enabled(self) -> bool:
-        return bool(self.smtp_host)
+        return bool(self.brevo_api_key or self.smtp_host)
 
     @property
     def cors_origin_list(self) -> list[str]:

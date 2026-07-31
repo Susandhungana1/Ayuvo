@@ -199,3 +199,32 @@ def test_reset_rejects_short_password(client, monkeypatch):
         json={"token": token, "new_password": "short"},
     )
     assert resp.status_code == 422
+
+
+def test_reset_email_includes_pasteable_code(client, monkeypatch):
+    """The mail carries the bare token as well as the link, so a user whose
+    mail client mangled the URL can still paste the code into the reset page."""
+    import re
+    import app.api.auth as auth_module
+
+    sent = {}
+    monkeypatch.setattr(
+        auth_module,
+        "send_email",
+        lambda to, subject, text, html=None: sent.update(text=text, html=html) or True,
+    )
+
+    email, _ = _register(client)
+    client.post("/api/auth/forgot-password", json={"email": email})
+
+    token = re.search(r"token=([A-Za-z0-9_-]+)", sent["text"]).group(1)
+    # Present on its own line, not only inside the URL.
+    assert f"\n{token}\n" in sent["text"]
+    assert token in sent["html"]
+
+    # And that pasted code actually works.
+    resp = client.post(
+        "/api/auth/reset-password",
+        json={"token": token, "new_password": "newsecret99"},
+    )
+    assert resp.status_code == 200, resp.text
