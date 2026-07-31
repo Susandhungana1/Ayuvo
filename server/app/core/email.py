@@ -12,6 +12,7 @@ import logging
 import smtplib
 from email.message import EmailMessage
 from email.utils import parseaddr
+from typing import NamedTuple
 
 import httpx
 
@@ -22,11 +23,25 @@ logger = logging.getLogger(__name__)
 BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email"
 
 
-def send_email(to: str, subject: str, text: str, html: str | None = None) -> bool:
-    """Send an email. Returns True if a provider accepted it, False otherwise.
+class SendResult(NamedTuple):
+    """Outcome of a send, carrying the provider's reason when it failed.
 
-    Never raises: callers like password reset must not leak send failures to
-    the client (that would reveal whether an account exists).
+    Truthy on success, so `if not send_email(...)` reads naturally. The reason
+    matters because /forgot-password can't return it to the caller without
+    leaking account existence, which leaves the host's logs as the only place
+    it exists — and on a sleeping free instance those are easy to lose.
+    """
+
+    ok: bool
+    error: str | None = None
+
+    def __bool__(self) -> bool:
+        return self.ok
+
+
+def send_email(to: str, subject: str, text: str, html: str | None = None) -> SendResult:
+    """Send an email. Never raises: callers like password reset must not leak
+    send failures to the client (that would reveal whether an account exists).
     """
     if settings.brevo_api_key:
         return _send_via_brevo(to, subject, text, html)
@@ -37,7 +52,7 @@ def send_email(to: str, subject: str, text: str, html: str | None = None) -> boo
         "No email transport configured; email to %s not sent.\nSubject: %s\n%s",
         to, subject, text,
     )
-    return False
+    return SendResult(False, "no transport configured")
 
 
 def _sender() -> tuple[str, str]:
@@ -46,7 +61,7 @@ def _sender() -> tuple[str, str]:
     return name or "MediStore", address or settings.smtp_from
 
 
-def _send_via_brevo(to: str, subject: str, text: str, html: str | None) -> bool:
+def _send_via_brevo(to: str, subject: str, text: str, html: str | None) -> SendResult:
     name, address = _sender()
     payload = {
         "sender": {"name": name, "email": address},
@@ -84,14 +99,14 @@ def _send_via_brevo(to: str, subject: str, text: str, html: str | None) -> bool:
                     "Brevo > Settings > Security > Authorised IPs, add 0.0.0.0/0 "
                     "and ::/0 (or turn IP blocking off)."
                 )
-            return False
-        return True
-    except Exception:
+            return SendResult(False, f"brevo HTTP {resp.status_code}: {resp.text[:300]}")
+        return SendResult(True)
+    except Exception as exc:
         logger.exception("Failed to send email to %s via Brevo", to)
-        return False
+        return SendResult(False, f"brevo {type(exc).__name__}: {exc}"[:300])
 
 
-def _send_via_smtp(to: str, subject: str, text: str, html: str | None) -> bool:
+def _send_via_smtp(to: str, subject: str, text: str, html: str | None) -> SendResult:
     msg = EmailMessage()
     msg["From"] = settings.smtp_from
     msg["To"] = to
@@ -106,8 +121,8 @@ def _send_via_smtp(to: str, subject: str, text: str, html: str | None) -> bool:
             if settings.smtp_user:
                 smtp.login(settings.smtp_user, settings.smtp_password)
             smtp.send_message(msg)
-        return True
-    except OSError:
+        return SendResult(True)
+    except OSError as exc:
         # A timeout here on a host that blocks SMTP egress is not a config
         # error, so name the likely cause rather than leaving a bare traceback.
         logger.exception(
@@ -116,7 +131,7 @@ def _send_via_smtp(to: str, subject: str, text: str, html: str | None) -> bool:
             "over HTTPS instead.",
             to,
         )
-        return False
-    except Exception:
+        return SendResult(False, f"smtp blocked/unreachable: {exc}"[:300])
+    except Exception as exc:
         logger.exception("Failed to send email to %s via SMTP", to)
-        return False
+        return SendResult(False, f"smtp {type(exc).__name__}: {exc}"[:300])

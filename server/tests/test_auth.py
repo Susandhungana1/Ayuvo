@@ -239,8 +239,12 @@ def test_failed_send_is_audited_but_not_leaked(client, monkeypatch):
     from app.core.config import engine
     from app.models.models import AuditLog
 
+    from app.core.email import SendResult
+
     monkeypatch.setattr(
-        auth_module, "send_email", lambda to, subject, text, html=None: False
+        auth_module,
+        "send_email",
+        lambda to, subject, text, html=None: SendResult(False, "brevo HTTP 401: nope"),
     )
 
     email, _ = _register(client)
@@ -253,3 +257,6 @@ def test_failed_send_is_audited_but_not_leaked(client, monkeypatch):
             select(AuditLog).where(AuditLog.action == "auth.reset.email_failed")
         ).all()
     assert failures, "a failed reset email should leave an audit entry"
+    # The provider's reason is what makes the entry actionable — without it the
+    # entry only says "something broke".
+    assert any("401" in (f.detail or "") for f in failures)

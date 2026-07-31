@@ -15,7 +15,7 @@ def _settings(monkeypatch, **overrides):
 
 def test_no_transport_configured_logs_and_reports_failure(monkeypatch):
     _settings(monkeypatch, brevo_api_key="", smtp_host="")
-    assert send_email("a@b.com", "subj", "body") is False
+    assert not send_email("a@b.com", "subj", "body")
 
 
 def test_brevo_preferred_over_smtp(monkeypatch):
@@ -39,7 +39,7 @@ def test_brevo_preferred_over_smtp(monkeypatch):
         lambda *a, **k: (_ for _ in ()).throw(AssertionError("SMTP must not be used")),
     )
 
-    assert send_email("user@example.com", "subj", "body", "<p>body</p>") is True
+    assert send_email("user@example.com", "subj", "body", "<p>body</p>")
     assert captured["url"] == email_module.BREVO_ENDPOINT
     assert captured["headers"]["api-key"] == "key-123"
     assert captured["json"]["to"] == [{"email": "user@example.com"}]
@@ -56,7 +56,7 @@ def test_brevo_error_response_reports_failure(monkeypatch):
     monkeypatch.setattr(
         email_module.httpx, "post", lambda url, json, headers, timeout: _Resp()
     )
-    assert send_email("user@example.com", "subj", "body") is False
+    assert not send_email("user@example.com", "subj", "body")
 
 
 def test_brevo_ip_block_explains_itself(monkeypatch, caplog):
@@ -74,7 +74,7 @@ def test_brevo_ip_block_explains_itself(monkeypatch, caplog):
     )
 
     with caplog.at_level("ERROR"):
-        assert send_email("user@example.com", "subj", "body") is False
+        assert not send_email("user@example.com", "subj", "body")
     assert "Authorised IPs" in caplog.text
 
 
@@ -102,7 +102,7 @@ def test_falls_back_to_smtp_when_no_brevo_key(monkeypatch):
             sent["to"] = msg["To"]
 
     monkeypatch.setattr(email_module.smtplib, "SMTP", _SMTP)
-    assert send_email("user@example.com", "subj", "body") is True
+    assert send_email("user@example.com", "subj", "body")
     assert sent == {"host": "smtp.example.com", "to": "user@example.com"}
 
 
@@ -115,4 +115,4 @@ def test_smtp_blocked_port_is_reported_not_raised(monkeypatch):
         raise TimeoutError("connection timed out")
 
     monkeypatch.setattr(email_module.smtplib, "SMTP", refuse)
-    assert send_email("user@example.com", "subj", "body") is False
+    assert not send_email("user@example.com", "subj", "body")

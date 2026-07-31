@@ -279,7 +279,10 @@ async def forgot_password(
         # would leak that the account exists. Record it here instead so a
         # broken mail provider shows up in the audit trail rather than only in
         # the host's logs, where it looks identical to "user never asked".
-        record_access(db, "auth.reset.email_failed", actor_id=user.id, request=request)
+        record_access(
+            db, "auth.reset.email_failed", actor_id=user.id, request=request,
+            detail=sent.error,
+        )
     return generic
 
 
