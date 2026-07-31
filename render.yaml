@@ -77,11 +77,22 @@ services:
       # Comma-separated, e.g. https://medistore.vercel.app
       - key: CORS_ORIGINS
         sync: false
-      # Outbound email for password reset links. Any SMTP provider works
-      # (Gmail app password, Brevo, Mailgun...). If SMTP_HOST is unset the
-      # server logs the reset email instead of sending it.
+      # Outbound email for password reset links.
+      # BREVO_API_KEY is the one that matters here: this service is on the FREE
+      # plan, and Render blocks outbound SMTP (ports 25/465/587) on free web
+      # services, so the SMTP_* path below can only ever time out in this
+      # deploy. Brevo sends over HTTPS instead. See:
+      # https://render.com/changelog/free-web-services-will-no-longer-allow-outbound-traffic-to-smtp-ports
+      # The SMTP_* vars are kept for local dev and in case this moves to a paid
+      # instance, where they start working again.
+      - key: BREVO_API_KEY
+        sync: false
       - key: SMTP_HOST
         sync: false
+      # 587 = STARTTLS, which app/core/email.py uses. Not a secret, so it's
+      # committed here rather than set in the dashboard.
+      - key: SMTP_PORT
+        value: "587"
       - key: SMTP_USER
         sync: false
       - key: SMTP_PASSWORD

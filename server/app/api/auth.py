@@ -238,8 +238,13 @@ async def forgot_password(
     db.commit()
     record_access(db, "auth.reset.requested", actor_id=user.id, request=request)
 
-    reset_link = f"{settings.frontend_url.rstrip('/')}/auth/reset-password?token={raw_token}"
+    base = settings.frontend_url.rstrip("/")
+    reset_page = f"{base}/auth/reset-password"
+    reset_link = f"{reset_page}?token={raw_token}"
     minutes = int(RESET_TOKEN_TTL.total_seconds() // 60)
+    # The bare code is included as well as the link: mail clients sometimes
+    # mangle or truncate long URLs, and the user may open the mail on a
+    # different device, so the reset page also accepts a pasted code.
     send_email(
         to=user.email,
         subject="Reset your MediStore password",
@@ -248,6 +253,8 @@ async def forgot_password(
             f"We received a request to reset your MediStore password. "
             f"Open the link below to choose a new one (valid for {minutes} minutes):\n\n"
             f"{reset_link}\n\n"
+            f"If the link doesn't work, open {reset_page} and paste this code:\n\n"
+            f"{raw_token}\n\n"
             f"If you didn't request this, you can safely ignore this email — "
             f"your password will stay unchanged.\n"
         ),
@@ -259,6 +266,10 @@ async def forgot_password(
             f'background:#2563eb;color:#fff;border-radius:8px;text-decoration:none">'
             f"Reset password</a></p>"
             f"<p>Or copy this link into your browser:<br>{reset_link}</p>"
+            f'<p>If the link doesn\'t work, open <a href="{reset_page}">{reset_page}</a> '
+            f"and paste this code:</p>"
+            f'<p style="font-family:monospace;background:#f3f4f6;padding:10px 14px;'
+            f'border-radius:6px;word-break:break-all">{raw_token}</p>'
             f"<p>If you didn't request this, you can safely ignore this email — "
             f"your password will stay unchanged.</p>"
         ),
