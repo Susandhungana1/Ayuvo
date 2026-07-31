@@ -48,6 +48,19 @@ class Settings(BaseSettings):
     # Comma-separated list of allowed origins. "*" allowed only in development.
     cors_origins: str = "*"
 
+    # --- Outbound email (password reset) ---
+    # Any SMTP provider works (Gmail app password, Brevo, Mailgun SMTP, ...).
+    # Leave smtp_host blank to disable sending; in development the email body
+    # is logged to the console instead so the flow stays testable locally.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "MediStore <no-reply@medistore.app>"
+
+    # Base URL of the deployed frontend, used to build password-reset links.
+    frontend_url: str = "http://localhost:3000"
+
     class Config:
         env_file = ".env"
 
@@ -58,6 +71,10 @@ class Settings(BaseSettings):
     @property
     def push_enabled(self) -> bool:
         return bool(self.vapid_public_key and self.vapid_private_key)
+
+    @property
+    def email_enabled(self) -> bool:
+        return bool(self.smtp_host)
 
     @property
     def cors_origin_list(self) -> list[str]:

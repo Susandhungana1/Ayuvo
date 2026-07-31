@@ -1,3 +1,5 @@
+import hashlib
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -8,9 +10,10 @@ from pydantic import BaseModel, field_validator
 from sqlmodel import Session, select
 
 from app.core.config import settings, get_session
+from app.core.email import send_email
 from app.core.ratelimit import limiter
 from app.core.audit import record_access
-from app.models.models import User
+from app.models.models import User, PasswordResetToken
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -72,6 +75,26 @@ class TotpVerifyRequest(BaseModel):
 
 class TotpStatusResponse(BaseModel):
     enabled: bool
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+    @field_validator('new_password')
+    @classmethod
+    def password_min_length(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters')
+        return v
+
+
+class MessageResponse(BaseModel):
+    message: str
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -167,6 +190,116 @@ async def login(
         role=user.role,
         token=token
     )
+
+
+# --- Password reset ---
+
+RESET_TOKEN_TTL = timedelta(minutes=30)
+
+
+def _hash_token(raw: str) -> str:
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+@limiter.limit("3/minute")
+async def forgot_password(
+    request: Request,
+    data: ForgotPasswordRequest,
+    db: Session = Depends(get_session),
+):
+    """Start a password reset. Always answers the same way whether or not the
+    email has an account, so this endpoint can't be used to enumerate users."""
+    generic = MessageResponse(
+        message="If an account exists for that email, a reset link has been sent."
+    )
+
+    user = db.exec(select(User).where(User.email == data.email.lower().strip())).first()
+    if not user:
+        record_access(db, "auth.reset.requested_unknown", request=request, detail=data.email)
+        return generic
+
+    # Invalidate any outstanding tokens so only the newest link works.
+    for old in db.exec(
+        select(PasswordResetToken).where(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used == False,  # noqa: E712
+        )
+    ).all():
+        old.used = True
+        db.add(old)
+
+    raw_token = secrets.token_urlsafe(32)
+    db.add(PasswordResetToken(
+        user_id=user.id,
+        token_hash=_hash_token(raw_token),
+        expires_at=datetime.utcnow() + RESET_TOKEN_TTL,
+    ))
+    db.commit()
+    record_access(db, "auth.reset.requested", actor_id=user.id, request=request)
+
+    reset_link = f"{settings.frontend_url.rstrip('/')}/auth/reset-password?token={raw_token}"
+    minutes = int(RESET_TOKEN_TTL.total_seconds() // 60)
+    send_email(
+        to=user.email,
+        subject="Reset your MediStore password",
+        text=(
+            f"Hi {user.name},\n\n"
+            f"We received a request to reset your MediStore password. "
+            f"Open the link below to choose a new one (valid for {minutes} minutes):\n\n"
+            f"{reset_link}\n\n"
+            f"If you didn't request this, you can safely ignore this email — "
+            f"your password will stay unchanged.\n"
+        ),
+        html=(
+            f"<p>Hi {user.name},</p>"
+            f"<p>We received a request to reset your MediStore password. "
+            f"Click the button below to choose a new one (valid for {minutes} minutes):</p>"
+            f'<p><a href="{reset_link}" style="display:inline-block;padding:10px 20px;'
+            f'background:#2563eb;color:#fff;border-radius:8px;text-decoration:none">'
+            f"Reset password</a></p>"
+            f"<p>Or copy this link into your browser:<br>{reset_link}</p>"
+            f"<p>If you didn't request this, you can safely ignore this email — "
+            f"your password will stay unchanged.</p>"
+        ),
+    )
+    return generic
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+@limiter.limit("5/minute")
+async def reset_password(
+    request: Request,
+    data: ResetPasswordRequest,
+    db: Session = Depends(get_session),
+):
+    """Complete a password reset with a token from the email link."""
+    token = db.exec(
+        select(PasswordResetToken).where(
+            PasswordResetToken.token_hash == _hash_token(data.token)
+        )
+    ).first()
+
+    if not token or token.used or token.expires_at < datetime.utcnow():
+        record_access(db, "auth.reset.invalid_token", request=request)
+        raise HTTPException(
+            status_code=400,
+            detail="This reset link is invalid or has expired. Please request a new one.",
+        )
+
+    user = db.get(User, token.user_id)
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid reset link")
+
+    user.password = pwd_context.hash(data.new_password)
+    user.updated_at = datetime.utcnow()
+    token.used = True
+    db.add(user)
+    db.add(token)
+    db.commit()
+    record_access(db, "auth.reset.completed", actor_id=user.id, request=request)
+
+    return MessageResponse(message="Password updated. You can now sign in with your new password.")
 
 
 @router.get("/me", response_model=UserResponse)

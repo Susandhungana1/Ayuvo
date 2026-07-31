@@ -103,3 +103,99 @@ def test_2fa_setup_verify_and_enforced_login(client):
     )
     assert ok.status_code == 200, ok.text
     assert ok.json()["token"]
+
+# --- Password reset ---
+
+def _request_reset(client, monkeypatch, email):
+    """Trigger /forgot-password with the outbound email captured instead of sent,
+    and return the raw reset token extracted from the emailed link."""
+    import re
+    import app.api.auth as auth_module
+
+    sent = {}
+
+    def fake_send_email(to, subject, text, html=None):
+        sent["to"] = to
+        sent["text"] = text
+        return True
+
+    monkeypatch.setattr(auth_module, "send_email", fake_send_email)
+
+    resp = client.post("/api/auth/forgot-password", json={"email": email})
+    assert resp.status_code == 200, resp.text
+    match = re.search(r"token=([A-Za-z0-9_-]+)", sent.get("text", ""))
+    return match.group(1) if match else None
+
+
+def test_forgot_password_unknown_email_is_generic(client):
+    resp = client.post(
+        "/api/auth/forgot-password", json={"email": "nobody@example.com"}
+    )
+    # Same 200 + message as for a real account, so emails can't be enumerated.
+    assert resp.status_code == 200
+    assert "If an account exists" in resp.json()["message"]
+
+
+def test_password_reset_full_flow(client, monkeypatch):
+    email, _ = _register(client)
+    token = _request_reset(client, monkeypatch, email)
+    assert token, "reset email should contain a token link"
+
+    resp = client.post(
+        "/api/auth/reset-password",
+        json={"token": token, "new_password": "newsecret99"},
+    )
+    assert resp.status_code == 200, resp.text
+
+    # Old password no longer works; new one does.
+    old = client.post(
+        "/api/auth/login", data={"username": email, "password": "supersecret1"}
+    )
+    assert old.status_code == 401
+    new = client.post(
+        "/api/auth/login", data={"username": email, "password": "newsecret99"}
+    )
+    assert new.status_code == 200, new.text
+
+    # Token is single-use.
+    again = client.post(
+        "/api/auth/reset-password",
+        json={"token": token, "new_password": "anotherpass1"},
+    )
+    assert again.status_code == 400
+
+
+def test_new_reset_request_invalidates_previous_token(client, monkeypatch):
+    email, _ = _register(client)
+    first = _request_reset(client, monkeypatch, email)
+    second = _request_reset(client, monkeypatch, email)
+
+    resp = client.post(
+        "/api/auth/reset-password",
+        json={"token": first, "new_password": "newsecret99"},
+    )
+    assert resp.status_code == 400
+
+    resp = client.post(
+        "/api/auth/reset-password",
+        json={"token": second, "new_password": "newsecret99"},
+    )
+    assert resp.status_code == 200, resp.text
+
+
+def test_reset_rejects_bad_token(client):
+    resp = client.post(
+        "/api/auth/reset-password",
+        json={"token": "definitely-not-a-real-token", "new_password": "newsecret99"},
+    )
+    assert resp.status_code == 400
+
+
+def test_reset_rejects_short_password(client, monkeypatch):
+    email, _ = _register(client)
+    token = _request_reset(client, monkeypatch, email)
+    resp = client.post(
+        "/api/auth/reset-password",
+        json={"token": token, "new_password": "short"},
+    )
+    assert resp.status_code == 422

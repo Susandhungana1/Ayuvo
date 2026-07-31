@@ -93,7 +93,7 @@ export default function Login() {
                 required
               />
               <div className="flex justify-end pt-1">
-                <Link href="#" className="text-sm font-medium text-primary hover:text-blue-700 transition-colors">
+                <Link href="/auth/forgot-password" className="text-sm font-medium text-primary hover:text-blue-700 transition-colors">
                   Forgot password?
                 </Link>
               </div>

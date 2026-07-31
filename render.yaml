@@ -77,3 +77,17 @@ services:
       # Comma-separated, e.g. https://medistore.vercel.app
       - key: CORS_ORIGINS
         sync: false
+      # Outbound email for password reset links. Any SMTP provider works
+      # (Gmail app password, Brevo, Mailgun...). If SMTP_HOST is unset the
+      # server logs the reset email instead of sending it.
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      # Base URL the reset links point at (the deployed frontend).
+      - key: FRONTEND_URL
+        sync: false
