@@ -89,6 +89,19 @@ class User(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class PasswordResetToken(SQLModel, table=True):
+    """Single-use password reset token. Only the SHA-256 hash is stored, so a
+    DB leak doesn't hand out working reset links."""
+    __tablename__ = "password_reset_tokens"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
+    token_hash: str = Field(unique=True, index=True)
+    expires_at: datetime
+    used: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class Doctor(SQLModel, table=True):
     __tablename__ = "doctors"
 
