@@ -228,3 +228,28 @@ def test_reset_email_includes_pasteable_code(client, monkeypatch):
         json={"token": token, "new_password": "newsecret99"},
     )
     assert resp.status_code == 200, resp.text
+
+
+def test_failed_send_is_audited_but_not_leaked(client, monkeypatch):
+    """A dead mail provider must stay invisible to the caller (else it reveals
+    the account exists) but must be visible to us in the audit log."""
+    from sqlmodel import Session, select
+
+    import app.api.auth as auth_module
+    from app.core.config import engine
+    from app.models.models import AuditLog
+
+    monkeypatch.setattr(
+        auth_module, "send_email", lambda to, subject, text, html=None: False
+    )
+
+    email, _ = _register(client)
+    resp = client.post("/api/auth/forgot-password", json={"email": email})
+    assert resp.status_code == 200
+    assert "If an account exists" in resp.json()["message"]
+
+    with Session(engine) as db:
+        failures = db.exec(
+            select(AuditLog).where(AuditLog.action == "auth.reset.email_failed")
+        ).all()
+    assert failures, "a failed reset email should leave an audit entry"

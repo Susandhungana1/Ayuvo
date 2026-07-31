@@ -74,6 +74,16 @@ def _send_via_brevo(to: str, subject: str, text: str, html: str | None) -> bool:
                 "Brevo rejected email to %s: HTTP %s %s",
                 to, resp.status_code, resp.text[:500],
             )
+            if resp.status_code == 401 and "IP address" in resp.text:
+                # Brevo allowlists caller IPs by default on newer accounts, and
+                # a host like Render has no fixed outbound IP to allowlist. The
+                # 401 body reads like a bad key, so say what it actually is.
+                logger.error(
+                    "The Brevo key is valid but the caller IP is not allowlisted. "
+                    "This host's outbound IP is dynamic, so allow all of them: "
+                    "Brevo > Settings > Security > Authorised IPs, add 0.0.0.0/0 "
+                    "and ::/0 (or turn IP blocking off)."
+                )
             return False
         return True
     except Exception:

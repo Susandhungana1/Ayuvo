@@ -245,7 +245,7 @@ async def forgot_password(
     # The bare code is included as well as the link: mail clients sometimes
     # mangle or truncate long URLs, and the user may open the mail on a
     # different device, so the reset page also accepts a pasted code.
-    send_email(
+    sent = send_email(
         to=user.email,
         subject="Reset your MediStore password",
         text=(
@@ -274,6 +274,12 @@ async def forgot_password(
             f"your password will stay unchanged.</p>"
         ),
     )
+    if not sent:
+        # The client still gets the generic answer — telling it the send failed
+        # would leak that the account exists. Record it here instead so a
+        # broken mail provider shows up in the audit trail rather than only in
+        # the host's logs, where it looks identical to "user never asked".
+        record_access(db, "auth.reset.email_failed", actor_id=user.id, request=request)
     return generic
 
 

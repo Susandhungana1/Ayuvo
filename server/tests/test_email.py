@@ -59,6 +59,25 @@ def test_brevo_error_response_reports_failure(monkeypatch):
     assert send_email("user@example.com", "subj", "body") is False
 
 
+def test_brevo_ip_block_explains_itself(monkeypatch, caplog):
+    """Brevo answers an un-allowlisted caller IP with a 401, which reads like a
+    bad API key. The log must name the real cause, or the next person debugging
+    this rotates a key that was never wrong."""
+    _settings(monkeypatch, brevo_api_key="key-123", smtp_host="")
+
+    class _Resp:
+        status_code = 401
+        text = '{"message":"We have detected you are using an unrecognised IP address 1.2.3.4","code":"unauthorized"}'
+
+    monkeypatch.setattr(
+        email_module.httpx, "post", lambda url, json, headers, timeout: _Resp()
+    )
+
+    with caplog.at_level("ERROR"):
+        assert send_email("user@example.com", "subj", "body") is False
+    assert "Authorised IPs" in caplog.text
+
+
 def test_falls_back_to_smtp_when_no_brevo_key(monkeypatch):
     _settings(
         monkeypatch,
