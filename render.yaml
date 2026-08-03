@@ -103,8 +103,11 @@ services:
       - key: FRONTEND_URL
         sync: false
       # Caretaker links: lets a patient grant another account medicine access
-      # and reminder delivery via a short-lived code. Off until the schema
-      # migration has been applied — run `python -m scripts.migrate_schema`
-      # against the production database first, then flip this to true.
+      # and reminder delivery via a short-lived code. Enabled 2026-08-03, after
+      # scripts/migrate_schema.py was applied to the production database and
+      # existing medicine/timeline reads were confirmed unaffected.
+      # Set to "false" to withdraw the feature: the care routes 404 and reminder
+      # fan-out collapses to patient-only. Existing links are preserved, not
+      # deleted, so re-enabling restores them.
       - key: CARETAKER_ENABLED
-        value: "false"
+        value: "true"
