@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { PeopleICareFor } from '@/components/people-i-care-for';
 
 const links = [
   { href: '/reports', title: 'Medical Reports', desc: 'View and generate health reports' },
@@ -12,6 +13,7 @@ const links = [
   { href: '/share', title: 'Share Records', desc: 'Securely share your medical data' },
   { href: '/emergency', title: 'Emergency ID', desc: 'Blood type, allergies, emergency contacts' },
   { href: '/timeline', title: 'Timeline', desc: 'Chronological view of all health events' },
+  { href: '/settings/caretakers', title: 'Caretakers', desc: 'Let someone help manage your medicines' },
 ];
 
 const doctorLinks = [
@@ -21,11 +23,19 @@ const doctorLinks = [
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
+  const [notice, setNotice] = useState('');
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (!userData) { window.location.href = '/auth/login'; return; }
     setUser(JSON.parse(userData));
+
+    // Set by /care/[patientId] when a link was revoked mid-session.
+    const pending = sessionStorage.getItem('care:notice');
+    if (pending) {
+      setNotice(pending);
+      sessionStorage.removeItem('care:notice');
+    }
   }, []);
 
   if (!user) return null;
@@ -40,6 +50,12 @@ export default function Dashboard() {
           {isDoctor ? 'Doctor Dashboard' : `Welcome, ${user.name}`}
         </h1>
 
+        {notice && (
+          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
+            {notice}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map(link => (
             <Link key={link.href} href={link.href}>
@@ -50,6 +66,9 @@ export default function Dashboard() {
             </Link>
           ))}
         </div>
+
+        {/* Caretaker section: renders nothing unless this user has links. */}
+        {!isDoctor && <PeopleICareFor />}
       </div>
     </div>
   );

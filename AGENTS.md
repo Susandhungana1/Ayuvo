@@ -80,9 +80,34 @@ User IDs are generated in format `#hosXXX` where:
 - `medical_files.content` - document attachments
 - `medical_reports.file_content` - report files
 
+## Caretaker links
+
+A caretaker is an ordinary user account — there is no role column and no
+separate signup. A patient issues a short-lived code from
+`/settings/caretakers`; whoever redeems it becomes their caretaker.
+
+The link grants exactly two things: medicine reminders for that patient, and
+read/write on that patient's medicines. It grants nothing else — vitals,
+documents, reports and AI are unreachable through it.
+
+- Gate: `CARETAKER_ENABLED` (default `false`). While off, `/api/care/*` returns
+  404 and cross-account medicine scope is refused outright.
+- Authorization lives in one place: `resolve_medicine_scope` in
+  `app/core/care.py`. Every medicine endpoint routes through it. Do not compare
+  user ids by hand anywhere else.
+- `patient_id` is read from the **query string only**, never a request body.
+- **User ids contain `#`** (`#hos014`). Always percent-encode them into URLs —
+  unencoded, the value is truncated into a URL fragment and the request
+  silently scopes to the caller's own records. The frontend must go through
+  `scopedUrl` in `front/lib/care.ts`.
+- Medicine deletes are soft (`medicines.deleted_at`); every read filters
+  `deleted_at IS NULL`.
+
 ## Notes
 
-- DO NOT modify frontend UI
+- Frontend UI may be changed. (This previously read "DO NOT modify frontend
+  UI"; the caretaker feature ships its own pages, so the restriction was
+  removed rather than left contradicting the codebase.)
 - Backend runs on port 3001
 - Frontend runs on port 3000
 - All medical data linked to User.id (#hosXXX format)

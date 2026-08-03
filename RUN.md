@@ -203,6 +203,14 @@ curl -X POST http://localhost:3001/api/appointments \
 | DELETE | `/api/share/{token}` | Revoke share link |
 | GET | `/api/share/qr-code` | Generate QR code |
 | GET | `/api/share/qr-code/{token}` | Access shared data via QR |
+| GET | `/api/medicines/audit` | Medicine change history |
+| POST | `/api/medicines/{id}/restore` | Undo a soft delete |
+| **Care links** *(needs `CARETAKER_ENABLED=true`)* | | |
+| POST | `/api/care/invites` | Issue a care code (shown once, 15 min) |
+| POST | `/api/care/invites/redeem` | Redeem a code, becoming a caretaker |
+| GET | `/api/care/links?role=` | `patient` → my caretakers; `caretaker` → my clients |
+| PATCH | `/api/care/links/{id}` | Mute/unmute one client |
+| DELETE | `/api/care/links/{id}` | Revoke (either party) |
 | **Chatbot** | | |
 | POST | `/api/chatbot` | AI health assistant (Groq) |
 | **Search** | | |
@@ -259,3 +267,9 @@ pip install -r requirements.txt
 - Share links expire after 24 hours by default.
 - OCR is supported for JPG, PNG, and PDF uploads.
 - Two AI providers: **OpenRouter** (report summaries) and **Groq** (chatbot).
+- Caretaker links are behind `CARETAKER_ENABLED` (default off). To try them
+  locally add `CARETAKER_ENABLED=true` to `server/.env`. On a database that
+  predates the feature, run `python -m scripts.migrate_schema` first — startup
+  creates missing tables but never adds columns to existing ones.
+- User IDs contain a `#`, so they must be percent-encoded when passed as the
+  `patient_id` query parameter. Unencoded, the value is silently dropped.

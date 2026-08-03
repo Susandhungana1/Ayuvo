@@ -16,6 +16,10 @@ os.environ["STORAGE_BACKEND"] = "local"
 os.environ["STORAGE_LOCAL_DIR"] = os.path.join(_TMP, "storage")
 os.environ["ENVIRONMENT"] = "development"
 os.environ["JWT_SECRET"] = "test_secret_key_that_is_definitely_long_enough_1234"
+# Pin the caretaker flag off so the suite doesn't inherit whatever the
+# developer has in .env — tests that need it on turn it on themselves, and
+# the "hidden while disabled" test needs a known starting point.
+os.environ["CARETAKER_ENABLED"] = "false"
 
 import pytest
 from fastapi.testclient import TestClient

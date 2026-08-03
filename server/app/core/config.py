@@ -71,6 +71,13 @@ class Settings(BaseSettings):
     # Base URL of the deployed frontend, used to build password-reset links.
     frontend_url: str = "http://localhost:3000"
 
+    # --- Caretaker ---
+    # Lets a patient grant another user account reminder delivery and medicine
+    # read/write via a short-lived code. Off by default so the backend can ship
+    # ahead of the UI; the care endpoints 404 while disabled and the reminder
+    # fan-out collapses to patient-only (i.e. exactly the previous behaviour).
+    caretaker_enabled: bool = False
+
     class Config:
         env_file = ".env"
 

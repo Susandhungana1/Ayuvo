@@ -1,4 +1,4 @@
-"""Schema migration for Phase 0 columns/tables on an EXISTING database.
+"""Schema migration for Phase 0 and caretaker columns/tables on an EXISTING database.
 
 The app creates tables with `SQLModel.metadata.create_all`, which creates
 *missing* tables but never alters existing ones. So a database that predates
@@ -14,9 +14,12 @@ missing, so running it twice is harmless.
     Adds:  users.totp_secret, users.totp_enabled
            medical_reports.storage_key
            medical_files.storage_key, medical_files.content_type
+           medicines.deleted_at              (caretaker: soft delete)
     Relaxes (so legacy blobs can be moved out): medical_reports.file_content and
            medical_files.content become NULLable.
-    Creates: audit_logs table (via SQLModel metadata).
+    Creates: audit_logs table, and the caretaker tables — care_invites,
+           care_links, medicine_audit, reminder_deliveries (via SQLModel
+           metadata, which also builds their indexes and constraints).
 
 Usage:
     cd server
@@ -41,6 +44,16 @@ _ADD_COLUMNS = [
     ("medical_reports", "storage_key", "VARCHAR"),
     ("medical_files", "storage_key", "VARCHAR"),
     ("medical_files", "content_type", "VARCHAR"),
+    # Caretaker: medicine deletes became soft, so the patient can restore what a
+    # caretaker removed. Every read filters deleted_at IS NULL; existing rows
+    # default to NULL and are therefore untouched.
+    ("medicines", "deleted_at", "TIMESTAMP"),
+]
+
+# Indexes that belong to columns added above. SQLModel builds these for a fresh
+# table, but ADD COLUMN on an existing one does not.
+_ADD_INDEXES = [
+    ("ix_medicines_deleted_at", "medicines", "deleted_at"),
 ]
 
 # Legacy blob columns that must become nullable so the backfill can NULL them.
@@ -67,14 +80,18 @@ def migrate(dry_run: bool = False) -> None:
         )
     for table, col in _DROP_NOT_NULL:
         stmts.append(f'ALTER TABLE {table} ALTER COLUMN {col} DROP NOT NULL;')
+    for name, table, col in _ADD_INDEXES:
+        stmts.append(f'CREATE INDEX IF NOT EXISTS {name} ON {table} ({col});')
 
     if dry_run:
-        print("Would create table audit_logs if missing, then run:")
+        print(f"Target: {engine.url}")
+        print("Would create any missing tables (audit_logs, care_*, "
+              "medicine_audit, reminder_deliveries), then run:")
         for s in stmts:
             print(f"  {s}")
         return
 
-    # 1) Create any missing tables (audit_logs) — does not touch existing tables.
+    # 1) Create any missing tables — does not touch existing tables.
     SQLModel.metadata.create_all(engine)
 
     # 2) Add/relax columns on existing tables.
@@ -83,8 +100,9 @@ def migrate(dry_run: bool = False) -> None:
             conn.execute(text(s))
 
     print(
-        "Schema migration applied: added Phase 0 columns, relaxed legacy blob "
-        "columns to NULLable, and ensured audit_logs exists.\n"
+        "Schema migration applied: added Phase 0 + caretaker columns, relaxed "
+        "legacy blob columns to NULLable, and ensured audit_logs and the "
+        "caretaker tables exist.\n"
         "Next: python -m scripts.migrate_blobs_to_storage"
     )
 

@@ -62,7 +62,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.api import auth, users, documents, reports, appointments, share, availability, medicines, chatbot, vitals, emergency, search, timeline, family, push
+from app.api import auth, users, documents, reports, appointments, share, availability, medicines, chatbot, vitals, emergency, search, timeline, push, care
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
@@ -77,8 +77,8 @@ app.include_router(vitals.router, prefix="/api/vitals", tags=["vitals"])
 app.include_router(emergency.router, prefix="/api/emergency", tags=["emergency"])
 app.include_router(search.router, prefix="/api/search", tags=["search"])
 app.include_router(timeline.router, prefix="/api/timeline", tags=["timeline"])
-app.include_router(family.router, prefix="/api/family", tags=["family"])
 app.include_router(push.router, prefix="/api/push", tags=["push"])
+app.include_router(care.router, prefix="/api/care", tags=["care"])
 
 
 @app.get("/")

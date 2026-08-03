@@ -102,3 +102,9 @@ services:
       # Base URL the reset links point at (the deployed frontend).
       - key: FRONTEND_URL
         sync: false
+      # Caretaker links: lets a patient grant another account medicine access
+      # and reminder delivery via a short-lived code. Off until the schema
+      # migration has been applied — run `python -m scripts.migrate_schema`
+      # against the production database first, then flip this to true.
+      - key: CARETAKER_ENABLED
+        value: "false"

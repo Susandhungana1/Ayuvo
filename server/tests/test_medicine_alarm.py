@@ -5,6 +5,7 @@ import json
 
 from sqlmodel import Session, select
 
+import app.core.doses as doses
 import app.core.reminder_scheduler as scheduler
 from app.core.config import engine, settings
 from app.core.webpush import PushResult
@@ -112,7 +113,7 @@ def test_scheduler_pushes_due_medicine(auth_client, monkeypatch):
     client, _ = auth_client
 
     # A medicine due at the current UTC minute.
-    now_hhmm = scheduler._local_now("UTC").strftime("%H:%M")
+    now_hhmm = doses.local_now("UTC").strftime("%H:%M")
     med_id = _add_medicine(client, [now_hhmm])
 
     # Find the owning user id via the medicine row.
@@ -138,8 +139,6 @@ def test_scheduler_pushes_due_medicine(auth_client, monkeypatch):
 
     monkeypatch.setattr(scheduler, "push_available", lambda: True)
     monkeypatch.setattr(scheduler, "send_push", fake_send)
-    scheduler._sent.clear()
-
     scheduler._run_tick()
 
     assert len(sent) == 1
@@ -159,8 +158,8 @@ def test_scheduler_catch_up_window(auth_client, monkeypatch):
     client, _ = auth_client
     from datetime import timedelta
 
-    past = (scheduler._local_now("UTC") - timedelta(minutes=5)).strftime("%H:%M")
-    stale = (scheduler._local_now("UTC") - timedelta(minutes=30)).strftime("%H:%M")
+    past = (doses.local_now("UTC") - timedelta(minutes=5)).strftime("%H:%M")
+    stale = (doses.local_now("UTC") - timedelta(minutes=30)).strftime("%H:%M")
     med_id = _add_medicine(client, [past, stale])
 
     with Session(engine) as db:
@@ -176,8 +175,6 @@ def test_scheduler_catch_up_window(auth_client, monkeypatch):
     sent = []
     monkeypatch.setattr(scheduler, "push_available", lambda: True)
     monkeypatch.setattr(scheduler, "send_push", lambda ep, p, a, payload: (sent.append(payload) or PushResult(ok=True)))
-    scheduler._sent.clear()
-
     scheduler._run_tick()
 
     # The 5-min-ago dose fires; the 30-min-ago one is outside the window.
@@ -225,7 +222,7 @@ def test_run_tick_endpoint_requires_secret(client, monkeypatch):
 
 def test_scheduler_deletes_dead_subscription(auth_client, monkeypatch):
     client, _ = auth_client
-    now_hhmm = scheduler._local_now("UTC").strftime("%H:%M")
+    now_hhmm = doses.local_now("UTC").strftime("%H:%M")
     med_id = _add_medicine(client, [now_hhmm])
 
     with Session(engine) as db:
@@ -243,8 +240,6 @@ def test_scheduler_deletes_dead_subscription(auth_client, monkeypatch):
 
     monkeypatch.setattr(scheduler, "push_available", lambda: True)
     monkeypatch.setattr(scheduler, "send_push", lambda *a, **k: PushResult(ok=False, gone=True))
-    scheduler._sent.clear()
-
     scheduler._run_tick()
 
     with Session(engine) as db:

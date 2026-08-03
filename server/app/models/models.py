@@ -1,8 +1,11 @@
 from datetime import datetime, time
 from enum import Enum
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import LargeBinary
-from typing import Optional
+from sqlalchemy import (
+    LargeBinary, JSON, Index, UniqueConstraint, CheckConstraint, text,
+    Column, ForeignKey, String,
+)
+from typing import Any, Optional
 import uuid
 
 
@@ -162,6 +165,9 @@ class Medicine(SQLModel, table=True):
     taking_times: Optional[str] = None
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    # Soft delete: a caretaker's removal must be reversible by the patient, so
+    # rows are retired rather than dropped. Every read filters deleted_at IS NULL.
+    deleted_at: Optional[datetime] = Field(default=None, index=True)
 
 
 class MedicineIntakeLog(SQLModel, table=True):
@@ -319,7 +325,15 @@ class EmergencyContact(SQLModel, table=True):
 
 class Dependent(SQLModel, table=True):
     """A family member (child, elderly parent, etc.) whose basic medical
-    profile is managed by a guardian account."""
+    profile is managed by a guardian account.
+
+    RETIRED: the Family feature was removed — its page and /api/family router
+    are gone, so nothing reads or writes this table any more. The model is kept
+    deliberately so the existing rows stay intact and readable; deleting the
+    class would not drop the table, it would just leave orphaned data with no
+    schema to describe it. Drop the table explicitly if the data is confirmed
+    disposable.
+    """
     __tablename__ = "dependents"
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
@@ -363,3 +377,144 @@ class AuditLog(SQLModel, table=True):
     detail: Optional[str] = None             # short free-text / token, no PII blobs
 
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+
+
+# --- Caretaker ---------------------------------------------------------------
+#
+# A caretaker is an ordinary user account, not a role: any user may be a
+# patient, a caretaker, or both. A patient issues a short-lived code; a
+# caretaker redeems it, producing a CareLink that grants exactly two things —
+# medicine reminders for that patient, and read/write on that patient's
+# medicines. Nothing else (vitals, documents, reports, AI) is reachable.
+#
+# Note these use str primary keys and str foreign keys, matching the rest of the
+# schema: users.id is "#hos001", not a UUID.
+
+
+def _user_fk(*, cascade: bool, index: bool = False, nullable: bool = False) -> Column:
+    """A foreign key to users.id.
+
+    Spelled out as an explicit Column because this sqlmodel version's Field()
+    has no `ondelete`, and these tables need it: a care link or a queued
+    delivery addressed to a deleted account is meaningless, so it goes with the
+    account. Actor/revoker columns deliberately do NOT cascade — losing who did
+    what would gut the audit trail.
+    """
+    return Column(
+        String,
+        ForeignKey("users.id", ondelete="CASCADE" if cascade else None),
+        index=index,
+        nullable=nullable,
+    )
+
+
+class CareInvite(SQLModel, table=True):
+    """A pending invite code issued by a patient.
+
+    Only the SHA-256 hash of the code is stored, so a database leak can't be
+    replayed into account access — same reasoning as PasswordResetToken.
+    """
+    __tablename__ = "care_invites"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    patient_id: str = Field(sa_column=_user_fk(cascade=True, index=True))
+    # Only the hash. Deliberately no plaintext prefix column: storing part of
+    # the code beside its own hash would cut an offline search of the 8-char
+    # space from ~10^12 to ~10^6, and nothing needs it — the UI shows the full
+    # code once, at generation time, from memory.
+    code_hash: str = Field(index=True)
+
+    expires_at: datetime
+    used_at: Optional[datetime] = None
+    used_by: Optional[str] = Field(
+        default=None, sa_column=_user_fk(cascade=False, nullable=True)
+    )
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class CareLink(SQLModel, table=True):
+    """An accepted caretaker relationship.
+
+    The partial unique index allows exactly one *active* link per ordered
+    (patient, caretaker) pair while leaving any number of revoked historical
+    rows in place. Because the pair is ordered, mutual caretaking (A cares for
+    B and B cares for A) is two distinct rows and works naturally.
+    """
+    __tablename__ = "care_links"
+    __table_args__ = (
+        Index(
+            "care_links_unique_active",
+            "patient_id",
+            "caretaker_id",
+            unique=True,
+            postgresql_where=text("status = 'active'"),
+            sqlite_where=text("status = 'active'"),
+        ),
+        CheckConstraint("patient_id <> caretaker_id", name="care_links_no_self"),
+    )
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    patient_id: str = Field(sa_column=_user_fk(cascade=True, index=True))
+    caretaker_id: str = Field(sa_column=_user_fk(cascade=True, index=True))
+
+    status: str = Field(default="active")          # active | revoked
+    # The caretaker may mute one client without severing the link.
+    notify: bool = Field(default=True)
+
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    revoked_at: Optional[datetime] = None
+    revoked_by: Optional[str] = Field(
+        default=None, sa_column=_user_fk(cascade=False, nullable=True)
+    )
+
+
+class MedicineAudit(SQLModel, table=True):
+    """Who changed which medicine, so a patient can see caretaker activity.
+
+    Distinct from the generic audit_logs table: that one records *access* as
+    short free text, whereas this needs the full before/after row so the
+    patient can restore a medicine a caretaker deleted.
+    """
+    __tablename__ = "medicine_audit"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    patient_id: str = Field(sa_column=_user_fk(cascade=True, index=True))
+    actor_id: str = Field(sa_column=_user_fk(cascade=False, index=True))
+    medicine_id: Optional[str] = None
+
+    action: str                                     # create | update | delete | restore
+    # JSON (not JSONB): the test suite runs on SQLite, which has no JSONB.
+    before: Optional[dict[str, Any]] = Field(default=None, sa_type=JSON)
+    after: Optional[dict[str, Any]] = Field(default=None, sa_type=JSON)
+
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+
+
+class ReminderDelivery(SQLModel, table=True):
+    """Ledger of reminder pushes, one row per (dose slot, recipient).
+
+    The unique constraint is the point of the table: it makes fan-out
+    idempotent across scheduler retries and process restarts (the old in-memory
+    dedupe lost its state on reboot), and it stops a caretaker who links
+    mid-day from being backfilled with dose slots that already passed.
+    """
+    __tablename__ = "reminder_deliveries"
+    __table_args__ = (
+        UniqueConstraint(
+            "medicine_id", "recipient_id", "scheduled_for", "channel",
+            name="reminder_deliveries_dedupe",
+        ),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    medicine_id: str = Field(index=True)
+    patient_id: str = Field(index=True)
+    recipient_id: str = Field(sa_column=_user_fk(cascade=True, index=True))
+
+    # The exact dose slot in the patient's local timezone, not the send time.
+    scheduled_for: datetime
+    channel: str = Field(default="webpush")
+    status: str                                     # sent | failed | skipped
+    error: Optional[str] = None
+
+    created_at: datetime = Field(default_factory=datetime.utcnow)
