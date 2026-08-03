@@ -6,6 +6,17 @@
 #   2. On render.com: New > Blueprint > pick this repo. Render reads this file.
 #   3. Fill the secret env vars marked `sync: false` (they are NOT in git).
 #
+# IMPORTANT — env vars here are applied when the service is CREATED from this
+# blueprint, not on every push. Adding a new `- key:` below and pushing does
+# NOT create it on the running service: the code deploys, the variable stays
+# absent, and the app silently falls back to its default. This cost an hour on
+# 2026-08-03 with CARETAKER_ENABLED, which read `false` in production while
+# this file said "true".
+#
+# So: after adding any variable here, also add it by hand in
+# Render > medistore-api > Environment. Treat this file as documentation of
+# what the service needs, not as something that configures it in place.
+#
 # The free plan gives HTTPS + a *.onrender.com domain automatically. Free web
 # services sleep after ~15 min idle (cold start on next request) — fine for a
 # pilot; upgrade to keep it warm.

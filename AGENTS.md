@@ -132,6 +132,21 @@ curl -s https://medistore-health.vercel.app/dashboard \
 
 Push to `main` — Render and Vercel both auto-deploy from it.
 
+**Adding an env var to `render.yaml` does not create it on the running
+service.** Render applies that file's variables when the service is created
+from the blueprint, not on subsequent pushes. Add the key by hand in
+Render > medistore-api > Environment as well, or the code deploys while the
+variable stays absent and the app quietly uses its default — which is how
+`CARETAKER_ENABLED` read `false` in production for an hour while the blueprint
+said `"true"`.
+
+Feature flags are visible at `/health` (`caretaker`, `email`) precisely so this
+is one curl to check rather than a guess:
+
+```bash
+curl -s https://medistore-api-vwyr.onrender.com/health
+```
+
 Schema changes need care: startup runs `SQLModel.metadata.create_all()`, which
 creates missing *tables* but never adds columns to existing ones. A new column
 must go through `scripts/migrate_schema.py`, **run against production before the
