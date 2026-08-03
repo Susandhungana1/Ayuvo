@@ -42,6 +42,52 @@ function Countdown({ expiresAt, onExpired }: { expiresAt: string; onExpired: () 
   );
 }
 
+/**
+ * A generated code has to survive leaving the page: it stays valid on the
+ * server for 15 minutes, so the UI offering "Generate a code" again — and
+ * invalidating the one the user is still reading aloud — is simply wrong.
+ *
+ * It can only be remembered here. The server keeps just the SHA-256 hash, by
+ * design, so there is nothing to fetch it back from.
+ *
+ * sessionStorage rather than localStorage: this is a short-lived secret, and
+ * per-tab storage that dies with the tab is the right lifetime. It is no more
+ * exposed than the auth token already in localStorage, and it expires in
+ * minutes.
+ */
+const INVITE_KEY = 'care:invite';
+
+interface StoredInvite {
+  code: string;
+  expires_at: string;
+  /** Caretaker count when issued, to detect that the code has been redeemed. */
+  linkCount: number;
+}
+
+function readStoredInvite(): StoredInvite | null {
+  try {
+    const raw = sessionStorage.getItem(INVITE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredInvite;
+    if (Date.parse(parsed.expires_at) <= Date.now()) {
+      sessionStorage.removeItem(INVITE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredInvite(value: StoredInvite | null) {
+  try {
+    if (value) sessionStorage.setItem(INVITE_KEY, JSON.stringify(value));
+    else sessionStorage.removeItem(INVITE_KEY);
+  } catch {
+    /* private mode / storage disabled — the code still shows for this view */
+  }
+}
+
 const ACTION_LABEL: Record<AuditEntry['action'], string> = {
   create: 'added',
   update: 'updated',
@@ -71,6 +117,19 @@ export default function CaretakersSettings() {
       // edits are already visible on the medicines page.
       setAudit(auditRows.filter((e) => e.by_caretaker));
       setBlocked(null);
+
+      // Restore a code issued before the user navigated away. If a caretaker
+      // has appeared since it was issued, it has been redeemed — showing it
+      // would invite the patient to read out a code that no longer works.
+      const stored = readStoredInvite();
+      if (stored) {
+        if (linkRows.length > stored.linkCount) {
+          writeStoredInvite(null);
+          setInvite(null);
+        } else {
+          setInvite({ code: stored.code, expires_at: stored.expires_at });
+        }
+      }
     } catch (err) {
       // Name the actual cause. Reporting every failure as "not available on
       // your account" is misleading when the server is simply unreachable, and
@@ -108,12 +167,19 @@ export default function CaretakersSettings() {
     setError('');
     setCopied(false);
     try {
-      setInvite(await createInvite());
+      const created = await createInvite();
+      setInvite(created);
+      writeStoredInvite({ ...created, linkCount: links.length });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create a code');
     } finally {
       setIssuing(false);
     }
+  };
+
+  const forgetInvite = () => {
+    writeStoredInvite(null);
+    setInvite(null);
   };
 
   const handleRevoke = async (link: CareLink) => {
@@ -206,12 +272,19 @@ export default function CaretakersSettings() {
                   {copied ? 'Copied' : 'Copy code'}
                 </button>
                 <span className="text-sm text-subtext">
-                  Expires in{' '}
-                  <Countdown expiresAt={invite.expires_at} onExpired={() => setInvite(null)} />
+                  Expires in <Countdown expiresAt={invite.expires_at} onExpired={forgetInvite} />
                 </span>
+                <button
+                  type="button"
+                  onClick={forgetInvite}
+                  className="text-sm text-subtext hover:text-text-main underline"
+                >
+                  Hide
+                </button>
               </div>
               <p className="text-xs font-medium text-amber-700">
-                This code is shown once. Generating a new one cancels this.
+                This code can&apos;t be shown again once hidden or expired.
+                Generating a new one cancels it.
               </p>
             </div>
           ) : (
