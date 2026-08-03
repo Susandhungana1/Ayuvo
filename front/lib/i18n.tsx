@@ -17,7 +17,7 @@ const DICT: Record<string, { en: string; ne: string }> = {
   "nav.timeline": { en: "Timeline", ne: "समयरेखा" },
   "nav.share": { en: "Share", ne: "साझेदारी" },
   "nav.nearby": { en: "Nearby Care", ne: "नजिकैको सेवा" },
-  "nav.family": { en: "Family", ne: "परिवार" },
+  "nav.caretakers": { en: "Caretakers", ne: "हेरचाहकर्ता" },
   "nav.availability": { en: "Availability", ne: "उपलब्धता" },
   "nav.more": { en: "More", ne: "थप" },
   "nav.login": { en: "Log in", ne: "लग इन" },

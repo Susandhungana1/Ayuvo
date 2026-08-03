@@ -19,7 +19,7 @@ const primaryLinks = [
 const moreLinks = [
   { href: '/appointments', tKey: 'nav.appointments' },
   { href: '/emergency', tKey: 'nav.emergency' },
-  { href: '/family', tKey: 'nav.family' },
+  { href: '/settings/caretakers', tKey: 'nav.caretakers' },
   { href: '/nearby', tKey: 'nav.nearby' },
   { href: '/timeline', tKey: 'nav.timeline' },
   { href: '/share', tKey: 'nav.share' },
