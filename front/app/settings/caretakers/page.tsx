@@ -11,6 +11,7 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import {
   AuditEntry,
+  CareFeatureOff,
   CareLink,
   createInvite,
   listAudit,
@@ -53,7 +54,7 @@ export default function CaretakersSettings() {
   const [links, setLinks] = useState<CareLink[]>([]);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [unavailable, setUnavailable] = useState(false);
+  const [blocked, setBlocked] = useState<null | { title: string; detail: string }>(null);
   const [invite, setInvite] = useState<{ code: string; expires_at: string } | null>(null);
   const [issuing, setIssuing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -69,8 +70,26 @@ export default function CaretakersSettings() {
       // Only a caretaker's activity is interesting here; the patient's own
       // edits are already visible on the medicines page.
       setAudit(auditRows.filter((e) => e.by_caretaker));
-    } catch {
-      setUnavailable(true);
+      setBlocked(null);
+    } catch (err) {
+      // Name the actual cause. Reporting every failure as "not available on
+      // your account" is misleading when the server is simply unreachable, and
+      // gives no hint of what to do about it.
+      if (err instanceof CareFeatureOff) {
+        setBlocked({
+          title: 'Caretakers is switched off',
+          detail:
+            'This server has the caretaker feature disabled. It needs CARETAKER_ENABLED=true to be set on the API.',
+        });
+      } else {
+        setBlocked({
+          title: "Couldn't load caretakers",
+          detail:
+            err instanceof Error
+              ? `${err.message} Check that the API is reachable, then reload.`
+              : 'The API could not be reached. Check your connection and reload.',
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -127,12 +146,21 @@ export default function CaretakersSettings() {
     );
   }
 
-  if (unavailable) {
+  if (blocked) {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold text-text-main mb-2">Caretakers</h1>
-          <p className="text-subtext">This feature isn&apos;t available on your account yet.</p>
+          <h1 className="text-2xl font-bold text-text-main mb-2">{blocked.title}</h1>
+          <p className="text-subtext mb-6">{blocked.detail}</p>
+          <button
+            onClick={() => {
+              setLoading(true);
+              load();
+            }}
+            className="text-primary hover:underline text-sm font-medium"
+          >
+            Try again
+          </button>
         </div>
       </div>
     );

@@ -111,8 +111,18 @@ async def health():
     else:
         email = "none"
 
+    # Same reasoning as `email` above: a feature flag that didn't take effect is
+    # invisible from outside. The care endpoints require auth, so an anonymous
+    # request gets 401 whether the feature is on or off — there is otherwise no
+    # way to confirm a flag flip actually reached the running process. Reports
+    # the flag's state, which is not a secret.
     return Response(
-        content=json.dumps({"status": "ok", "database": db_ok, "email": email}),
+        content=json.dumps({
+            "status": "ok",
+            "database": db_ok,
+            "email": email,
+            "caretaker": settings.caretaker_enabled,
+        }),
         media_type="application/json",
         status_code=200 if db_ok else 503,
     )

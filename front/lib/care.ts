@@ -44,6 +44,14 @@ export class CareAccessRevoked extends Error {
   }
 }
 
+/** Raised when the API reports the caretaker feature is switched off (404). */
+export class CareFeatureOff extends Error {
+  constructor() {
+    super('Caretaker links are not enabled on this server.');
+    this.name = 'CareFeatureOff';
+  }
+}
+
 export function authHeaders(): Record<string, string> {
   const token = typeof window === 'undefined' ? null : localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -69,9 +77,14 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
 
   // 403 on a scoped call means the patient revoked the link mid-session.
   if (res.status === 403) throw new CareAccessRevoked();
+  // 404 on a /api/care route means the server has the feature switched off.
+  // Distinguished from a network failure so the UI can say which it was —
+  // "not available on your account" is wrong and unactionable when the real
+  // cause is an unreachable API.
+  if (res.status === 404 && url.includes('/api/care/')) throw new CareFeatureOff();
   if (!res.ok) {
     const detail = await res.json().catch(() => null);
-    throw new Error(detail?.detail || 'Request failed');
+    throw new Error(detail?.detail || `Request failed (HTTP ${res.status})`);
   }
   return res.status === 204 ? (null as T) : res.json();
 }

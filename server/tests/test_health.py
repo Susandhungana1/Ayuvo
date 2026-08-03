@@ -36,3 +36,18 @@ def test_health_reports_smtp_fallback(client, monkeypatch):
 def test_health_never_exposes_the_key(client, monkeypatch):
     monkeypatch.setattr(config_module.settings, "brevo_api_key", "xkeysib-secret-value")
     assert "xkeysib" not in client.get("/health").text
+
+
+def test_health_reports_the_caretaker_flag(client):
+    """The care routes need auth, so an anonymous 401 looks identical whether
+    the feature is on or off. /health is the only way to confirm from outside
+    that a flag flip actually reached the running process."""
+    from app.core.config import settings
+
+    assert client.get("/health").json()["caretaker"] is False
+
+    settings.caretaker_enabled = True
+    try:
+        assert client.get("/health").json()["caretaker"] is True
+    finally:
+        settings.caretaker_enabled = False
