@@ -103,6 +103,46 @@ documents, reports and AI are unreachable through it.
 - Medicine deletes are soft (`medicines.deleted_at`); every read filters
   `deleted_at IS NULL`.
 
+## Production URLs
+
+| | URL |
+|---|---|
+| Frontend (Vercel) | https://medistore-health.vercel.app |
+| API (Render) | https://medistore-api-vwyr.onrender.com |
+
+**The API hostname is not derivable from `render.yaml`.** The blueprint declares
+`name: medistore-api`, but Render appended a random suffix when it created the
+service, so the live host is `medistore-api-vwyr`. Worse, `*.onrender.com` is a
+wildcard: the wrong hostname still resolves in DNS and then hangs until timeout
+instead of failing fast, which reads exactly like a suspended service. Do not
+conclude the backend is down from a timeout plus a successful DNS lookup —
+check the URL first.
+
+If it changes, recover it from Vercel's `NEXT_PUBLIC_API_URL`, or from the
+deployed bundle:
+
+```bash
+curl -s https://medistore-health.vercel.app/dashboard \
+  | grep -oE '/_next/static/[^"]+\.js' | sort -u \
+  | while read c; do curl -s "https://medistore-health.vercel.app$c"; done \
+  | grep -oE 'https://[a-z0-9-]+\.onrender\.com' | sort -u
+```
+
+## Deploying
+
+Push to `main` — Render and Vercel both auto-deploy from it.
+
+Schema changes need care: startup runs `SQLModel.metadata.create_all()`, which
+creates missing *tables* but never adds columns to existing ones. A new column
+must go through `scripts/migrate_schema.py`, **run against production before the
+code that reads it ships** — otherwise every query touching that column 500s.
+
+```bash
+cd server
+DATABASE_URL='<prod-url>' python -m scripts.migrate_schema --dry-run
+DATABASE_URL='<prod-url>' python -m scripts.migrate_schema
+```
+
 ## Notes
 
 - Frontend UI may be changed. (This previously read "DO NOT modify frontend

@@ -323,35 +323,6 @@ class EmergencyContact(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-class Dependent(SQLModel, table=True):
-    """A family member (child, elderly parent, etc.) whose basic medical
-    profile is managed by a guardian account.
-
-    RETIRED: the Family feature was removed — its page and /api/family router
-    are gone, so nothing reads or writes this table any more. The model is kept
-    deliberately so the existing rows stay intact and readable; deleting the
-    class would not drop the table, it would just leave orphaned data with no
-    schema to describe it. Drop the table explicitly if the data is confirmed
-    disposable.
-    """
-    __tablename__ = "dependents"
-
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    # The guardian account that owns/manages this dependent's records.
-    guardian_id: str = Field(foreign_key="users.id", index=True)
-
-    name: str
-    relationship: str  # e.g. Child, Parent, Spouse
-    date_of_birth: Optional[str] = None
-    blood_type: Optional[str] = None
-    allergies: Optional[str] = None
-    medical_conditions: Optional[str] = None
-    notes: Optional[str] = None
-
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-
-
 class AuditLog(SQLModel, table=True):
     """Append-only record of sensitive access events (who / when / what / IP).
 

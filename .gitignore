@@ -3,6 +3,11 @@
 # encryption of the patient-data backups.
 DB_BACKUP_RESTORE.md
 
+# Exports produced by scripts/drop_dependents.py. These hold real health data
+# (names, blood types, allergies, medical conditions) pulled straight out of the
+# database — they are backups, not source.
+dependents_backup_*.json
+
 # macOS
 .DS_Store
 
