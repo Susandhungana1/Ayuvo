@@ -13,12 +13,16 @@ import {
   AuditEntry,
   CareFeatureOff,
   CareLink,
+  SessionExpired,
   createInvite,
   listAudit,
   listLinks,
   restoreMedicine,
   revokeLink,
 } from '@/lib/care';
+
+/** Path to sign in at, returning here once that's done. */
+const LOGIN_URL = `/auth/login?next=${encodeURIComponent('/settings/caretakers')}`;
 
 function Countdown({ expiresAt, onExpired }: { expiresAt: string; onExpired: () => void }) {
   const [left, setLeft] = useState(() => Date.parse(expiresAt) - Date.now());
@@ -100,6 +104,7 @@ export default function CaretakersSettings() {
   const [links, setLinks] = useState<CareLink[]>([]);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [redirecting, setRedirecting] = useState(false);
   const [blocked, setBlocked] = useState<null | { title: string; detail: string }>(null);
   const [invite, setInvite] = useState<{ code: string; expires_at: string } | null>(null);
   const [issuing, setIssuing] = useState(false);
@@ -134,7 +139,18 @@ export default function CaretakersSettings() {
       // Name the actual cause. Reporting every failure as "not available on
       // your account" is misleading when the server is simply unreachable, and
       // gives no hint of what to do about it.
-      if (err instanceof CareFeatureOff) {
+      if (err instanceof SessionExpired) {
+        // The token in this browser is dead — held here, the page can only
+        // offer a "Try again" that fails identically every time. care.ts has
+        // already cleared it, so signing in is both the fix and the only
+        // thing to do; go straight there.
+        //
+        // Stay on the spinner until the route changes. `finally` drops
+        // `loading` either way, and without this the empty caretaker list
+        // flashes up for a frame on its way out.
+        setRedirecting(true);
+        router.replace(LOGIN_URL);
+      } else if (err instanceof CareFeatureOff) {
         setBlocked({
           title: 'Caretakers is switched off',
           detail:
@@ -145,18 +161,18 @@ export default function CaretakersSettings() {
           title: "Couldn't load caretakers",
           detail:
             err instanceof Error
-              ? `${err.message} Check that the API is reachable, then reload.`
+              ? `${err.message.replace(/\.?$/, '.')} Check that the API is reachable, then reload.`
               : 'The API could not be reached. Check your connection and reload.',
         });
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!localStorage.getItem('token')) {
-      router.push('/auth/login');
+      router.replace(LOGIN_URL);
       return;
     }
     load();
@@ -204,10 +220,12 @@ export default function CaretakersSettings() {
     }
   };
 
-  if (loading) {
+  if (loading || redirecting) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-subtext">Loading…</p>
+        <p className="text-subtext">
+          {redirecting ? 'Session expired — taking you to sign in…' : 'Loading…'}
+        </p>
       </div>
     );
   }

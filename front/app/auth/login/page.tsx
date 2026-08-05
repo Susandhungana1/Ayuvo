@@ -46,7 +46,17 @@ export default function Login() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data));
       window.dispatchEvent(new Event('localStorageUpdated'));
-      router.push('/');
+      // Pages that bounce here on an expired session pass the page they were
+      // trying to reach as `?next=`, so signing in resumes where the user was
+      // instead of dumping them on the home page to navigate back by hand.
+      // Read from location rather than useSearchParams(), which would force
+      // this page into a Suspense boundary to build.
+      // Only same-origin paths: `//evil.com` is a valid URL to a foreign host,
+      // so a bare startsWith('/') check would leave an open redirect that
+      // phishes the login form's own users.
+      const next = new URLSearchParams(window.location.search).get('next');
+      const safeNext = next?.startsWith('/') && !next.startsWith('//') ? next : '/';
+      router.push(safeNext);
     } catch (err: any) {
       setError(err.message || 'Invalid email or password');
     } finally {

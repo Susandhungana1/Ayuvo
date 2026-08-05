@@ -52,6 +52,14 @@ export class CareFeatureOff extends Error {
   }
 }
 
+/** Raised when the stored token is expired or otherwise rejected (401). */
+export class SessionExpired extends Error {
+  constructor() {
+    super('Your session has expired. Please sign in again.');
+    this.name = 'SessionExpired';
+  }
+}
+
 export function authHeaders(): Record<string, string> {
   const token = typeof window === 'undefined' ? null : localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -75,6 +83,22 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
     },
   });
 
+  // 401 means the stored token is expired (they last a week) or was signed
+  // with a JWT_SECRET the server no longer uses — a redeploy that rotates the
+  // secret invalidates every token in every browser at once. Either way the
+  // session is over and there is nothing to retry, so surfacing the raw
+  // "Invalid credentials" alongside "check that the API is reachable" is
+  // doubly wrong: the API answered, and reloading can only fail again.
+  // Drop the dead token so the app stops presenting it and the caller can
+  // send the user to sign in.
+  if (res.status === 401) {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new Event('localStorageUpdated'));
+    }
+    throw new SessionExpired();
+  }
   // 403 on a scoped call means the patient revoked the link mid-session.
   if (res.status === 403) throw new CareAccessRevoked();
   // 404 on a /api/care route means the server has the feature switched off.
