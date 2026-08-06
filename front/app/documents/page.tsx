@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Input } from '@/components/input';
+import { formatPlainDate } from '@/lib/datetime';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
@@ -110,10 +111,32 @@ try {
     }
   };
 
-  const handleViewFile = (docId: string, fileId: string, fileName: string) => {
-    const token = localStorage.getItem('token');
-    const url = `${API_URL}/api/documents/${docId}/files/${fileId}?inline=true`;
-    setViewingFile({ url: url, name: fileName });
+  // Attachments are auth-gated binaries. Putting the API URL straight into an
+  // <img>/<iframe> src sends no Authorization header, so the browser gets a 401
+  // and renders a broken image — which is what this did. Fetch the bytes with
+  // the header and hand the element a blob URL instead.
+  const handleViewFile = async (docId: string, fileId: string, fileName: string) => {
+    setError('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(
+        `${API_URL}/api/documents/${docId}/files/${fileId}?inline=true`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      if (!res.ok) {
+        setError(`Could not open ${fileName} (HTTP ${res.status}).`);
+        return;
+      }
+      const blob = await res.blob();
+      setViewingFile({ url: URL.createObjectURL(blob), name: fileName });
+    } catch {
+      setError(`Could not open ${fileName}. Check your connection and try again.`);
+    }
+  };
+
+  const closeViewer = () => {
+    if (viewingFile) URL.revokeObjectURL(viewingFile.url);
+    setViewingFile(null);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -208,6 +231,12 @@ try {
             {showForm ? 'Cancel' : '+ Add Document'}
           </Button>
         </div>
+
+        {error && !showForm && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800">
+            {error}
+          </div>
+        )}
 
         {showForm && (
           <Card className="p-6 mb-8">
@@ -312,7 +341,7 @@ try {
                 )}
                 {doc.checkup_date && (
                   <p className="text-subtext text-sm mb-2">
-                    Date: {new Date(doc.checkup_date).toLocaleDateString()}
+                    Date: {formatPlainDate(doc.checkup_date)}
                   </p>
                 )}
                 {doc.description && (
@@ -357,7 +386,7 @@ try {
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="font-medium">{viewingFile.name}</h3>
-              <button onClick={() => setViewingFile(null)} className="text-gray-500 hover:text-gray-700">
+              <button onClick={closeViewer} className="text-gray-500 hover:text-gray-700">
                 ✕
               </button>
             </div>

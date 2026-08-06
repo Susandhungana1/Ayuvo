@@ -14,6 +14,7 @@ import { Card } from '@/components/card';
 import { Input } from '@/components/input';
 import { cacheGet, cacheSet } from '@/lib/offlineCache';
 import { API_URL, CareAccessRevoked, authHeaders, scopedUrl } from '@/lib/care';
+import { formatPlainDate } from '@/lib/datetime';
 
 export interface Medicine {
   id: string;
@@ -369,11 +370,11 @@ export function MedicineManager({
                   </div>
                 )}
                 <p className="text-subtext text-sm mb-1">
-                  Started: {new Date(med.start_date).toLocaleDateString()}
+                  Started: {formatPlainDate(med.start_date)}
                 </p>
                 {med.end_date && (
                   <p className="text-subtext text-sm mb-1">
-                    Ends: {new Date(med.end_date).toLocaleDateString()}
+                    Ends: {formatPlainDate(med.end_date)}
                   </p>
                 )}
                 {med.notes && <p className="text-subtext text-sm mb-4">{med.notes}</p>}

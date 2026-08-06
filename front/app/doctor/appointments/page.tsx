@@ -23,6 +23,7 @@ export default function DoctorAppointments() {
   const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -61,24 +62,29 @@ export default function DoctorAppointments() {
   };
 
   const updateStatus = async (id: string, status: string) => {
+    setError('');
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/appointments/${id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status })
-      });
-      
-      if (res.ok) {
-        setAppointments(appointments.map(a => 
-          a.id === id ? { ...a, status } : a
-        ));
+      // Two things were wrong here. The status goes in the query string — the
+      // route declares it as a bare enum, so FastAPI reads it as a query
+      // parameter and a JSON body was a 422. And /status authorises against
+      // Appointment.user_id, the *patient* who booked, so a doctor calling it
+      // always got a 404; /status/by-doctor is the doctor-of-record route.
+      const res = await fetch(
+        `${API_URL}/api/appointments/${id}/status/by-doctor?status=${encodeURIComponent(status)}`,
+        { method: 'PATCH', headers: { 'Authorization': `Bearer ${token}` } }
+      );
+
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null);
+        setError(detail?.detail || `Could not update this appointment (HTTP ${res.status}).`);
+        return;
       }
-    } catch (err) {
-      console.error(err);
+      setAppointments(appointments.map(a =>
+        a.id === id ? { ...a, status } : a
+      ));
+    } catch {
+      setError('Could not reach the server. Check your connection and try again.');
     }
   };
 
@@ -97,6 +103,12 @@ export default function DoctorAppointments() {
           <h1 className="text-3xl font-bold text-text-main">Patient Appointments</h1>
           <Button onClick={() => router.push('/dashboard')}>Back to Dashboard</Button>
         </div>
+
+        {error && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800">
+            {error}
+          </div>
+        )}
 
         {appointments.length === 0 ? (
           <Card className="p-8 text-center">

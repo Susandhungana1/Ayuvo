@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/card';
 import { Button } from '@/components/button';
 import { DigitizedReport } from '@/components/DigitizedReport';
+import { formatPlainDate, formatServerDateTime } from '@/lib/datetime';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
@@ -243,8 +244,8 @@ export default function ViewAllSharedReports() {
                   <h3 className="font-semibold text-text-main mb-1">{med.name}</h3>
                   <p className="text-subtext text-xs mb-0.5">Dosage: {med.dosage}</p>
                   <p className="text-subtext text-xs mb-0.5">Frequency: {med.frequency}</p>
-                  <p className="text-subtext text-xs mb-0.5">Started: {new Date(med.start_date).toLocaleDateString()}</p>
-                  {med.end_date && <p className="text-subtext text-xs mb-0.5">Ends: {new Date(med.end_date).toLocaleDateString()}</p>}
+                  <p className="text-subtext text-xs mb-0.5">Started: {formatPlainDate(med.start_date)}</p>
+                  {med.end_date && <p className="text-subtext text-xs mb-0.5">Ends: {formatPlainDate(med.end_date)}</p>}
                   {med.notes && <p className="text-subtext text-xs mt-1 italic">{med.notes}</p>}
                 </Card>
               ))}
@@ -273,7 +274,7 @@ export default function ViewAllSharedReports() {
                     <p className="text-subtext text-xs">{report.file_name}</p>
                     {report.created_at && (
                       <p className="text-subtext text-xs">
-                        Uploaded: {new Date(report.created_at).toLocaleString()}
+                        Uploaded: {formatServerDateTime(report.created_at)}
                       </p>
                     )}
                   </div>

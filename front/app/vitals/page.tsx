@@ -9,6 +9,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { useSpeechRecognition } from '@/lib/useSpeechRecognition';
+import { formatServerDate, formatServerDateTime } from '@/lib/datetime';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
@@ -227,7 +228,7 @@ export default function Vitals() {
 
   const chartData = [...vitals].reverse().map((v, i) => ({
     name: `#${i + 1}`,
-    date: new Date(v.measured_at).toLocaleDateString(),
+    date: formatServerDate(v.measured_at),
     systolic: v.blood_pressure_systolic,
     diastolic: v.blood_pressure_diastolic,
     heartRate: v.heart_rate,
@@ -413,7 +414,7 @@ export default function Vitals() {
                 return (
                 <Card key={v.id} className="p-4">
                   <div className="flex justify-between items-start mb-3">
-                    <p className="text-xs text-subtext">{new Date(v.measured_at).toLocaleString()}</p>
+                    <p className="text-xs text-subtext">{formatServerDateTime(v.measured_at)}</p>
                     <button onClick={() => handleDelete(v.id)} className="text-red-400 text-xs hover:text-red-600">&times;</button>
                   </div>
                   <div className="space-y-2">

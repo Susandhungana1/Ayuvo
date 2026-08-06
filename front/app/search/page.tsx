@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card } from '@/components/card';
 import { Input } from '@/components/input';
+import { formatServerDate } from '@/lib/datetime';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
@@ -115,7 +116,7 @@ function SearchContent() {
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${getTypeBadge(r.type)}`}>
                         {r.type}
                       </span>
-                      {r.date && <span className="text-xs text-subtext">{new Date(r.date).toLocaleDateString()}</span>}
+                      {r.date && <span className="text-xs text-subtext">{formatServerDate(r.date)}</span>}
                     </div>
                     <h3 className="font-semibold text-text-main text-sm sm:text-base truncate">{r.title}</h3>
                     {r.snippet && <p className="text-xs sm:text-sm text-subtext mt-1 line-clamp-2">{r.snippet}</p>}
