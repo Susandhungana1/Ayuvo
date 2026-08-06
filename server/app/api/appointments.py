@@ -372,6 +372,59 @@ async def update_appointment_status(
     )
 
 
+@router.patch("/{appt_id}/status/by-doctor", response_model=AppointmentResponse)
+async def update_appointment_status_as_doctor(
+    appt_id: str,
+    status: AppointmentStatus,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    """Let the doctor of record accept, decline or complete an appointment.
+
+    PATCH /{appt_id}/status authorises against Appointment.user_id, which is the
+    *patient* who booked. A doctor is never that user, so every status change a
+    doctor attempts through it 404s — the doctor's inbox has never been able to
+    act on anything. This is the doctor's side of the same operation.
+
+    Deliberately a second route rather than a wider check on the first: front/
+    calls that one in production, and a route that quietly starts accepting a
+    new class of caller is the kind of change nobody notices in review.
+    """
+    if current_user.role not in ["DOCTOR", "ADMIN"]:
+        raise HTTPException(status_code=403, detail="Only doctors can access this resource")
+
+    doctor = db.exec(select(Doctor).where(Doctor.user_id == current_user.id)).first()
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor profile not found")
+
+    appointment = db.get(Appointment, appt_id)
+    # 404 rather than 403 when the appointment belongs to a different doctor:
+    # the response must not confirm that some other practice holds that id.
+    if not appointment or appointment.doctor_id != doctor.id:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    appointment.status = status
+    appointment.updated_at = datetime.utcnow()
+
+    db.add(appointment)
+    db.commit()
+    db.refresh(appointment)
+
+    return AppointmentResponse(
+        id=appointment.id,
+        title=appointment.title,
+        description=appointment.description,
+        doctor_id=appointment.doctor_id,
+        doctor_name=appointment.doctor_name,
+        hospital=appointment.hospital,
+        appointment_date=appointment.appointment_date,
+        duration_minutes=appointment.duration_minutes,
+        status=appointment.status.value if isinstance(appointment.status, AppointmentStatus) else appointment.status,
+        reason=appointment.reason,
+        reminder_sent=appointment.reminder_sent
+    )
+
+
 @router.delete("/{appt_id}")
 async def delete_appointment(
     appt_id: str,
