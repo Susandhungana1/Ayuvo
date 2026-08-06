@@ -7,6 +7,8 @@ what each screen calls.
 
 Design decisions and their measurements live in `DESIGN.md`. Backend changes
 worth making — proposed, rejected, or shipped — live in `BACKEND_NOTES.md`.
+Everything a phase found and did not fix lives in `KNOWN_ISSUES.md`, which is
+the list to read before trusting any part of this app.
 
 ## Running it
 
