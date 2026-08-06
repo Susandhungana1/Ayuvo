@@ -10,6 +10,13 @@ one crash fix have since shipped locally — see `BACKEND_NOTES.md §0–§2` �
 seven `front/` bugs in §7 are fixed. `python -m pytest -q` → **147 passed**. Nothing
 is deployed.
 
+**Phase 3 (foundation) is built.** Auth is done end to end — register, sign in, the
+2FA challenge, forgot/reset, sign out, session restore, and a 401 anywhere ending the
+session with a reason. Every other row below is navigable and says which phase builds
+it; none of them shows invented data. The screens the auth flow added that the web has
+no equivalent for (the 2FA challenge, "paste your reset code") are marked **new** in
+§2 and now exist.
+
 ---
 
 ## 0. How to read this

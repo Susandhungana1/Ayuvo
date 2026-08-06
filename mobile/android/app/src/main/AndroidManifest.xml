@@ -1,6 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The app is a client for a remote health record; without this a release
+         build has no network at all. The debug source set adds it too, for the
+         Flutter tool's own connection. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
-        android:label="medistore"
+        android:label="MediStore"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

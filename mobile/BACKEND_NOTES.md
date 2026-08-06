@@ -195,6 +195,10 @@ As the brief itself allows. `POST /api/auth/login/json` taking
 - **Priority: low.** Smuggling a TOTP code through `client_secret` is ugly, but it
   works and the Flutter client can do it in four lines. This is cosmetic; it should
   not consume phase-7 budget ahead of §1 or §2.
+- **Phase 3 evidence:** it did take four lines
+  (`features/auth/data/auth_repository.dart::login`), and the 2FA challenge round
+  trip is covered by tests against both a fake and the real server. Downgrading
+  this from "worth doing" to "only if the phase-7 list is otherwise empty".
 
 ---
 
@@ -213,6 +217,13 @@ and revocation on sign-out.
 - **Until approved:** handle expiry gracefully — 401 clears storage and routes to
   sign-in with "Your session expired". No silent retry loops; the login route is rate
   limited at 10/min and a retry storm would lock the user out.
+- **Phase 3 evidence:** done, and it turned out to be two paths rather than one. A
+  401 mid-session ends it once, however many requests were in flight
+  (`core/network/api_client.dart`); and at launch the `exp` claim is read locally, so
+  a token that ran out while the app was closed sends the user to sign-in with a
+  reason instead of to a screen that 401s on load (`core/session/jwt.dart`). Both are
+  tested. The remaining cost of no-refresh is exactly one sign-in a week — real, but
+  not a blocker.
 
 ---
 
