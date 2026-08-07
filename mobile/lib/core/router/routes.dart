@@ -23,14 +23,20 @@ abstract final class Routes {
   static const reports = '/reports';
   static const more = '/more';
 
-  /// A child of [more], so the bottom bar stays put and Back returns to the
+  /// Children of [more], so the bottom bar stays put and Back returns to the
   /// tab rather than to whatever screen was there before it.
   static const documents = '/more/documents';
+  static const appointments = '/more/appointments';
+  static const share = '/more/share';
+  static const emergency = '/more/emergency';
 
   // Doctor shell.
   static const doctorAppointments = '/doctor/appointments';
   static const doctorAvailability = '/doctor/availability';
   static const doctorMore = '/doctor/more';
+
+  /// A child of [doctorMore], for the same reason as the patient ones.
+  static const doctorProfile = '/doctor/more/profile';
 
   static const doctorPrefix = '/doctor';
 }

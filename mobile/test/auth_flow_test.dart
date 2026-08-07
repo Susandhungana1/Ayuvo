@@ -31,10 +31,15 @@ Future<FakeAuthRepository> pumpApp(
   final repo = repository ?? FakeAuthRepository();
   // The dashboard behind the sign-in screen fetches as soon as it mounts, so
   // even an auth test needs a backend. An empty one is the honest default: a
-  // brand-new account has no medicines and no readings.
+  // brand-new account has no medicines and no readings. The doctor shell's two
+  // tabs are here too, because which shell you land in is what one of these
+  // tests is about.
   final api = FakeApi()
     ..json('GET /api/medicines', {'medicines': const []})
-    ..json('GET /api/vitals', {'vitals': const []});
+    ..json('GET /api/vitals', {'vitals': const []})
+    ..json('GET /api/appointments/doctor/my-appointments',
+        {'appointments': const []})
+    ..json('GET /api/doctors/availability', {'availability': const []});
 
   await tester.pumpWidget(
     ProviderScope(
@@ -189,7 +194,8 @@ void main() {
 
     expect(find.text('Availability'), findsOneWidget);
     expect(find.text('Medicines'), findsNothing);
-    expect(find.text('Appointments arrives in phase 5'), findsOneWidget);
+    // The doctor's inbox, not the patient's appointment list.
+    expect(find.text('Nothing booked yet'), findsOneWidget);
   });
 
   testWidgets('signing out returns to sign-in', (tester) async {

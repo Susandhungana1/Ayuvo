@@ -10,17 +10,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/appointments/presentation/appointments_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/auth/presentation/sign_in_screen.dart';
+import '../../features/doctors/presentation/availability_screen.dart';
+import '../../features/doctors/presentation/doctor_inbox_screen.dart';
+import '../../features/doctors/presentation/doctor_profile_screen.dart';
 import '../../features/documents/presentation/documents_screen.dart';
+import '../../features/emergency/presentation/emergency_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/medicines/presentation/medicines_screen.dart';
 import '../../features/reports/presentation/reports_screen.dart';
+import '../../features/sharing/presentation/share_screen.dart';
 import '../../features/shell/presentation/app_shell.dart';
 import '../../features/shell/presentation/more_screen.dart';
-import '../../features/shell/presentation/not_built_yet_screen.dart';
 import '../../features/vitals/presentation/vitals_screen.dart';
 import '../session/session_controller.dart';
 import '../session/session_state.dart';
@@ -136,10 +141,22 @@ final _routes = <RouteBase>[
             path: Routes.more,
             builder: (context, state) => const MoreScreen(),
             routes: [
+              // Relative, so each resolves under Routes.more.
               GoRoute(
-                // Relative, so it resolves to Routes.documents.
                 path: 'documents',
                 builder: (context, state) => const DocumentsScreen(),
+              ),
+              GoRoute(
+                path: 'appointments',
+                builder: (context, state) => const AppointmentsScreen(),
+              ),
+              GoRoute(
+                path: 'share',
+                builder: (context, state) => const ShareScreen(),
+              ),
+              GoRoute(
+                path: 'emergency',
+                builder: (context, state) => const EmergencyScreen(),
               ),
             ],
           ),
@@ -155,13 +172,7 @@ final _routes = <RouteBase>[
         routes: [
           GoRoute(
             path: Routes.doctorAppointments,
-            builder: (context, state) => const NotBuiltYetScreen(
-              title: 'Appointments',
-              icon: Icons.inbox_outlined,
-              phase: 'phase 5',
-              summary: 'The requests your patients have sent, and the status '
-                  'changes you can make to them.',
-            ),
+            builder: (context, state) => const DoctorInboxScreen(),
           ),
         ],
       ),
@@ -169,13 +180,7 @@ final _routes = <RouteBase>[
         routes: [
           GoRoute(
             path: Routes.doctorAvailability,
-            builder: (context, state) => const NotBuiltYetScreen(
-              title: 'Availability',
-              icon: Icons.event_available_outlined,
-              phase: 'phase 5',
-              summary: 'The hours you offer, per weekday, that patients can '
-                  'book against.',
-            ),
+            builder: (context, state) => const AvailabilityScreen(),
           ),
         ],
       ),
@@ -184,6 +189,12 @@ final _routes = <RouteBase>[
           GoRoute(
             path: Routes.doctorMore,
             builder: (context, state) => const MoreScreen(),
+            routes: [
+              GoRoute(
+                path: 'profile',
+                builder: (context, state) => const DoctorProfileScreen(),
+              ),
+            ],
           ),
         ],
       ),

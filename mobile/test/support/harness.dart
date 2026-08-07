@@ -111,6 +111,23 @@ Future<void> tapAfterScroll(
   await settle(tester);
 }
 
+/// `find.text`, tolerant of the space ICU puts before AM/PM.
+///
+/// `DateFormat.jm()` emits `9:00 AM` — a **narrow no-break space**, not the
+/// ordinary one anybody types into a test literal. The two render identically
+/// and compare unequal, which turns every assertion on a formatted time into a
+/// "found 0 widgets" with two strings that look the same in the failure output.
+Finder findText(String expected) => find.byWidgetPredicate(
+      (widget) => widget is Text && _spaces(widget.data) == _spaces(expected),
+      description: 'text "$expected"',
+    );
+
+/// U+202F narrow no-break space and U+00A0 no-break space, both flattened
+/// to an ordinary space. Written as escapes because all three are
+/// indistinguishable in a source file.
+String? _spaces(String? value) =>
+    value?.replaceAll('\u202F', ' ').replaceAll('\u00A0', ' ');
+
 /// The outermost scroll view inside [screen].
 ///
 /// Anchoring to a widget that happens to be visible does not survive the first

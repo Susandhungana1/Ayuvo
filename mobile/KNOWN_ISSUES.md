@@ -97,12 +97,16 @@ Fix is small and the choice is real: bundle the `.ttf` files under
 right answer for a health app that should work on a bad connection. Either way
 it is one edit to `pubspec.yaml` and none to the theme.
 
-### P1.5-2 · Text scaling at 2.0 has never been run — **Ship**
+### P1.5-2 · Text scaling at 2.0 is tested per screen, not everywhere — **Ship**
 
 `DESIGN.md` §3 makes "survives `MediaQuery.textScaler` at 2.0" a review item at
-the end of every phase, and no phase has run it yet. No tile has a fixed height,
-so the design should hold, but "should" is the word doing the work. Needs a
-golden or a device pass over the auth screens and Home.
+the end of every phase. It is now automated for the design gallery
+(`design_review_test.dart`), the sign-in screen (`auth_flow_test.dart`) and the
+five screens phase 5 added (`phase5_text_scale_test.dart`, both brightnesses, a
+320-wide viewport). Phase 4's screens — Medicines, Vitals, Reports, Documents,
+Home — still have no such test, and "should hold" is doing the work for them.
+Every screen that has been tested failed the first time it was; phase 5's found
+six real overflows on five screens. Assume phase 4's would too.
 
 ### P1.5-3 · Dark mode has never been seen on a device — **Papercut**
 
@@ -320,6 +324,138 @@ today the app is quietly ignoring a relationship the data model has.
 
 ---
 
+## Phase 5 — Scheduling & sharing
+
+### P5-1 · A doctor's inbox can never show a request to accept — **Ship**
+
+`POST /api/appointments` sets `CONFIRMED` when the body carries a `doctor_id`
+and `PENDING` when it does not (`server/app/api/appointments.py:206`), and
+`GET /appointments/doctor/my-appointments` selects on
+`Appointment.doctor_id == doctor.id`. The two rules cannot both be satisfied:
+an appointment that is `PENDING` has no doctor to route it to, and one that
+reaches a doctor is already accepted on the patient's behalf. So "Waiting on
+you" — and Accept and Reject with it — is dead code in practice.
+
+The screen still ships with that section, because the doctor *can* move a
+booking back to `PENDING` and because the state exists in the API. But nothing
+a patient does in either client produces one. Fix is a backend change (see
+`BACKEND_NOTES.md` §10): book as `PENDING` and let the doctor confirm, behind a
+flag so `front/` keeps its current behaviour. Do not paper over it client-side
+by hiding the section — a doctor being told they have nothing to approve when
+approval was never possible is the honest state.
+
+### P5-2 · Two patients can take the same slot — **Ship** (backend)
+
+`is_slot_available` selects every appointment for that doctor starting before
+the requested end and inspects exactly one of them, via `.first()` with no
+`ORDER BY` (`appointments.py:174`). With one appointment on file the check
+works, which is why it looks correct in a demo. With two it inspects an
+arbitrary row — in practice the oldest — and returns "free".
+
+Reproduced against local Postgres on 2026-08-07: a doctor with one past
+appointment took three bookings into the same 10:00–10:30 slot, all `200`.
+Rows deleted afterwards.
+
+The mobile client does not *expose* the hole — `available-slots` runs a correct
+per-slot check, the booking sheet only offers chips it returned, and 10:00 was
+correctly absent from the diary while triple-booked. So this bites two patients
+tapping the same chip at the same moment, and anyone posting directly. Client
+cannot fix it: the check has to be atomic and it has to be on the server.
+`BACKEND_NOTES.md` §11.
+
+### P5-3 · A doctor cannot correct their own registration — **Papercut**
+
+`POST /api/doctors` 400s with "Doctor profile already exists" and there is no
+`PUT`. A doctor who fat-fingers their NMC number or picks the wrong specialty
+has to ask an operator with `psql`. The registration sheet says so rather than
+pretending otherwise, but it is a gap, not a policy: unlike `verified`, none of
+these three fields is a privilege. `BACKEND_NOTES.md` §12.
+
+### P5-4 · `PUT /availability/{id}` accepts hours that `POST` refuses — **Watch**
+
+Creating a window checks that it does not overlap an existing one and that the
+end is after the start. Editing one checks neither, and cannot change
+`day_of_week` at all. So the app has to delete-and-recreate to move a window to
+another day, and an edit can produce exactly the overlap the create path exists
+to prevent. The client validates end-after-start itself before sending; it does
+**not** re-run the overlap check, because doing so client-side would be a second
+source of truth for a rule the server owns. `BACKEND_NOTES.md` §13.
+
+### P5-5 · Appointments are wall-clock, with no zone anywhere — **Watch**
+
+`appointment_date` goes out and comes back as a naive local datetime, and an
+aware one is a `500` (pinned by a live test: `AppointmentCreate`'s validator
+compares against a naive `datetime.now()`). Everything downstream inherits it —
+the calendar invite `calendar_invite.dart` writes is deliberately floating time,
+no `Z` and no `TZID`, so importing it keeps the wall clock rather than shifting
+it. That is right *today*, because it matches what the server means. It stops
+being right the moment a doctor and a patient are in different zones, and the
+`.ics` file is the part that will be wrong silently, in someone else's calendar
+app. Blocked on `BACKEND_NOTES.md` §7 (the server cannot learn a client's
+timezone).
+
+### P5-6 · Nothing reminds anyone an appointment is coming — **Deferred**
+
+`Appointment.reminder_sent` exists, is read by the client, and is never set by
+anything. No local notification is scheduled either. Deferred to the phase that
+does notifications (`BACKEND_NOTES.md` §8), not because it is small — an
+appointment nobody is reminded of is most of the value of booking it — but
+because a half-measure now (local notifications only, silently lost on reinstall)
+would look like the feature and not be it.
+
+### P5-7 · The QR codes point at a web app the build has to be told about — **Ship**
+
+Both QRs — the emergency ID and every share link — encode a URL built from
+`Env.webBaseUrl`, which comes from `--dart-define=WEB_BASE_URL` and defaults to
+`http://localhost:3000`. A release build made without that define ships QR codes
+that resolve to nothing on the scanner's phone, and the failure is invisible
+until somebody actually scans one. There is no client-side check possible: the
+app cannot tell a wrong-but-reachable host from a right one. Two ways out, both
+for later — put `frontend_url` on `/health` and read it at runtime
+(`BACKEND_NOTES.md` §14), or make the define required at build time. Until then
+it is a release-checklist item, and it is written down here because a checklist
+item nobody wrote down is not one.
+
+### P5-8 · Sharing, calling and the calendar have never run on a device — **Ship**
+
+`share_plus`, `url_launcher` (`tel:` for an emergency contact) and the `.ics`
+hand-off all work in tests against a fake, and all three are exactly the kind of
+thing that only fails on real hardware: an Android intent filter that is not
+there, an iOS `LSApplicationQueriesSchemes` entry that is missing, a share sheet
+that needs an origin rect on iPad. Same shape as P4-2 and it does not close it —
+that entry is about phase 4's screens, this one is about three platform channels
+phase 5 introduced.
+
+### P5-9 · An expired share link is a row the server will not clean up — **Watch**
+
+`GET /api/share` returns expired links with nothing marking them, so the client
+decides (`ShareLink.hasExpired`, unparseable dates counted as expired — a link
+we cannot read the expiry of must not be shown as live). `DELETE /api/share/{token}`
+is offered as "Remove" for those rows, so a user can tidy up. Nothing does it
+automatically, and a user who never opens the screen accumulates dead rows
+forever. Cosmetic today; it is here because "the list gets slower the longer you
+use the app" is the kind of thing that is only cheap to fix early.
+
+### P5-10 · The doctor directory is the only way to find a doctor — **Papercut**
+
+`GET /api/doctors/doctors` returns every verified doctor, unpaginated and
+unsearchable, and the booking sheet renders the lot in a dropdown. Fine at three
+doctors, unusable at three hundred. Same family as P4-3; listed separately
+because this list has no cap at all, where vitals at least has one.
+
+### P5-11 · P1-2 was worked around, not fixed
+
+Phase 5's checkpoint needed a doctor account, so I made one the way
+`ADD_DOCTOR_GUIDE.txt` says to: two `psql` updates against **local** Postgres.
+The end-to-end loop is genuinely proven — unverified doctor invisible in the
+directory, visible after verify, window created, slot booked, slot gone from the
+diary, booking in the inbox, `/status` 404 for the doctor and
+`/status/by-doctor` 200. P1-2 stays open: the app still cannot reach the role on
+its own, and nobody without database access can see any of the three doctor
+screens.
+
+---
+
 ## Closed
 
 | Entry | Closed by | What it was |
@@ -346,3 +482,13 @@ defect a user would have hit, not just a refactor:
 | Half a blood pressure could not be completed | `vital_form_sheet.dart` | The sheet only rebuilt when "is anything filled in" flipped, so typing the *second* number left the save button dead and "A blood pressure needs both numbers" on screen, with no way forward but clearing the field. |
 | An empty reading counted as data on the dashboard | `vitals_controller.dart` | `POST /api/vitals` stores a row with every measurement null and the web app's form will send one. `latestVitalProvider` returned it, so the dashboard showed no tiles *and* hid the "Record a reading" prompt — a patient with an empty row saw nothing at all. |
 | A save in flight could be swiped away | `form_sheet.dart` | Four minutes of OCR and two LLM calls would land on a sheet that had gone, leaving a report on the server and not in the list until the next refresh. |
+
+**Found and fixed inside phase 5:**
+
+| What | Where | Why it mattered |
+|---|---|---|
+| Booking a new appointment opened in "Somewhere else" mode | `book_appointment_sheet.dart` | The mode was chosen with `existing?.doctorId == null`, which is also true when `existing` is null. Every fresh booking landed on the free-text path, so a patient could not pick a listed doctor at all — the entire slot-picking flow was unreachable from the FAB. |
+| A status chip could push a card's title off the screen | six `Row`s across four screens, now `CardHeader` / `SectionHeading` | A `Row` measures a non-flex child against unbounded width, so `Expanded(title) + StatusChip` does not clip the chip, it overflows the card. "Awaiting confirmation" at 2× text overflowed by 241px. Found by the new `phase5_text_scale_test.dart`, which is the only reason it was found at all. |
+| The availability editor could not be corrected | `availability_screen.dart` — `AvailabilityController.update` | Named `update`, which illegally overrode `AsyncNotifier.update`. It compiled as an override and did the wrong thing. Renamed to `edit`, with the reason in a comment so it does not come back. |
+| A past slot was offered for booking | `appointments_controller.dart` — `bookableSlots` | The server's "is this in the future" check runs against `datetime.now()` in the *server's* zone — UTC on Render, 5h45m behind Kathmandu. A Nepali patient booking this morning would be offered slots the server would then refuse. Filtered client-side against the phone's clock. |
+| Clearing an emergency field left it unchanged | `emergency_repository.dart` | `PUT /api/emergency/profile` reads `null` as "leave alone", so a form that sends null for an emptied box makes an allergy that no longer applies impossible to remove. The repository now always sends all three fields, empty string included. Pinned by a test. |

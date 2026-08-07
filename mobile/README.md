@@ -21,10 +21,16 @@ flutter run                                        # local dev backend
 flutter run --dart-define=API_BASE_URL=https://…   # any other backend
 ```
 
-`API_BASE_URL` is the only build-time setting. Left unset it picks the local
-dev server, and on Android that means `http://10.0.2.2:3001` — the emulator's
-alias for your machine, not `127.0.0.1`, which on a phone means the phone. See
-`lib/core/config/env.dart`.
+Two build-time settings, both `--dart-define`, both with local defaults:
+
+| Define | Default | What it is |
+|---|---|---|
+| `API_BASE_URL` | local dev server | On Android that means `http://10.0.2.2:3001` — the emulator's alias for your machine, not `127.0.0.1`, which on a phone means the phone. |
+| `WEB_BASE_URL` | `http://localhost:3000` | Where the **web** app lives. Every QR code the app draws — the emergency ID and every share link — points at it, because the people scanning them do not have this app. |
+
+See `lib/core/config/env.dart`. **A release build must set `WEB_BASE_URL`.**
+Nothing detects a wrong one; the QR codes just resolve to nothing on somebody
+else's phone (`KNOWN_ISSUES.md` P5-7).
 
 Cleartext HTTP to those addresses is permitted in **debug builds only**, via
 `android/app/src/debug/res/xml/network_security_config.xml`. A release build
@@ -71,14 +77,15 @@ Generated files are committed, so a fresh clone builds without running it.
 ```
 lib/
   core/
-    config/     Env — the API base URL, and nothing else
+    config/     Env — the API base URL and the web app's, nothing else
     network/    ApiClient (bearer, 401, form login), ApiException, ScopedUrl
     session/    who is signed in; restore, sign out, seven-day expiry
     storage/    the keystore wrapper the token lives in
     health/     GET /health, including the caretaker feature flag
     router/     go_router: auth-aware redirect, role-aware shells
     theme/      the design system — the only file with a raw colour in it
-    widgets/    RangeBar, StatusChip, Skeleton, EmptyState, ErrorView
+    widgets/    RangeBar, StatusChip, CardHeader, LinkCard/QrPanel,
+                FormSheet, Skeleton, EmptyState, ErrorView
   features/<feature>/{data,domain,presentation}
   dev/          the design gallery (not part of the app)
 ```
@@ -90,8 +97,12 @@ Two rules that are load-bearing rather than stylistic:
   the *caller's* records. Tested in `test/scoped_url_test.dart`.
 - **Caretaker scope is medicines-only.** Never render vitals, reports,
   documents or the assistant in a caretaker context.
+- **A `Row` does not clip an oversized child, it overflows.** Any header that
+  pairs text with a badge goes through `CardHeader`, which caps the badge at
+  half the line so neither side can run off the screen at large text sizes.
+  Six of these were shipped broken and caught by `phase5_text_scale_test.dart`.
 
-## What works today (end of phase 4)
+## What works today (end of phase 5)
 
 **Account.** Sign in, sign out, register, the two-factor challenge,
 forgot/reset password, session restore across launches, and a 401 anywhere
@@ -118,12 +129,32 @@ are absent with a reason rather than offered and refused.
 **Documents.** Visits with their attachments — add, attach, view, delete.
 Reached from Account, and the bottom bar stays put.
 
-Appointments, chat, the assistant and caretakers are navigable but say plainly
-which phase builds them. There is no mock data anywhere in this app, by design.
+**Appointments.** What is coming up and what already happened, booking either
+with a listed doctor — pick a date, tap a free slot the server offered — or
+somewhere else entirely by typing the name. Reschedule, cancel, delete, and an
+`.ics` invite through the share sheet.
 
-Known gaps are in `KNOWN_ISSUES.md` — the two that matter most today are that a
-dose marked taken does not survive a restart (P4-1) and that no phase 4 screen
-has been run on a device (P4-2).
+**Sharing.** A link to your whole record or to one report, with a window you
+choose, shown as a URL and a QR. Live and expired links are never shown as the
+same thing, and revoking says what it does to whoever is already holding one.
+
+**Emergency ID.** Blood type, allergies, conditions and the people to phone, as
+a card and as a QR a paramedic can scan without this app installed. Each contact
+is one tap to call.
+
+**For doctors.** A separate two-tab shell: the appointment inbox, on the route
+that actually works for a doctor, and a weekly availability editor with slot
+length and a pause switch per window. Plus registration, which explains the two
+steps only an operator can do rather than offering buttons that cannot work.
+
+Timeline, search, the assistant, nearby care and caretakers are not built yet.
+There is no mock data anywhere in this app, by design.
+
+Known gaps are in `KNOWN_ISSUES.md`. The four that matter most today: a doctor's
+inbox can never show a request to accept, because the server confirms bookings
+on their behalf (P5-1); two patients tapping the same slot at the same moment
+both get it (P5-2); a dose marked taken does not survive a restart (P4-1); and
+nothing in this app has been run on a real device since phase 3 (P4-2, P5-8).
 
 ## iOS parity
 

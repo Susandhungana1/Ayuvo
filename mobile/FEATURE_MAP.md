@@ -101,17 +101,18 @@ Status is the plan; **Built** marks what exists in `mobile/lib` today.
 | `/vitals` | **Vitals** tab | **built** (phase 4) |
 | `/reports` | **Reports** tab | **built** (phase 4) |
 | `/documents` | Documents (from Account) | **built** (phase 4, a child route so the bottom bar stays) |
-| `/appointments` | Appointments | port + finish the booking flow |
+| `/appointments` | Appointments (from Account) | **built** (phase 5) |
 | `/timeline` | Timeline | port |
 | `/search` | Search (global) | port |
-| `/emergency` | Emergency ID | port |
-| `/share` | Share links | port |
+| `/emergency` | Emergency ID (from Account) | **built** (phase 5) |
+| `/share` | Sharing (from Account) | **built** (phase 5) |
 | `/nearby` | Nearby care (`flutter_map`) | port |
 | ChatBot widget (global) | AI assistant screen | port |
 | `/settings/caretakers` | Settings → Caretakers | port, flag-gated |
 | `/care/[patientId]` | Caretaker → patient medicines | port, flag-gated |
-| `/doctor/appointments` | Doctor inbox | port (unblocked, see §7.1) |
-| `/doctor/availability` | Availability editor | port (rewrite; current one is broken) |
+| `/doctor/appointments` | Doctor inbox | **built** (phase 5, on `/status/by-doctor` — see §7.1) |
+| `/doctor/availability` | Availability editor | **built** (phase 5, rewritten) |
+| `/doctor` registration | Doctor profile (from Account) | **built** (phase 5, new — the web has no such page) |
 | — | **Settings → Profile** | new (`/api/users/me` has no web page) |
 | — | **Settings → Two-factor** | new (`/api/auth/2fa/*` has no web page) |
 | — | Sign-in **2FA challenge** | new (web login can't complete a 2FA account) |
@@ -388,6 +389,21 @@ Fields shown: title, status pill, doctor, hospital, date/time, reason, Add to
 Calendar (`lib/ics.ts` → an `.ics` download; Flutter: `add_2_calendar` or an ICS
 share), Cancel. A success modal echoes title, doctor, datetime and the appointment id.
 
+**Built (phase 5)** — `features/appointments/`. Coming up / Earlier, split on the
+phone's clock. The booking sheet has the two paths the API implies: a listed
+doctor (pick doctor → pick a date → tap a slot from `available-slots`) and
+"Somewhere else" (free text plus a date-time picker), and it does not pretend
+the second one books anybody. Past slots are filtered client-side because the
+server's future check runs in the server's zone, 5h45m behind Kathmandu.
+`add_2_calendar` was not used: `calendar_invite.dart` writes the `.ics` itself
+and hands it to the share sheet, in floating time so it matches what
+`appointment_date` actually means — see `KNOWN_ISSUES.md` P5-5.
+
+**Correction to the note above:** "must not overlap a `PENDING`/`CONFIRMED`
+appointment" is what the code intends and not what it does. `is_slot_available`
+inspects one arbitrary earlier row, so a doctor with two appointments can be
+double-booked. Proven locally; `BACKEND_NOTES.md` §11.
+
 ---
 
 ## 5. Doctor screens
@@ -402,6 +418,15 @@ share), Cancel. A success modal echoes title, doctor, datetime and the appointme
   `PENDING`, Mark Completed on `CONFIRMED`.
 - **Use `PATCH /api/appointments/{id}/status/by-doctor?status=`** — the plain
   `/status` route authorises the patient and 404s for a doctor. See §7.1.
+
+**Built (phase 5)** — `features/doctors/presentation/doctor_inbox_screen.dart`,
+on `/status/by-doctor`, verified against a local doctor account (the plain
+`/status` returns 404, `/status/by-doctor` returns 200).
+
+**But "Waiting on you" can never fill.** A booking that carries a `doctor_id` is
+created `CONFIRMED`, and `my-appointments` only returns bookings that carry one —
+so `PENDING` is unreachable, and Accept/Reject with it. The same is true of the
+web page's `PENDING` branch. `KNOWN_ISSUES.md` P5-1, `BACKEND_NOTES.md` §10.
 
 ### 5.2 Availability — `front/app/doctor/availability/page.tsx`
 - `GET /api/doctors/availability` — my own windows (role-gated).
@@ -418,6 +443,14 @@ share), Cancel. A success modal echoes title, doctor, datetime and the appointme
 - `slot_duration_minutes` is never exposed by the web editor even though it drives
   slot generation. Expose it in Flutter.
 
+**Built (phase 5)** — `availability_screen.dart`. Seven day cards; each window
+shows its hours, its slot length and a pause switch on `is_available` (paused
+reads "Paused — nobody can book this", because an invisible boolean is how a
+doctor loses a week). `slot_duration_minutes` is exposed, as planned. Moving a
+window to another weekday deletes and recreates, because `PUT` cannot change
+`day_of_week` — and `PUT` skips the overlap check `POST` runs, so an edit can
+make a diary the create path would have refused. `BACKEND_NOTES.md` §13.
+
 ### 5.3 Doctor profile
 - `POST /api/doctors/doctors` `{nmid, degree, specialty?}` and
   `GET /api/doctors/doctors/me` exist and have **no web UI at all** —
@@ -426,6 +459,14 @@ share), Cancel. A success modal echoes title, doctor, datetime and the appointme
 - Flutter should at least render `GET /doctors/me` and offer `POST` when it 404s, so
   a doctor can self-serve step 4. Steps 2 and 5 stay operator actions — role
   elevation and verification must not be self-service.
+
+**Built (phase 5)** — `doctor_profile_screen.dart`, exactly that: renders the
+registration when it exists, offers the form when `GET /doctors/me` 404s, and
+says plainly that role elevation and verification are somebody else's to do
+rather than showing a button that cannot work. Unverified registrations say so;
+`GET /doctors/doctors` hides them from patients, which was confirmed live.
+Once registered the three fields cannot be corrected — there is no `PUT`.
+`BACKEND_NOTES.md` §12.
 
 ---
 
@@ -560,7 +601,8 @@ must not grow one** — offer edit, but not clearing, until the API supports it.
 | `POST|GET /api/reports`, `GET /{id}`, `DELETE /{id}`, `/{id}/file`, `/{id}/ai-report`, `/{id}/lab-analysis`, `POST /{id}/explain`, `/trends` | ✓ Reports |
 | `GET /api/reports/ai-summary` | ✓ Home "AI health summary" card (new use of an existing endpoint) |
 | `POST|GET /api/appointments`, `PUT|DELETE /{id}`, `/available-slots/{doctor_id}` | ✓ Appointments |
-| `PATCH /api/appointments/{id}/status` | ✓ Doctor inbox — **blocked, §7.1** |
+| `PATCH /api/appointments/{id}/status` | ✓ Appointments — the *patient's* route (cancel) |
+| `PATCH /api/appointments/{id}/status/by-doctor` | ✓ Doctor inbox (§7.1) |
 | `GET /api/appointments/doctor/my-appointments` | ✓ Doctor inbox |
 | `POST|GET /api/doctors/doctors`, `GET /doctors/me` | ✓ Doctor profile (new) |
 | `POST|GET /api/doctors/availability`, `GET /availability/{doctor_id}`, `PUT|DELETE /availability/{id}` | ✓ Availability editor + booking |
@@ -613,6 +655,15 @@ Renders a printable ID card (blood type, allergies, conditions, contacts) and a 
 because a paramedic scanning it will not have the app. The app renders the QR
 (`qr_flutter`), copies the link, and can share it.
 
+**Built (phase 5)** — `features/emergency/`. The card leads with blood type,
+allergies are chips rather than prose, and each contact offers a `tel:` tap. An
+empty profile says the QR would show a stranger a blank page instead of showing
+a QR that does. The repository always sends all three profile fields, empty
+string included, so clearing an allergy actually clears it — the `null` rule
+above is the whole reason, and there is a test named after it. The percent
+encoding matters: `testUser.id` is `#hos014`, and interpolated raw everything
+after the `#` becomes a fragment the server never sees.
+
 ### 9.4 Share links — `front/app/share/page.tsx`
 `GET /api/reports` + `GET /api/share`; `POST /api/share/{report_id}` and
 `POST /api/share/qr-code` (both accept `?expires_hours=`, default 24);
@@ -620,6 +671,13 @@ because a paramedic scanning it will not have the app. The app renders the QR
 is the sentinel `"__ALL_REPORTS__"` for a whole-record link. Shows the resulting
 `{web origin}/share/{token}` or `/share/qr-code/{token}` URL as text + QR + copy.
 `POST /qr-code` 400s with "Nothing to share" when the account is empty.
+
+**Built (phase 5)** — `features/sharing/`. A whole-record card that names what a
+stranger would actually see ("every report, every medicine, and your emergency
+details"), a per-report list, and the live/expired split the API will not do for
+you. Revoking says what it does to whoever is already holding the link. Expired
+rows get Remove rather than Revoke, and no Show — a QR for a dead link is worse
+than no QR.
 
 ### 9.5 Nearby care — `front/components/NearbyMap.tsx`
 No MediStore endpoint. Device geolocation (fallback Kathmandu 27.7172, 85.324),

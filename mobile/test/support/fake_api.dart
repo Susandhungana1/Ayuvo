@@ -154,6 +154,107 @@ Map<String, Object?> reportRow({
       'document_id': documentId,
     };
 
+/// `appointment_date` is naive **local** wall clock, unlike everything above —
+/// the server stores what the client sent and hands it straight back.
+Map<String, Object?> appointmentRow({
+  String id = 'apt-1',
+  String title = 'Cardiology follow-up',
+  String? doctorId = 'doc-uuid-1',
+  String? doctorName = 'Dr Asha Rai',
+  String? hospital,
+  String appointmentDate = '2030-08-12T09:00:00',
+  int durationMinutes = 30,
+  String status = 'CONFIRMED',
+  String? reason = 'Six-month review',
+}) =>
+    {
+      'id': id,
+      'title': title,
+      'description': null,
+      'doctor_id': doctorId,
+      'doctor_name': doctorName,
+      'hospital': hospital,
+      'appointment_date': appointmentDate,
+      'duration_minutes': durationMinutes,
+      'status': status,
+      'reason': reason,
+      'reminder_sent': false,
+    };
+
+Map<String, Object?> doctorRow({
+  String id = 'doc-uuid-1',
+  String name = 'Dr Asha Rai',
+  String nmid = 'NMC-12345',
+  String degree = 'MBBS',
+  String? specialty = 'Cardiology',
+  bool verified = true,
+  String userId = '#doc002',
+}) =>
+    {
+      'id': id,
+      'nmid': nmid,
+      'degree': degree,
+      'specialty': specialty,
+      'verified': verified,
+      'user_id': userId,
+      'name': name,
+    };
+
+/// Times arrive as `"09:00:00"` — a clock with no date.
+Map<String, Object?> availabilityRow({
+  String id = 'avail-1',
+  String dayOfWeek = 'MONDAY',
+  String startTime = '09:00:00',
+  String endTime = '12:00:00',
+  int slotDurationMinutes = 30,
+  bool isAvailable = true,
+}) =>
+    {
+      'id': id,
+      'day_of_week': dayOfWeek,
+      'start_time': startTime,
+      'end_time': endTime,
+      'slot_duration_minutes': slotDurationMinutes,
+      'is_available': isAvailable,
+    };
+
+/// `expires_at` is naive UTC, and `report_id` is the `__ALL_REPORTS__`
+/// sentinel for a whole-record link.
+Map<String, Object?> shareLinkRow({
+  String token = 'tok-1',
+  String reportId = 'rep-1',
+  String expiresAt = '2030-08-08T09:14:22',
+}) =>
+    {'token': token, 'report_id': reportId, 'expires_at': expiresAt};
+
+Map<String, Object?> emergencyProfileRow({
+  String? bloodType = 'O+',
+  String? allergies = 'Penicillin',
+  String? conditions = 'Type 2 diabetes',
+  List<Map<String, Object?>> contacts = const [],
+}) =>
+    {
+      'blood_type': bloodType,
+      'allergies': allergies,
+      'medical_conditions': conditions,
+      'emergency_contacts': contacts,
+    };
+
+Map<String, Object?> emergencyContactRow({
+  String id = 'con-1',
+  String name = 'Sita Bahadur',
+  String relationship = 'Wife',
+  String phone = '+977 98 1234 5678',
+  String? email,
+}) =>
+    {
+      'id': id,
+      'name': name,
+      'relationship': relationship,
+      'phone': phone,
+      'email': email,
+    };
+
 Map<String, Object?> documentRow({
   String id = 'doc-1',
   String hospital = 'Bir Hospital',

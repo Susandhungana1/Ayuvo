@@ -1,7 +1,10 @@
-/// The account tab: who you are signed in as, and the way out.
+/// The account tab: who you are signed in as, everything that is not a
+/// bottom-bar tab, and the way out.
 ///
-/// Settings proper (profile, two-factor, theme, language, caretakers) is a
-/// phase 6 screen; what is here now is the part the foundation actually owns.
+/// Two versions of the same screen, because the two roles own different
+/// things. A doctor has no medicines, no reports and no emergency card — the
+/// router keeps them out of `/more/*` entirely — so showing them a Documents
+/// tile that redirects home would be worse than not showing it.
 library;
 
 import 'package:flutter/material.dart';
@@ -17,9 +20,43 @@ import '../../../core/widgets/range_bar.dart';
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
 
+  static const _patientDestinations = <_Destination>[
+    _Destination(
+      route: Routes.appointments,
+      icon: Icons.event_outlined,
+      title: 'Appointments',
+      subtitle: 'Book a doctor, or keep a reminder of one you booked yourself',
+    ),
+    _Destination(
+      route: Routes.documents,
+      icon: Icons.folder_outlined,
+      title: 'Documents',
+      subtitle: 'Visits, and the files each one produced',
+    ),
+    _Destination(
+      route: Routes.share,
+      icon: Icons.ios_share,
+      title: 'Sharing',
+      subtitle: 'Links that let a doctor read your record without an account',
+    ),
+    _Destination(
+      route: Routes.emergency,
+      icon: Icons.emergency_outlined,
+      title: 'Emergency ID',
+      subtitle: 'Blood type, allergies and who to call, behind a QR',
+    ),
+  ];
+
+  static const _doctorDestinations = <_Destination>[
+    _Destination(
+      route: Routes.doctorProfile,
+      icon: Icons.badge_outlined,
+      title: 'Doctor profile',
+      subtitle: 'Your NMC registration and verification status',
+    ),
+  ];
+
   static const _comingLater = <(String, String)>[
-    ('Appointments and doctors', 'Phase 5'),
-    ('Share links and emergency ID', 'Phase 5'),
     ('Timeline, search and the assistant', 'Phase 6'),
     ('Caretakers, reminders and Nepali', 'Phase 6'),
   ];
@@ -55,6 +92,8 @@ class MoreScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
+    final isDoctor = user?.isDoctor ?? false;
+    final destinations = isDoctor ? _doctorDestinations : _patientDestinations;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Account')),
@@ -78,7 +117,7 @@ class MoreScreen extends ConsumerWidget {
                     Text(user.email, style: context.texts.bodyMedium),
                     const SizedBox(height: AppSpacing.md),
                     StatusChip(
-                      label: user.isDoctor ? 'Doctor account' : 'Patient',
+                      label: isDoctor ? 'Doctor account' : 'Patient',
                       status: RangeStatus.ok,
                     ),
                   ],
@@ -87,42 +126,50 @@ class MoreScreen extends ConsumerWidget {
             ),
           const SizedBox(height: AppSpacing.xl),
           Card(
-            child: ListTile(
-              leading: const Icon(Icons.folder_outlined),
-              title: const Text('Documents'),
-              subtitle: const Text('Visits, and the files each one produced'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go(Routes.documents),
+            child: Column(
+              children: [
+                for (final destination in destinations)
+                  ListTile(
+                    key: ValueKey(destination.route),
+                    leading: Icon(destination.icon),
+                    title: Text(destination.title),
+                    subtitle: Text(destination.subtitle),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.go(destination.route),
+                  ),
+              ],
             ),
           ),
-          const SizedBox(height: AppSpacing.xl),
-          Text('Coming next', style: context.texts.titleLarge),
-          const SizedBox(height: AppSpacing.md),
-          Card(
-            child: Padding(
-              padding: AppSpacing.card,
-              child: Column(
-                children: [
-                  for (final (label, phase) in _comingLater)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              label,
-                              style: context.texts.bodyMedium,
+          if (!isDoctor) ...[
+            const SizedBox(height: AppSpacing.xl),
+            Text('Coming next', style: context.texts.titleLarge),
+            const SizedBox(height: AppSpacing.md),
+            Card(
+              child: Padding(
+                padding: AppSpacing.card,
+                child: Column(
+                  children: [
+                    for (final (label, phase) in _comingLater)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                label,
+                                style: context.texts.bodyMedium,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Text(phase, style: context.texts.bodySmall),
-                        ],
+                            const SizedBox(width: AppSpacing.sm),
+                            Text(phase, style: context.texts.bodySmall),
+                          ],
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
           const SizedBox(height: AppSpacing.xl),
           OutlinedButton.icon(
             onPressed: () => _confirmSignOut(context, ref),
@@ -133,4 +180,21 @@ class MoreScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _Destination {
+  const _Destination({
+    required this.route,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String route;
+  final IconData icon;
+  final String title;
+
+  /// What is behind the tile, in one line. A list of nouns makes people tap
+  /// each one to find out; a sentence does not.
+  final String subtitle;
 }

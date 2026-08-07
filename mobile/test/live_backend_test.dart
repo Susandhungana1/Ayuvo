@@ -16,11 +16,17 @@ import 'package:medistore/core/network/api_client.dart';
 import 'package:medistore/core/network/api_exception.dart';
 import 'package:medistore/core/network/scoped_url.dart';
 import 'package:medistore/core/time/medi_time.dart';
+import 'package:medistore/features/appointments/data/appointment_repository.dart';
+import 'package:medistore/features/appointments/domain/appointment.dart';
 import 'package:medistore/features/auth/data/auth_repository.dart';
+import 'package:medistore/features/doctors/data/doctor_repository.dart';
 import 'package:medistore/features/documents/data/document_repository.dart';
+import 'package:medistore/features/emergency/data/emergency_repository.dart';
 import 'package:medistore/features/medicines/data/medicine_repository.dart';
 import 'package:medistore/features/medicines/domain/dose_times.dart';
 import 'package:medistore/features/reports/data/report_repository.dart';
+import 'package:medistore/features/sharing/data/share_repository.dart';
+import 'package:medistore/features/sharing/domain/share_link.dart';
 import 'package:medistore/features/vitals/data/vital_repository.dart';
 
 const _enabled = bool.fromEnvironment('LIVE_BACKEND');
@@ -361,6 +367,281 @@ void main() {
 
       await documents.remove(created.id);
       expect(await documents.list(), isEmpty);
+    });
+  });
+
+  group('phase 5, signed in', () {
+    // Same one-registration-per-group rule as phase 4, for the same reason.
+    // This account stays a PATIENT: role elevation is a `psql` update an
+    // operator runs, so the doctor-only routes are exercised here by the
+    // 403 they are supposed to give everyone else.
+    late ApiClient scoped;
+    late AppointmentRepository appointments;
+    late DoctorRepository doctors;
+    late EmergencyRepository emergency;
+    late ShareRepository share;
+
+    setUpAll(() async {
+      scoped = ApiClient(baseUrl: _baseUrl);
+      final session = await AuthRepository(scoped).register(
+        name: 'Phase Five',
+        email: 'phase5+${DateTime.now().microsecondsSinceEpoch}@example.com',
+        password: password,
+      );
+      scoped.useToken(session.token);
+      appointments = AppointmentRepository(scoped);
+      doctors = DoctorRepository(scoped);
+      emergency = EmergencyRepository(scoped);
+      share = ShareRepository(scoped);
+    });
+
+    tearDownAll(() => scoped.close());
+
+    /// Comfortably ahead of `datetime.now()` in any zone the server might be
+    /// running in, so the future check is never the thing under test.
+    DateTime nextWeekAt(int hour, [int minute = 0]) {
+      final day = DateTime.now().add(const Duration(days: 7));
+      return DateTime(day.year, day.month, day.day, hour, minute);
+    }
+
+    Future<void> clearAppointments() async {
+      for (final appointment in await appointments.list()) {
+        await appointments.remove(appointment.id);
+      }
+    }
+
+    tearDown(clearAppointments);
+
+    test('appointment_date goes out naive local and comes back unshifted',
+        () async {
+      // The single most load-bearing claim in this feature. The column holds
+      // exactly what the client sent, so 9:15 must read back as 9:15 — not as
+      // 9:15 UTC re-expressed in the device's zone.
+      final when = nextWeekAt(9, 15);
+      final created = await appointments.create(
+        title: 'Live check',
+        startsAt: when,
+        durationMinutes: 30,
+      );
+
+      expect(created.appointmentDate, isNot(endsWith('Z')));
+      expect(created.appointmentDate, isNot(contains('+')));
+      expect(created.startsAt, when);
+
+      final listed = await appointments.list();
+      expect(
+        listed.firstWhere((a) => a.id == created.id).startsAt,
+        when,
+      );
+    });
+
+    test('an appointment without a doctor_id stays PENDING', () async {
+      final created = await appointments.create(
+        title: 'Dentist',
+        startsAt: nextWeekAt(11),
+        durationMinutes: 45,
+        doctorName: 'Dr Someone Else',
+        hospital: 'Norvic',
+        reason: 'Cleaning',
+      );
+
+      expect(created.state, AppointmentStatus.pending);
+      expect(created.doctorId, isNull);
+      expect(created.doctorName, 'Dr Someone Else');
+      expect(created.durationMinutes, 45);
+    });
+
+    test('an aware datetime 500s the server, which is why we never send one',
+        () async {
+      // `AppointmentCreate.appointment_must_be_future` compares against a naive
+      // `datetime.now()`, and comparing that to an aware value raises inside
+      // Pydantic — a 500, not a 422. Sent raw, because no repository in this
+      // app can produce it.
+      await expectLater(
+        scoped.post<Map<String, dynamic>>(
+          '/api/appointments',
+          body: {
+            'title': 'Aware',
+            'appointment_date':
+                nextWeekAt(9).toUtc().toIso8601String(), // ends in Z
+            'duration_minutes': 30,
+          },
+        ),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.kind, 'kind', ApiErrorKind.server),
+        ),
+      );
+    });
+
+    test('a past appointment is refused with a readable reason', () async {
+      await expectLater(
+        appointments.create(
+          title: 'Yesterday',
+          startsAt: DateTime.now().subtract(const Duration(days: 1)),
+          durationMinutes: 30,
+        ),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.kind, 'kind', ApiErrorKind.invalid)
+              .having((e) => e.message, 'message', contains('future')),
+        ),
+      );
+    });
+
+    test('cancel keeps the row; delete removes it', () async {
+      final created = await appointments.create(
+        title: 'Review',
+        startsAt: nextWeekAt(14),
+        durationMinutes: 30,
+      );
+
+      final cancelled = await appointments.setStatus(
+        created.id,
+        AppointmentStatus.cancelled,
+      );
+      expect(cancelled.state, AppointmentStatus.cancelled);
+      expect((await appointments.list()).map((a) => a.id), contains(created.id));
+
+      await appointments.remove(created.id);
+      expect(
+        (await appointments.list()).map((a) => a.id),
+        isNot(contains(created.id)),
+      );
+    });
+
+    test('a full replace rewrites every field the body carries', () async {
+      final created = await appointments.create(
+        title: 'Review',
+        startsAt: nextWeekAt(14),
+        durationMinutes: 30,
+        reason: 'Six months',
+      );
+
+      final moved = await appointments.replace(
+        created.id,
+        title: 'Review, moved',
+        startsAt: nextWeekAt(16),
+        durationMinutes: 60,
+      );
+
+      expect(moved.id, created.id);
+      expect(moved.title, 'Review, moved');
+      expect(moved.startsAt, nextWeekAt(16));
+      expect(moved.durationMinutes, 60);
+      // Omitted from the body, so the server nulled it. This is the reason the
+      // sheet always sends the whole appointment.
+      expect(moved.reason, isNull);
+    });
+
+    test('slots for a doctor that does not exist is a 404, not an empty list',
+        () async {
+      await expectLater(
+        appointments.slots(doctorId: 'not-a-doctor', day: nextWeekAt(0)),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.kind, 'kind', ApiErrorKind.notFound),
+        ),
+      );
+    });
+
+    test('the doctor directory is readable by a patient and lists only '
+        'verified doctors', () async {
+      for (final doctor in await doctors.list()) {
+        expect(doctor.verified, isTrue);
+      }
+    });
+
+    test('the doctor-only routes are closed to a patient', () async {
+      // Not 404 and not an empty list — the role gate answers 403, and the
+      // screens read that as "this is a patient account".
+      for (final call in [doctors.me, doctors.mine]) {
+        await expectLater(
+          call(),
+          throwsA(
+            isA<ApiException>()
+                .having((e) => e.kind, 'kind', ApiErrorKind.forbidden),
+          ),
+        );
+      }
+    });
+
+    test('emergency: null leaves a field alone, an empty string clears it',
+        () async {
+      await emergency.save(
+        bloodType: 'O+',
+        allergies: 'Penicillin',
+        medicalConditions: 'Type 2 diabetes',
+      );
+
+      final cleared = await emergency.save(
+        bloodType: 'O+',
+        allergies: '',
+        medicalConditions: 'Type 2 diabetes',
+      );
+      expect(cleared.allergies, isEmpty);
+      expect(cleared.bloodType, 'O+');
+
+      // The same call with nulls would have left "Penicillin" in place —
+      // proved by reading it back rather than trusting the response body.
+      expect((await emergency.profile()).allergies, isEmpty);
+    });
+
+    test('an emergency contact round-trips and can be removed', () async {
+      final contact = await emergency.addContact(
+        name: 'Sita Bahadur',
+        relationship: 'Wife',
+        phone: '+977 98 1234 5678',
+      );
+      expect(contact.name, 'Sita Bahadur');
+      expect(contact.email, isNull);
+
+      final withContact = await emergency.profile();
+      expect(withContact.contacts.map((c) => c.id), contains(contact.id));
+
+      await emergency.removeContact(contact.id);
+      expect((await emergency.profile()).contacts, isEmpty);
+    });
+
+    test('a whole-record link carries the __ALL_REPORTS__ sentinel and can be '
+        'revoked', () async {
+      // The account has an emergency profile by now, so there is something to
+      // share; on a genuinely empty one this route answers 400.
+      await emergency.save(
+        bloodType: 'O+',
+        allergies: '',
+        medicalConditions: '',
+      );
+
+      final grant = await share.shareEverything(window: ShareWindow.hour);
+      expect(grant.token, isNotEmpty);
+
+      final link = (await share.list())
+          .firstWhere((l) => l.token == grant.token);
+      expect(link.isWholeRecord, isTrue);
+      expect(link.reportId, ShareLink.wholeRecord);
+      expect(link.hasExpired(), isFalse);
+      // One hour, not the 24-hour default.
+      expect(
+        link.expires!.difference(DateTime.now()).inMinutes,
+        lessThanOrEqualTo(60),
+      );
+
+      await share.revoke(grant.token);
+      expect(
+        (await share.list()).map((l) => l.token),
+        isNot(contains(grant.token)),
+      );
+    });
+
+    test('sharing a report that is not yours is a 404', () async {
+      await expectLater(
+        share.shareReport('not-a-report'),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.kind, 'kind', ApiErrorKind.notFound),
+        ),
+      );
     });
   });
 }

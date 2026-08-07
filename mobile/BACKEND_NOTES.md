@@ -292,6 +292,164 @@ return today; push `/api/timeline`'s slice into SQL.
 
 ---
 
+## 10. A booking made with a doctor is confirmed on that doctor's behalf
+
+`create_appointment` (`app/api/appointments.py:206`):
+
+```python
+status = AppointmentStatus.CONFIRMED if appt_data.doctor_id else AppointmentStatus.PENDING
+```
+
+and `GET /appointments/doctor/my-appointments` selects on
+`Appointment.doctor_id == doctor.id`. Together those two lines make `PENDING`
+unreachable in any inbox: an appointment that is pending has no doctor to show
+it to, and one that has a doctor is already accepted. `AppointmentStatus.PENDING`
+exists, the `/status/by-doctor` route that phase 5 shipped can set it, and the
+mobile inbox renders a "Waiting on you" section for it — but nothing a patient
+does in either client can put an appointment there.
+
+That also means a doctor's diary fills up without their consent. Anyone who can
+see a free slot can take it.
+
+**Proposal.** A `DOCTOR_CONFIRMS_BOOKINGS` env flag, default `false`. When true,
+`create_appointment` sets `PENDING` regardless of `doctor_id`; the doctor accepts
+or rejects through the route that already exists. Surface the flag on `/health`
+next to `caretaker`.
+
+- **Blast radius:** none while the flag is off — the response shape, the status
+  codes and the default behaviour are byte-identical to today.
+- **Migration:** none. `PENDING` is already in the enum and already stored.
+- **`front/` affected:** only if the flag is turned on, and then only for the
+  better. `front/app/doctor/appointments/page.tsx` already renders a `PENDING`
+  badge and already shows Accept and Reject for it, and since the §1 fix it
+  calls `/status/by-doctor`, so those buttons work. Today that whole branch is
+  unreachable for the same reason the mobile one is. Turning the flag on is what
+  makes the web app's existing doctor UI do something.
+- **Priority: high.** It is the difference between a booking system and a
+  calendar that strangers can write to. It is also the one item on this list
+  where the client code on **both** ends is already written and waiting.
+
+---
+
+## 11. Two patients can be given the same slot
+
+`is_slot_available` (`app/api/appointments.py:174`) selects every appointment for
+the doctor starting before the requested end, then inspects exactly one of them:
+
+```python
+overlapping = db.exec(
+    select(Appointment).where(and_(
+        Appointment.doctor_id == doctor_id,
+        Appointment.appointment_date < appt_end,
+    ))
+).first()          # <-- no ORDER BY, no loop
+```
+
+With one appointment on file the check is correct, which is why it looks right in
+a demo. With two it inspects an arbitrary row — in practice the oldest, whose end
+is long past — concludes the slot is free, and lets the booking through.
+
+Reproduced against local Postgres on 2026-08-07: a doctor with one past
+appointment accepted three bookings into the same 10:00–10:30 slot, all `200`.
+The rows were deleted afterwards. Interestingly `available-slots` gets this right
+— it runs a correct per-slot check, and 10:00 was absent from the diary the whole
+time it was triple-booked. So the two code paths disagree with each other.
+
+**Proposal.** Replace `.first()` with a bounded overlap predicate evaluated in
+SQL — `appointment_date < appt_end AND appointment_date + duration > appt_start`,
+status in (`PENDING`, `CONFIRMED`) — and take a row lock (or a unique partial
+index on `(doctor_id, appointment_date)` for confirmed rows) so two concurrent
+requests cannot both pass. Same 400, same message, same shape.
+
+- **Blast radius:** a request that is *currently* wrongly accepted starts
+  returning the 400 it should always have returned. No shape or status change.
+- **Migration:** only if the index route is chosen.
+- **`front/` affected:** no — it already handles this 400.
+- **Priority: high.** A client cannot fix this: the check has to be atomic and
+  it has to be server-side.
+
+---
+
+## 12. A doctor cannot correct their own registration
+
+`POST /api/doctors` refuses with `400 "Doctor profile already exists"` and there
+is no `PUT` or `PATCH`. `nmid`, `degree` and `specialty` are therefore
+write-once; a typo needs an operator with `psql`. This is different in kind from
+`verified`, which *should* need an operator.
+
+**Proposal.** `PUT /api/doctors/me` accepting the same three fields, doctor-role
+only, scoped to the caller's own row. Editing any of them resets
+`verified = false` — a practitioner who changes the number they were verified
+against has to be verified again, which keeps the policy intact while making the
+data correctable.
+
+- **Blast radius:** new route only.
+- **Migration:** none.
+- **`front/` affected:** no.
+- **Priority: medium.** It is one screen away in the mobile app and the screen
+  currently has to explain why it cannot help.
+
+---
+
+## 13. `PUT /availability/{id}` skips the overlap check that `POST` runs
+
+`POST /api/availability` refuses a window that overlaps an existing one on the
+same day (`app/api/availability.py:161`). `PUT /availability/{id}` applies
+whatever it is given (`:262`), so an edit can produce exactly the overlap the
+create path exists to prevent. It also cannot change `day_of_week` — moving
+Monday's hours to Tuesday means delete and recreate, and the delete is the
+destructive half of a pair with no transaction around it.
+
+Neither path checks that the end is after the start: `AvailabilityCreate` has no
+validator, and `17:00–09:00` is accepted by both. `slot_generation` then yields
+nothing for that window, so the doctor is silently unbookable on that day. The
+mobile client validates end-after-start in the form before sending; nothing on
+the server does.
+
+**Proposal.** Run the overlap check in the update path, add an end-after-start
+validator to both schemas, and let the update body carry `day_of_week`. The
+first two make the routes stricter, which is the direction that can break a
+caller — but the only bodies they would newly reject are ones that corrupt or
+silently disable the diary.
+
+- **Blast radius:** a `200` becomes a `400` for a body that should never have
+  been accepted. A real, if narrow, behaviour change — flagged, not hidden.
+- **Migration:** none. Existing bad rows are left alone; the check is on writes.
+- **`front/` affected:** the web availability editor posts and updates the same
+  fields, so a user who *today* saves an overlapping edit would start seeing an
+  error. It has an error path for the create case already, since `POST` can
+  return this 400 now.
+- **Priority: medium.**
+
+---
+
+## 14. `/health` does not say where the web app lives
+
+The mobile app builds every QR code — the emergency ID card and every share link
+— against `--dart-define=WEB_BASE_URL`, defaulting to `http://localhost:3000`. A
+release built without that define ships QR codes that resolve to nothing, and
+nothing detects it until somebody scans one. The server already knows the answer:
+`FRONTEND_URL` is in its own environment, and it puts that host into password
+reset emails.
+
+**Proposal.** Add `"frontend_url"` to the `GET /health` payload, alongside
+`caretaker` and `email`. The client reads it once at startup and prefers it over
+the compiled-in default.
+
+- **Blast radius:** one added key on an unauthenticated endpoint. Additive; no
+  existing key changes.
+- **Is it PII?** No — it is a public hostname the app is already sending users
+  to, not user data. It reveals which frontend a deployment serves, which the
+  CORS allowlist already reveals.
+- **Migration:** none.
+- **`front/` affected:** no.
+- **Priority: low**, and it is a convenience: making the dart-define mandatory
+  at build time solves the same problem with no backend change at all. Recorded
+  because the runtime answer is strictly more robust — it survives the frontend
+  moving.
+
+---
+
 ## Rejected — recorded so the decision stays visible
 
 | Idea | Why not |
