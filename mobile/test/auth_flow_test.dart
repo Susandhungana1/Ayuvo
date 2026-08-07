@@ -12,20 +12,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medistore/app.dart';
 import 'package:medistore/core/health/health_providers.dart';
-import 'package:medistore/core/health/health_status.dart';
 import 'package:medistore/core/network/api_exception.dart';
+import 'package:medistore/core/network/network_providers.dart';
 import 'package:medistore/core/session/session_controller.dart';
 import 'package:medistore/core/storage/session_store.dart';
 import 'package:medistore/features/auth/data/auth_repository.dart';
+import 'package:medistore/features/shell/presentation/more_screen.dart';
 
+import 'support/fake_api.dart';
 import 'support/fakes.dart';
-
-const _health = HealthStatus(
-  status: 'ok',
-  database: true,
-  email: 'brevo',
-  caretaker: true,
-);
+import 'support/harness.dart';
 
 Future<FakeAuthRepository> pumpApp(
   WidgetTester tester, {
@@ -33,12 +29,24 @@ Future<FakeAuthRepository> pumpApp(
   FakeAuthRepository? repository,
 }) async {
   final repo = repository ?? FakeAuthRepository();
+  // The dashboard behind the sign-in screen fetches as soon as it mounts, so
+  // even an auth test needs a backend. An empty one is the honest default: a
+  // brand-new account has no medicines and no readings.
+  final api = FakeApi()
+    ..json('GET /api/medicines', {'medicines': const []})
+    ..json('GET /api/vitals', {'vitals': const []});
+
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         sessionStoreProvider.overrideWithValue(InMemorySessionStore(stored)),
         authRepositoryProvider.overrideWithValue(repo),
-        healthProvider.overrideWith((ref) async => _health),
+        healthProvider.overrideWith((ref) async => testHealth),
+        apiClientProvider.overrideWith((ref) {
+          final client = api.client();
+          ref.onDispose(client.close);
+          return client;
+        }),
       ],
       child: const MediStoreApp(),
     ),
@@ -46,10 +54,7 @@ Future<FakeAuthRepository> pumpApp(
   // Read the keystore, resolve the session, let the router redirect, then let
   // the page transition finish — until it does, go_router wraps the incoming
   // route in an IgnorePointer and every tap silently misses.
-  await tester.pump();
-  await tester.pump();
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 500));
+  await settle(tester);
   return repo;
 }
 
@@ -122,8 +127,10 @@ void main() {
 
     expect(find.text('Hello, Ram'), findsOneWidget);
     expect(find.text('Medicines'), findsOneWidget, reason: 'the bottom bar');
-    expect(find.textContaining('127.0.0.1:3001'), findsOneWidget);
-    expect(find.text('Caretakers on'), findsOneWidget);
+    // The dashboard loaded from the (empty) backend rather than sitting on a
+    // skeleton: "Get started" renders only once both lists have arrived.
+    expect(find.text('Get started'), findsOneWidget);
+    expect(find.text('Nothing scheduled'), findsOneWidget);
   });
 
   testWidgets('a 2FA account is asked for a code, then let in', (tester) async {
@@ -146,9 +153,7 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField).first, '123456');
     await tester.tap(find.widgetWithText(FilledButton, 'Verify'));
-    await tester.pump();
-    await tester.pump();
-    await tester.pump();
+    await settle(tester);
 
     expect(find.text('Hello, Ram'), findsOneWidget);
     // Password sent twice, code only on the second attempt — the server needs
@@ -190,14 +195,15 @@ void main() {
   testWidgets('signing out returns to sign-in', (tester) async {
     await pumpApp(tester, stored: storedSession());
 
-    await tester.tap(find.text('Account'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    await openTab(tester, 'Account');
     expect(find.text('ram@example.com'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Sign out'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    // Sign out sits below the fold now that Documents lives on this screen.
+    await tapAfterScroll(
+      tester,
+      find.widgetWithText(OutlinedButton, 'Sign out'),
+      scrollable: scrollableIn(MoreScreen),
+    );
 
     await tester.tap(
       find.descendant(

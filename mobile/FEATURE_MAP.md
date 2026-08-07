@@ -91,14 +91,16 @@ server stamp it) and `report_date` (naive, date-only is fine).
 
 ## 2. Screen inventory
 
+Status is the plan; **Built** marks what exists in `mobile/lib` today.
+
 | Web route | Flutter destination | Status |
 |---|---|---|
-| `/` (signed in) | **Home** tab | port |
-| `/dashboard` | folded into Home + Settings | port (restructured) |
-| `/medicines` | **Medicines** tab | port |
-| `/vitals` | **Vitals** tab | port |
-| `/reports` | **Reports** tab | port |
-| `/documents` | Documents (from Home/More) | port |
+| `/` (signed in) | **Home** tab | **built** (phase 4) |
+| `/dashboard` | folded into Home + Settings | **built** (phase 4, restructured — no link grid; the bottom bar does that job) |
+| `/medicines` | **Medicines** tab | **built** (phase 4) |
+| `/vitals` | **Vitals** tab | **built** (phase 4) |
+| `/reports` | **Reports** tab | **built** (phase 4) |
+| `/documents` | Documents (from Account) | **built** (phase 4, a child route so the bottom bar stays) |
 | `/appointments` | Appointments | port + finish the booking flow |
 | `/timeline` | Timeline | port |
 | `/search` | Search (global) | port |
@@ -346,8 +348,9 @@ their upload date, not the visit date — render them with a plain-date formatte
 don't imply more precision than exists.
 
 `GET /api/documents` used to 500 on every call (`BACKEND_NOTES.md §0`); it works now,
-but that means **no client has ever exercised this list**, so treat its behaviour on
-real data as unproven until phase 4.
+and phase 4 is the first client to exercise it. Create, list, attach-list and the
+cascading delete all round-trip against local Postgres in `test/live_backend_test.dart`,
+including `checkup_date` sent as a plain `YYYY-MM-DD` and read back unshifted.
 
 `file_type` is always written as `"OTHER"` by the upload path even though the
 `FileType` enum has four values.

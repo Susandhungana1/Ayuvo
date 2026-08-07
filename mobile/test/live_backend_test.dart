@@ -15,7 +15,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medistore/core/network/api_client.dart';
 import 'package:medistore/core/network/api_exception.dart';
 import 'package:medistore/core/network/scoped_url.dart';
+import 'package:medistore/core/time/medi_time.dart';
 import 'package:medistore/features/auth/data/auth_repository.dart';
+import 'package:medistore/features/documents/data/document_repository.dart';
+import 'package:medistore/features/medicines/data/medicine_repository.dart';
+import 'package:medistore/features/medicines/domain/dose_times.dart';
+import 'package:medistore/features/reports/data/report_repository.dart';
+import 'package:medistore/features/vitals/data/vital_repository.dart';
 
 const _enabled = bool.fromEnvironment('LIVE_BACKEND');
 const _baseUrl = String.fromEnvironment(
@@ -133,5 +139,228 @@ void main() {
 
     expect(json['medicines'], isA<List<dynamic>>());
     expect(session.user.id, contains('#'));
+  });
+
+  // ── Phase 4 ───────────────────────────────────────────────────────────────
+  //
+  // These are the claims a fake adapter cannot make. Everything here is a
+  // round trip: what the client writes, read back off the wire, decoded by the
+  // same code the screens use.
+
+  group('phase 4, signed in', () {
+    // One account for the whole group, and its own client. `/api/auth/register`
+    // is rate-limited, so a fresh registration per test 429s after the third —
+    // which is the server behaving correctly, not a failure worth chasing.
+    // Each test therefore cleans up what it creates and asserts on ids rather
+    // than on an empty list.
+    late ApiClient scoped;
+    late MedicineRepository medicines;
+    late VitalRepository vitals;
+    late ReportRepository reports;
+    late DocumentRepository documents;
+
+    setUpAll(() async {
+      scoped = ApiClient(baseUrl: _baseUrl);
+      final session = await AuthRepository(scoped).register(
+        name: 'Phase Four',
+        email: 'phase4+${DateTime.now().microsecondsSinceEpoch}@example.com',
+        password: password,
+      );
+      scoped.useToken(session.token);
+      medicines = MedicineRepository(scoped);
+      vitals = VitalRepository(scoped);
+      reports = ReportRepository(scoped);
+      documents = DocumentRepository(scoped);
+    });
+
+    tearDownAll(() => scoped.close());
+
+    /// Retires every medicine on the account, so the next test starts from a
+    /// list it can reason about.
+    Future<void> clearMedicines() async {
+      for (final medicine in await medicines.list()) {
+        await medicines.remove(medicine.id);
+      }
+    }
+
+    tearDown(clearMedicines);
+
+    test('taking_times survives the round trip as a string-wrapped array',
+        () async {
+      final created = await medicines.create(
+        name: 'Amlodipine',
+        dosage: '5 mg',
+        frequency: 'Once daily',
+        startDate: '2026-01-01',
+        times: ['20:00', '08:00'],
+      );
+
+      // Sorted on the way out, and the column holds the encoded string rather
+      // than a JSON array — the shape the web app also writes.
+      expect(created.takingTimes, '["08:00","20:00"]');
+      expect(created.times, ['08:00', '20:00']);
+      expect(DoseTimes.decode(created.takingTimes), ['08:00', '20:00']);
+
+      final listed = await medicines.list();
+      expect(listed.single.times, ['08:00', '20:00']);
+    });
+
+    test('"[]" clears the dose times where null would leave them alone',
+        () async {
+      final created = await medicines.create(
+        name: 'Amlodipine',
+        dosage: '5 mg',
+        frequency: 'Once daily',
+        startDate: '2026-01-01',
+        times: ['08:00'],
+      );
+
+      // null means "leave unchanged" server-side, so the notes-only update
+      // must not disturb the schedule.
+      final renamed = await medicines.update(created.id, notes: 'With food');
+      expect(renamed.times, ['08:00']);
+
+      final cleared = await medicines.update(created.id, times: const []);
+      expect(cleared.times, isEmpty);
+    });
+
+    test('delete is soft and restore brings back the same row', () async {
+      final created = await medicines.create(
+        name: 'Amoxicillin',
+        dosage: '500 mg',
+        frequency: 'Three times daily',
+        startDate: '2026-01-01',
+      );
+
+      await medicines.remove(created.id);
+      expect(await medicines.list(), isEmpty);
+
+      final restored = await medicines.restore(created.id);
+      // The same id, not a copy: this is what makes the snackbar's Undo honest.
+      expect(restored.id, created.id);
+      expect((await medicines.list()).single.id, created.id);
+    });
+
+    test('recording a dose is accepted with no patient_id and no undo',
+        () async {
+      final created = await medicines.create(
+        name: 'Amlodipine',
+        dosage: '5 mg',
+        frequency: 'Once daily',
+        startDate: '2026-01-01',
+        times: ['08:00'],
+      );
+
+      final intake =
+          await medicines.recordIntake(created.id, scheduledTime: '08:00');
+      expect(intake.status, 'taken');
+      expect(intake.medicineId, created.id);
+
+      final log = await medicines.intakeLog();
+      expect(log.map((entry) => entry.medicineId), contains(created.id));
+    });
+
+    test('the audit trail carries a Z-marked timestamp and the actor',
+        () async {
+      final created = await medicines.create(
+        name: 'Amlodipine',
+        dosage: '5 mg',
+        frequency: 'Once daily',
+        startDate: '2026-01-01',
+      );
+
+      final entries = await medicines.audit();
+      final entry = entries.firstWhere((e) => e.medicineId == created.id);
+      expect(entry.action, 'create');
+      expect(entry.byCaretaker, isFalse);
+      // One of only three timestamps in the API that arrives with a marker.
+      expect(entry.createdAt, contains('Z'));
+      expect(entry.created, isNotNull);
+    });
+
+    test('interactions answers with a count of what it actually checked',
+        () async {
+      await medicines.create(
+        name: 'Warfarin',
+        dosage: '5 mg',
+        frequency: 'Once daily',
+        startDate: '2026-01-01',
+      );
+      await medicines.create(
+        name: 'Aspirin',
+        dosage: '75 mg',
+        frequency: 'Once daily',
+        startDate: '2026-01-01',
+      );
+
+      final check = await medicines.interactions();
+      expect(check.checkedCount, 2);
+      expect(check.interactions, isA<List<Object?>>());
+    });
+
+    test('measured_at goes out naive UTC and comes back the same instant',
+        () async {
+      // The whole timestamp trap in one assertion. The column has no zone, so
+      // a client that sends local time or reads the value as local is wrong by
+      // its own offset — 5h45m here — and nothing in the response says so.
+      final moment = DateTime.utc(2026, 8, 6, 3, 15);
+      final created = await vitals.create(
+        systolic: 118,
+        diastolic: 76,
+        measuredAt: moment,
+      );
+
+      expect(MediTime.parseUtc(created.measuredAt), moment.toLocal());
+      expect(created.measuredAt, isNot(endsWith('Z')));
+
+      final listed = await vitals.list();
+      final readBack = listed.firstWhere((row) => row.id == created.id);
+      expect(MediTime.parseUtc(readBack.measuredAt), moment.toLocal());
+
+      await vitals.remove(created.id);
+    });
+
+    test('a vitals row with every measurement null is accepted, and empty',
+        () async {
+      // Which is why the form guards it client-side and `latestVitalProvider`
+      // skips it: the server will store a row that says nothing.
+      final created = await vitals.create(notes: 'Nothing measured');
+      expect(created.isEmpty, isTrue);
+
+      await vitals.remove(created.id);
+    });
+
+    test('the vitals page cap is real: 201 is refused', () async {
+      // `list` clamps to 200 for this reason. Going round it should 422.
+      await expectLater(
+        scoped.get<Map<String, dynamic>>('/api/vitals?limit=201'),
+        throwsA(isA<ApiException>()
+            .having((e) => e.statusCode, 'statusCode', 422)),
+      );
+    });
+
+    test('reports and trends are empty for a new account, not an error',
+        () async {
+      expect(await reports.list(), isEmpty);
+      expect(await reports.trends(), isEmpty);
+    });
+
+    test('a visit round-trips, and deleting it takes its files with it',
+        () async {
+      final created = await documents.create(
+        hospital: 'Bir Hospital',
+        department: 'Cardiology',
+        visitedOn: DateTime(2026, 5, 2),
+      );
+      expect(created.hospital, 'Bir Hospital');
+      // checkup_date is a plain date in meaning; reading it as a datetime and
+      // converting would move it a day for anyone west of UTC.
+      expect(MediTime.parseDate(created.checkupDate), DateTime(2026, 5, 2));
+
+      expect(await documents.files(created.id), isEmpty);
+
+      await documents.remove(created.id);
+      expect(await documents.list(), isEmpty);
+    });
   });
 }

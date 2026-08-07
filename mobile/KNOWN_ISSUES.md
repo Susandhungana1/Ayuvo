@@ -215,6 +215,134 @@ the real dashboard. Listed here so it cannot quietly survive into a release.
 
 ---
 
+## Phase 4 — Core patient features
+
+Five bugs were found *and fixed* in this phase and are in **Closed** below.
+What phase 4 found and left standing:
+
+### P4-1 · A dose marked taken un-ticks itself when the app restarts — **Ship**
+
+`POST /api/medicines/{id}/intake` writes to `medicine_intake` and there is no
+route that reads it back *per dose* — `GET /intake/log` returns a flat history
+with no way to ask "was the 08:00 dose taken today". So `_DoseRow._marked` is
+widget state: tick a dose, leave the tab and come back, and the Taken button is
+offered again. Tapping it twice writes two rows, which the log will happily
+show. The row says the mark is local rather than implying otherwise, but that
+is a caption, not a fix. Needs either a query parameter on the log route or a
+client-side reconciliation of today's log against today's schedule — the
+second is doable without touching `server/` and is the phase 6 job when
+reminders arrive. Backend option in `BACKEND_NOTES.md`.
+
+### P4-2 · No emulator pass was run for any phase 4 screen — **Ship**
+
+Every screen in this phase is verified by widget tests against a scripted
+backend and by 17 live tests against local Postgres, and by nothing on a
+device. That leaves untested: the camera and photo-library pickers (both new
+permissions), `Printing.sharePdf`'s share sheet, `file_picker`'s document
+picker, real scroll performance on a long report list, and whether the fl_chart
+tooltip is reachable with a thumb. Everything in P1.5-2 and P1.5-3 — 2.0× text
+and dark mode — is still owed for these screens too; only the dashboard has a
+text-scaling test.
+
+### P4-3 · Nothing is paginated except vitals, and vitals is capped — **Ship**
+
+`GET /api/vitals` takes `limit`/`offset` and 422s above 200, so the app asks
+for 200 and a patient with more readings than that silently sees only the
+newest 200 — the chart's "N readings" line will disagree with reality. Medicines,
+reports and documents have no paging at all: the client gets every row every
+time. This is fine for a demo account and wrong for a real one. `BACKEND_NOTES.md`
+§9; nothing to do before phase 7.
+
+### P4-4 · The reports list downloads every report's full OCR text — **Ship**
+
+`GET /api/reports` returns `extracted_text` *and* `ai_report_text` in full for
+every row (`BACKEND_NOTES.md` §3). The list screen uses neither — it needs the
+summary and the file name — but a patient with twenty scanned reports pays for
+all of it on mobile data before the first card draws. The client cannot fix
+this; a `?fields=` or a slimmer list schema is a phase 7 proposal.
+
+### P4-5 · The whole file is held in memory to show it — **Watch**
+
+Report files and attachments are auth-gated routes, so `Image.network` 401s and
+every binary goes through `fileBytesProvider` as a `Uint8List`. A 10 MB scan is
+10 MB of RAM while it is on screen, plus two minutes after (the keep-alive that
+stops a re-download when flipping between the image and its lab values). The
+server enforces a 10 MB upload cap so the worst case is bounded, and no page
+holds more than one file at a time. Streaming to a temp file would be the fix
+if this ever bites.
+
+### P4-6 · Caretaker scope covers medicines and nothing else — **Watch (phase 6)**
+
+`resolve_medicine_scope` is the one authorisation chokepoint and it guards
+`/api/medicines*` only. Vitals, reports and documents have no `patient_id` at
+all, so a caretaker in phase 6 will be able to manage someone's prescriptions
+and see none of their readings or scans. The client is built for it — the
+medicine providers are already a family keyed by patient id, and the vitals and
+reports providers deliberately are not — but phase 6 has to decide whether that
+asymmetry is the product or a gap to propose closing in phase 7.
+
+### P4-7 · The web app labels blood sugar mmol/L and stores mg/dL — **Papercut**
+
+`front/app/vitals/page.tsx` prints "mmol/L" on its summary strip while its own
+form and its own analyser treat the number as mg/dL — a 5.5 typed as mmol/L
+reads as critically low. The mobile form says mg/dL on the field, which is the
+real unit and the only place a user can be warned, so the phone is right and
+the browser is wrong about the same stored value. Fixing `front/` is allowed
+and was out of scope here; it is a one-word change in one file.
+
+### P4-8 · The reference ranges reproduce the web's clinical oddities — **Watch**
+
+`vital_ranges.dart` is a branch-for-branch port, including the two places the
+web is odd: the upper blood-pressure branches use `||` where the lower ones use
+`&&` (so 135/95 reads Stage 1, not Stage 2), and the temperature label says the
+normal band starts at 36.1 while the analyser's branch is `< 36.0`. Both are
+pinned by tests with the reason in the code. Reproduced deliberately — a patient
+comparing phone and browser must see the same word — but they are wrong in both
+clients, and the moment `front/` is corrected these tests must be changed with
+it, not after.
+
+### P4-9 · The digital-report parser flags cells by substring — **Papercut**
+
+`_isAbnormal` asks whether a cell contains "low", "high", "above"… so a
+urinalysis whose colour is "Yellow" and a recommendation that says "Follow-up"
+both come out red. Carried from `front/components/DigitizedReport.tsx` and
+pinned by a test so it is a known cost rather than a surprise. A word-boundary
+match would fix it in both clients; doing it in only one would make the same
+report look different in each.
+
+### P4-10 · Two backend fields are not exposed anywhere in the app — **Watch**
+
+`MedicalReport.documentId` links a report to the visit it came from and nothing
+in the UI shows the link or offers to set it; `DocumentFile.fileType` is always
+`"OTHER"` because the upload path hardcodes it despite the enum having four
+values. Both are read and decoded, so wiring them up later costs nothing — but
+today the app is quietly ignoring a relationship the data model has.
+
+---
+
 ## Closed
 
-Nothing yet. Entries land here with the commit that fixed them.
+| Entry | Closed by | What it was |
+|---|---|---|
+| P1.5-5 | phase 4 | The chart palette is now drawn against real data by `VitalTrendChart`, band and series steps included. |
+| P3-10 | phase 4 | The Home "Connection" card is gone; `home_screen.dart` is the real dashboard. |
+
+**P3-4 is not closed.** The pump sequences are now one shared `settle()` in
+`test/support/harness.dart` instead of being hand-written per test, so there is
+a single place to tune them — but they are still fixed durations, not waits on
+a condition, which is what the entry actually asks for. Phase 4 also made it
+worse before making it better: `settle` had to grow to two one-second frames
+because a departing FAB sits over a snackbar's action and eats the tap until
+both its exit and its move animation finish. That is exactly the kind of
+wall-clock guess the entry warns about.
+
+**Found and fixed inside phase 4** — recorded here because each was a real
+defect a user would have hit, not just a refactor:
+
+| What | Where | Why it mattered |
+|---|---|---|
+| Every button had an infinite minimum width | `app_theme.dart` — `Size.fromHeight` sets `minWidth` to infinity | Not just "buttons are full width": a filled or outlined button inside a `Row` **crashed the screen**, because an infinite minimum width cannot be satisfied where the parent is horizontally unbounded. It took the Documents card down the moment a visit was expanded. Now a real touch-target minimum; the four places that want full width already ask for it. |
+| The vitals chart asserted on a zero axis interval | `vital_trend_chart.dart` | `measured_at` defaults to `utcnow()` server-side, so two readings saved in the same second share an x, the axis span is 0, and fl_chart's assertion took the whole Vitals tab down. |
+| Half a blood pressure could not be completed | `vital_form_sheet.dart` | The sheet only rebuilt when "is anything filled in" flipped, so typing the *second* number left the save button dead and "A blood pressure needs both numbers" on screen, with no way forward but clearing the field. |
+| An empty reading counted as data on the dashboard | `vitals_controller.dart` | `POST /api/vitals` stores a row with every measurement null and the web app's form will send one. `latestVitalProvider` returned it, so the dashboard showed no tiles *and* hid the "Record a reading" prompt — a patient with an empty row saw nothing at all. |
+| A save in flight could be swiped away | `form_sheet.dart` | Four minutes of OCR and two LLM calls would land on a sheet that had gone, leaving a report on the server and not in the list until the next refresh. |

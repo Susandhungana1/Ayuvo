@@ -91,16 +91,39 @@ Two rules that are load-bearing rather than stylistic:
 - **Caretaker scope is medicines-only.** Never render vitals, reports,
   documents or the assistant in a caretaker context.
 
-## What works today (end of phase 3)
+## What works today (end of phase 4)
 
-Sign in, sign out, register, the two-factor challenge, forgot/reset password,
-session restore across launches, and a 401 anywhere ending the session with a
-reason. Home shows the signed-in account and whether the configured backend is
-answering.
+**Account.** Sign in, sign out, register, the two-factor challenge,
+forgot/reset password, session restore across launches, and a 401 anywhere
+ending the session with a reason.
 
-Medicines, vitals, reports, documents, appointments and the rest are navigable
-but say plainly which phase builds them. There is no mock data anywhere in this
-app, by design.
+**Home.** A real dashboard: the next dose with a countdown, today's schedule
+with a Taken button on each row, the latest reading as judged tiles, and a
+"get started" pair that disappears once there is data. Two requests, shared
+with the tabs.
+
+**Medicines.** The list split into current and finished, add and edit with dose
+times, soft delete with a working Undo, the interaction check with its
+disclaimer and its checked-count, the change history and the intake log.
+
+**Vitals.** Record a reading, every metric judged against the same reference
+ranges the web app uses, a trend chart per metric with the normal band drawn
+behind it, and a hard delete that says it is permanent.
+
+**Reports.** Upload a photo or a PDF with real progress, the tracked-value
+strip across reports, lab values, the plain-language explanation on request,
+the formal report and its PDF export, and delete. Actions OCR made impossible
+are absent with a reason rather than offered and refused.
+
+**Documents.** Visits with their attachments — add, attach, view, delete.
+Reached from Account, and the bottom bar stays put.
+
+Appointments, chat, the assistant and caretakers are navigable but say plainly
+which phase builds them. There is no mock data anywhere in this app, by design.
+
+Known gaps are in `KNOWN_ISSUES.md` — the two that matter most today are that a
+dose marked taken does not survive a restart (P4-1) and that no phase 4 screen
+has been run on a device (P4-2).
 
 ## iOS parity
 
@@ -114,7 +137,9 @@ build should check them in order:
 | Keychain storage, `first_unlock_this_device`, no iCloud copy | `lib/core/storage/session_store.dart` | that the token survives a relaunch on iOS |
 | Cupertino page transitions on iOS | `lib/core/theme/app_theme.dart` | how the back-swipe feels with the shell |
 | Display name `MediStore` | `ios/Runner/Info.plist` | the home-screen label |
+| `NSCameraUsageDescription` — photographing a printed report | `ios/Runner/Info.plist` | that the prompt appears and the wording reads sensibly |
+| `NSPhotoLibraryUsageDescription` — choosing an existing scan | `ios/Runner/Info.plist` | the same, plus that `file_picker` reaches iCloud Drive |
+| `Printing.sharePdf` for the formal report | `digital_report_screen.dart` | the iOS share sheet at all — this has never been opened on either platform |
 
-Coming phases add camera (`NSCameraUsageDescription`), photo library and file
-access (`NSPhotoLibraryUsageDescription`), and local notifications — each key
-goes in with the feature that needs it, and gets a row here.
+Local notifications arrive with reminders in phase 6; the key goes in with the
+feature and gets a row here.

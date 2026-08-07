@@ -14,10 +14,14 @@ import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/auth/presentation/sign_in_screen.dart';
+import '../../features/documents/presentation/documents_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/medicines/presentation/medicines_screen.dart';
+import '../../features/reports/presentation/reports_screen.dart';
 import '../../features/shell/presentation/app_shell.dart';
 import '../../features/shell/presentation/more_screen.dart';
 import '../../features/shell/presentation/not_built_yet_screen.dart';
+import '../../features/vitals/presentation/vitals_screen.dart';
 import '../session/session_controller.dart';
 import '../session/session_state.dart';
 import 'routes.dart';
@@ -106,13 +110,7 @@ final _routes = <RouteBase>[
         routes: [
           GoRoute(
             path: Routes.medicines,
-            builder: (context, state) => const NotBuiltYetScreen(
-              title: 'Medicines',
-              icon: Icons.medication_outlined,
-              phase: 'phase 4',
-              summary: 'Your schedule, intake logging, interaction warnings '
-                  'and anything you have retired.',
-            ),
+            builder: (context, state) => const MedicinesScreen(),
           ),
         ],
       ),
@@ -120,13 +118,7 @@ final _routes = <RouteBase>[
         routes: [
           GoRoute(
             path: Routes.vitals,
-            builder: (context, state) => const NotBuiltYetScreen(
-              title: 'Vitals',
-              icon: Icons.monitor_heart_outlined,
-              phase: 'phase 4',
-              summary: 'Readings against their normal range, and how they '
-                  'have moved over time.',
-            ),
+            builder: (context, state) => const VitalsScreen(),
           ),
         ],
       ),
@@ -134,13 +126,7 @@ final _routes = <RouteBase>[
         routes: [
           GoRoute(
             path: Routes.reports,
-            builder: (context, state) => const NotBuiltYetScreen(
-              title: 'Reports',
-              icon: Icons.description_outlined,
-              phase: 'phase 4',
-              summary: 'Uploads, lab analysis, and a plain-language read of '
-                  'what a report says.',
-            ),
+            builder: (context, state) => const ReportsScreen(),
           ),
         ],
       ),
@@ -149,6 +135,13 @@ final _routes = <RouteBase>[
           GoRoute(
             path: Routes.more,
             builder: (context, state) => const MoreScreen(),
+            routes: [
+              GoRoute(
+                // Relative, so it resolves to Routes.documents.
+                path: 'documents',
+                builder: (context, state) => const DocumentsScreen(),
+              ),
+            ],
           ),
         ],
       ),

@@ -335,9 +335,16 @@ abstract final class AppTheme {
         titleTextStyle: text.titleLarge,
       ),
 
+      // The height is the touch target; the width is a minimum, not a demand.
+      // `Size.fromHeight` sets minWidth to infinity, which makes every button
+      // in the app full-width — and *crashes* any button in a Row or another
+      // horizontally unbounded parent, because an infinite minWidth cannot be
+      // satisfied there. A form that wants a full-width button says so with a
+      // `SizedBox(width: double.infinity)` or a stretching Column, which is
+      // what every one of them already does.
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(AppTouch.target),
+          minimumSize: const Size(AppTouch.minTarget, AppTouch.target),
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.sm),
           textStyle: text.labelLarge,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
@@ -346,7 +353,7 @@ abstract final class AppTheme {
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(AppTouch.target),
+          minimumSize: const Size(AppTouch.minTarget, AppTouch.target),
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.sm),
           textStyle: text.labelLarge,
           side: BorderSide(color: scheme.outline),

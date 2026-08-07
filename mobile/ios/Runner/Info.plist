@@ -25,6 +25,13 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<!-- Both strings are shown verbatim in the system prompt, so they say what
+	     the app does with the access and stop there. iOS rejects a build that
+	     uses the camera or the photo library without them. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Take a photo of a report or a prescription to add it to your health record.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose a photo of a report or a prescription to add it to your health record.</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

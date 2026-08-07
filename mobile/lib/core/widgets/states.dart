@@ -113,6 +113,14 @@ class ErrorView extends StatelessWidget {
   }
 }
 
+/// The one-line version of a failure, for a snackbar.
+///
+/// Same translation [ErrorView] does, so a failed delete and a failed load say
+/// the same thing about the same problem.
+abstract final class ErrorText {
+  static String of(Object error) => ApiException.from(error).message;
+}
+
 enum BannerTone { error, notice }
 
 /// An inline message above a form: why the last submit failed, or why the app

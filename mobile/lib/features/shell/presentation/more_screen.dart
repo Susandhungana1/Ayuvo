@@ -6,7 +6,9 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/router/routes.dart';
 import '../../../core/session/session_controller.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
@@ -16,7 +18,6 @@ class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
 
   static const _comingLater = <(String, String)>[
-    ('Documents and attachments', 'Phase 4'),
     ('Appointments and doctors', 'Phase 5'),
     ('Share links and emergency ID', 'Phase 5'),
     ('Timeline, search and the assistant', 'Phase 6'),
@@ -84,6 +85,16 @@ class MoreScreen extends ConsumerWidget {
                 ),
               ),
             ),
+          const SizedBox(height: AppSpacing.xl),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.folder_outlined),
+              title: const Text('Documents'),
+              subtitle: const Text('Visits, and the files each one produced'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go(Routes.documents),
+            ),
+          ),
           const SizedBox(height: AppSpacing.xl),
           Text('Coming next', style: context.texts.titleLarge),
           const SizedBox(height: AppSpacing.md),

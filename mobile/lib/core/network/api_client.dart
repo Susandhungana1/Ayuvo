@@ -116,6 +116,47 @@ class ApiClient {
         ),
       );
 
+  /// Fetches an auth-gated binary — a report file, a document attachment.
+  ///
+  /// These are not public URLs: `Image.network` on one of them sends no bearer
+  /// and gets a 401, which is why every image in this app is bytes we fetched
+  /// ourselves and handed to `Image.memory`.
+  Future<Uint8List> getBytes(String path) => _send<Uint8List>(
+        () => _dio.get<Uint8List>(
+          path,
+          options: Options(
+            responseType: ResponseType.bytes,
+            // The bytes are the payload; a JSON Accept header on a PDF is a lie.
+            headers: {'Accept': '*/*'},
+          ),
+        ),
+      );
+
+  /// Multipart upload with progress.
+  ///
+  /// [receiveTimeout] is an argument because report upload is the slowest call
+  /// in the product — the server runs OCR and then two LLM calls, each with its
+  /// own 60-second timeout, before it answers. The default 30 seconds would
+  /// abandon a request the server is still working on, and the user would have
+  /// no idea their report was in fact saved.
+  Future<T> postMultipart<T>(
+    String path,
+    FormData form, {
+    ProgressCallback? onSendProgress,
+    Duration? receiveTimeout,
+  }) =>
+      _send(
+        () => _dio.post<T>(
+          path,
+          data: form,
+          onSendProgress: onSendProgress,
+          options: Options(
+            receiveTimeout: receiveTimeout,
+            sendTimeout: receiveTimeout,
+          ),
+        ),
+      );
+
   Future<T> _send<T>(Future<Response<T>> Function() request) async {
     try {
       final response = await request();

@@ -18,7 +18,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:medistore/app.dart';
-import 'package:medistore/core/config/env.dart';
 
 /// Pumps until [finder] matches or the clock runs out. `pumpAndSettle` is not
 /// an option: the loading skeleton pulses forever by design, so "no frames
@@ -58,10 +57,16 @@ void main() {
 
     await waitFor(tester, find.text('Hello, Phase'));
 
-    // The connection card is answered by the real server, not a stub.
-    expect(find.textContaining(Env.apiBaseUrl), findsOneWidget);
-    await waitFor(tester, find.text('Answering'));
-    expect(find.text('Database up'), findsOneWidget);
+    // The dashboard is answered by the real server, not a stub. "Get started"
+    // only renders once *both* GET /api/medicines and GET /api/vitals have
+    // returned data, so its presence is the proof that the emulator reached
+    // the backend with the token it had just been issued.
+    await waitFor(tester, find.text('Get started'));
+    expect(find.text('Add a medicine'), findsWidgets);
+    expect(find.text('Record a reading'), findsOneWidget);
+    // A brand-new account has no schedule, and the empty state says so
+    // instead of the screen sitting blank.
+    expect(find.text('Nothing scheduled'), findsOneWidget);
 
     // — Sign out ————————————————————————————————————————————————
     await tester.tap(find.text('Account'));
