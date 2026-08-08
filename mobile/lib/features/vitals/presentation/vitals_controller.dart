@@ -3,6 +3,8 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/cache/cached_list.dart';
+import '../../../core/cache/offline_cache.dart';
 import '../../../core/session/session_controller.dart';
 import '../data/vital_repository.dart';
 import '../domain/vital_sign.dart';
@@ -20,16 +22,38 @@ final vitalsProvider =
 class VitalsController extends AsyncNotifier<List<VitalSign>> {
   VitalRepository get _repository => ref.read(vitalRepositoryProvider);
 
+  bool _alive = true;
+
   @override
   Future<List<VitalSign>> build() async {
     if (ref.watch(currentUserProvider) == null) return const [];
-    return _repository.list(limit: vitalsPageSize);
+
+    _alive = true;
+    ref.onDispose(() => _alive = false);
+
+    return loadWithCache<VitalSign>(
+      cache: ref.watch(offlineCacheProvider),
+      status: ref.read(cacheStatusProvider(CacheKeys.vitals).notifier),
+      name: CacheKeys.vitals,
+      fetch: () => _repository.list(limit: vitalsPageSize),
+      decode: VitalSign.fromJson,
+      encode: (reading) => reading.toJson(),
+      publish: (fresh) => state = AsyncData(fresh),
+      alive: () => _alive,
+    );
   }
 
   Future<void> refresh() async {
     state = await AsyncValue.guard(
       () => _repository.list(limit: vitalsPageSize),
     );
+    if (state.hasValue) {
+      ref.read(cacheStatusProvider(CacheKeys.vitals).notifier).live();
+      await ref.read(offlineCacheProvider).write(
+            CacheKeys.vitals,
+            [for (final reading in state.value!) reading.toJson()],
+          );
+    }
   }
 
   Future<VitalSign> add({

@@ -102,30 +102,35 @@ Status is the plan; **Built** marks what exists in `mobile/lib` today.
 | `/reports` | **Reports** tab | **built** (phase 4) |
 | `/documents` | Documents (from Account) | **built** (phase 4, a child route so the bottom bar stays) |
 | `/appointments` | Appointments (from Account) | **built** (phase 5) |
-| `/timeline` | Timeline | port |
-| `/search` | Search (global) | port |
+| `/timeline` | Timeline | **built** (phase 6) |
+| `/search` | Search (global) | **built** (phase 6, deep-links to the thing itself) |
 | `/emergency` | Emergency ID (from Account) | **built** (phase 5) |
 | `/share` | Sharing (from Account) | **built** (phase 5) |
-| `/nearby` | Nearby care (`flutter_map`) | port |
-| ChatBot widget (global) | AI assistant screen | port |
-| `/settings/caretakers` | Settings → Caretakers | port, flag-gated |
-| `/care/[patientId]` | Caretaker → patient medicines | port, flag-gated |
+| `/nearby` | Nearby care (`flutter_map`) | **built** (phase 6) |
+| ChatBot widget (global) | AI assistant screen | **built** (phase 6, a screen not a bubble) |
+| `/settings/caretakers` | Settings → Caretakers | **built** (phase 6, flag-gated) |
+| `/care/[patientId]` | Caretaker → patient medicines | **built** (phase 6, flag-gated) |
 | `/doctor/appointments` | Doctor inbox | **built** (phase 5, on `/status/by-doctor` — see §7.1) |
 | `/doctor/availability` | Availability editor | **built** (phase 5, rewritten) |
 | `/doctor` registration | Doctor profile (from Account) | **built** (phase 5, new — the web has no such page) |
-| — | **Settings → Profile** | new (`/api/users/me` has no web page) |
-| — | **Settings → Two-factor** | new (`/api/auth/2fa/*` has no web page) |
-| — | Sign-in **2FA challenge** | new (web login can't complete a 2FA account) |
+| — | **Settings → Language, theme, reminders** | **built** (phase 6, new — no web equivalent) |
+| — | **Settings → Profile** | new (`/api/users/me` has no web page) — phase 8 |
+| — | **Settings → Two-factor** | new (`/api/auth/2fa/*` has no web page) — phase 8 |
+| — | Sign-in **2FA challenge** | **built** (phase 3; web login can't complete a 2FA account) |
+| `PeopleICareFor` on `/dashboard` | Home → People I care for | **built** (phase 6, flag-gated, invisible without links) |
 | `/share/[token]` | — | **stays web** (public) |
 | `/share/qr-code/[token]` | — | **stays web** (public) |
 | `/emergency/id/[userId]` | — | **stays web** (public) |
 | `/auth/reset-password` | app gets a "paste your code" screen; page stays | both |
 | `/about` `/contact` `/blog` `/blog/[id]` | — | **stays web** (marketing) |
 
-Proposed bottom navigation (4 + FAB or 5): **Home · Medicines · Vitals · Reports ·
-More**. Everything else (documents, appointments, timeline, search, emergency, share,
-nearby, chat, settings) lives behind More / Settings. Doctors get a two-item shell:
-**Appointments · Availability**.
+Bottom navigation, as built: **Home · Medicines · Vitals · Reports · Account**.
+Everything else lives behind Account, in three groups rather than one list of
+eleven — *your record* (appointments, documents, timeline, search), *help*
+(assistant, nearby, sharing, emergency ID), and *your account* (caretakers, when
+the flag is on; settings). Doctors get a three-item shell: **Appointments ·
+Availability · Account**, and their Account holds the doctor profile and
+settings only.
 
 ---
 
@@ -489,6 +494,16 @@ Renders nothing but a quiet "+ Caring for someone? Enter their code" link when t
 user has no links. Preserve that: the app must not grow a caretaker section for
 people who aren't caretakers.
 
+**Built (phase 6)** — `care/presentation/people_i_care_for.dart`, on Home. Three
+levels of quiet, in order: the flag is off ⇒ the widget renders `SizedBox.shrink()`
+and **no request is made**; the flag is on and there are no links ⇒ one text button;
+there are links ⇒ the section. A failure renders nothing at all rather than an error
+card, because this is a bonus on somebody else's dashboard. `nextDoseLabel` renders
+`next_dose_local` verbatim and appends "(their time)" only when the zones differ,
+comparing conservatively — `DateTime.timeZoneName` is an abbreviation and the server
+sends an IANA id, so the comparison errs towards showing the note. A redundant
+"(their time)" is harmless; a missing one is a wrong time.
+
 ### 6.2 Patient medicines — `front/app/care/[patientId]/page.tsx`
 - `GET /api/care/links?role=caretaker`, matched on `user_id`, to confirm access and
   get the patient's display name.
@@ -502,6 +517,18 @@ people who aren't caretakers.
   offline cache whenever `patientId` is set, so their data does not outlive the link.
   Carry that rule into the Hive/Drift cache.
 - No vitals/reports/documents/chat is rendered **or fetched** here.
+
+**Built (phase 6)** — `care_medicines_screen.dart`, which is deliberately thin: it
+resolves the link, then hands off to the same `MedicinesScreen` a patient uses, with
+`patientId` set. One list implementation, one set of behaviours, no second copy to
+drift. What it adds is the scope: a caution-coloured app bar and a banner that does
+not scroll away, both naming the patient. Access is checked twice on purpose — this
+screen matches the id against the caller's own links so it can name whose list it is
+and refuse to open when the link is gone, and `resolve_medicine_scope` is the one
+that actually decides. Its 403 arrives mid-session through
+`MedicinesScreen.onScopeLost`, which leaves the screen with a message. Nothing on it
+fetches anything but medicines, and `offline_cache.dart` refuses to write a
+patient-scoped entry to disk at all.
 
 ### 6.3 My caretakers — `front/app/settings/caretakers/page.tsx`
 - `POST /api/care/invites` → `{code:"XXXX-XXXX", expires_at(Z)}` — **shown exactly
@@ -521,6 +548,23 @@ Error taxonomy already worked out in `front/lib/care.ts` and worth mirroring
 one-for-one: `SessionExpired` (401), `CareAccessRevoked` (403),
 `CareFeatureOff` (404 on a `/api/care/` path), generic. "Not available on your
 account" is the wrong message for an unreachable API.
+
+**Built (phase 6)** — `caretakers_screen.dart`. The code is held in
+`issuedInviteProvider`, in memory: the server keeps only a SHA-256 hash, so it exists
+there or nowhere. Not secure storage — a 15-minute code does not belong in the
+keystore beside a bearer token — and not on disk. It survives leaving the screen,
+counts down to the second in tabular figures, and drops itself the moment it expires
+*or* a new caretaker appears, because a code that has been redeemed must not still be
+on screen being read aloud. The ticker only runs while a code is showing.
+
+The taxonomy is mirrored in `care_repository.dart` as `CareFailure`, with the 401
+left to `ApiClient` (which ends the session, so no screen has to). §7's own tests
+cover all four: `care_test.dart` asserts 403 → revoked, 404 → featureOff, 400 →
+the server's own words, 500 → an ordinary `ApiException`.
+
+The Account tile is hidden entirely when `/health` says the feature is off, but
+`/more/caretakers` still resolves — reached directly it explains that the server
+needs `CARETAKER_ENABLED=true` rather than showing an empty list.
 
 ---
 
@@ -613,11 +657,11 @@ must not grow one** — offer edit, but not clearing, until the API supports it.
 | `GET /api/emergency/public/{user_id}` | web (QR target) |
 | `GET /api/share`, `POST /{report_id}`, `POST /qr-code`, `DELETE /{token}` | ✓ Share links |
 | `GET /api/share/{token}`, `/qr-code/{token}`, `/{token}/ai-report`, `/{token}/lab-analysis`, `/{token}/explain` | web (public recipients) |
-| `POST /api/care/invites`, `/invites/redeem`, `GET /links`, `PATCH|DELETE /links/{id}` | ✓ Caretaker (flag-gated) |
-| `GET /api/timeline` | ✓ Timeline |
-| `GET /api/search` | ✓ Search |
-| `POST /api/chatbot` | ✓ AI assistant |
-| `GET /api/push/vapid-public-key`, `POST /subscribe`, `/test`, `/unsubscribe` | — browser-only; replaced by local notifications |
+| `POST /api/care/invites`, `/invites/redeem`, `GET /links`, `PATCH|DELETE /links/{id}` | ✓ Caretakers · People I care for — **built, flag-gated, §6** |
+| `GET /api/timeline` | ✓ Timeline — **built, paged at 40, §9.1** |
+| `GET /api/search` | ✓ Search — **built, §9.2**; returns deleted medicines, `BACKEND_NOTES.md` §15 |
+| `POST /api/chatbot` | ✓ Health assistant — **built, §9.6** |
+| `GET /api/push/vapid-public-key`, `POST /subscribe`, `/test`, `/unsubscribe` | — browser-only; **replaced by `flutter_local_notifications`**, which cannot reach a caretaker (`BACKEND_NOTES.md` §8) |
 | `POST /api/push/run-tick` | — operator cron |
 | `GET /health` | ✓ startup flag check |
 
@@ -634,6 +678,17 @@ must not grow one** — offer edit, but not clearing, until the API supports it.
 rail with a per-type icon and colour. Note the server loads **all** rows and paginates
 in Python — keep the page size modest.
 
+**Built (phase 6)** — `features/timeline/`, paged at 40 with "Show older". Two
+decisions worth naming. The titles arrive pre-formatted, so `TimelineEvent.headline`
+strips the server's `"Report: "` prefix: the badge already says the type, and a row
+that says it twice reads as a mistake. And the rail is drawn as a positioned line
+*behind* the card rather than as a stretched Row child — a `Row` with
+`CrossAxisAlignment.stretch` inside a scroll view has no height to stretch to, and
+`IntrinsicHeight` would measure every card twice for a decoration. The four kinds
+take the four validated chart series colours, never the reserved status ones: a
+report is not "good" or "critical". A failed "Show older" leaves the rows already on
+screen alone and reports separately — they are still true.
+
 ### 9.2 Search — `GET /api/search?q=` (min length 1)
 `{query, results:[{type, id, title, snippet?, date?}], total}`;
 `type ∈ report | medicine | document`. Case-insensitive substring match over report
@@ -642,6 +697,20 @@ document hospital/doctor/department/description/location. Snippets are truncated
 200 chars server-side. No pagination, no ranking — results are grouped by kind in the
 order the server scans them. Deep-link each result to its detail screen (the web can
 only manage `/reports?highlight=` and dumps medicine/document hits on the list page).
+
+**Built (phase 6)** — `features/search/`, debounced at 350 ms with a generation
+token so a slow answer to "asp" cannot land on top of the answer to "aspirin". The
+previous results stay on screen at half opacity while the next query runs, because a
+list that blanks on every keystroke is unreadable. Every kind deep-links to the thing
+itself: a report opens `ReportDetailScreen`, a visit opens the Documents list with
+that card already expanded (`DocumentsScreen.highlightId`, added for this), and a
+medicine opens its edit sheet.
+
+**Two traps found here.** The query goes through `ScopedUrl` — not for scoping, but
+because a search for `#hos` interpolated raw truncates at the `#` and silently
+searches for nothing. And `GET /api/search` does **not** filter soft-deleted
+medicines the way it filters documents, so a medicine hit may not be in the list at
+all; tapping one says it was removed and offers Restore. `BACKEND_NOTES.md` §15.
 
 ### 9.3 Emergency ID — `front/app/emergency/page.tsx`
 `GET|PUT /api/emergency/profile`, `POST /api/emergency/contacts`,
@@ -686,12 +755,41 @@ in order), OSM tiles, up to 40 results sorted by haversine distance, pin colours
 red/blue/green, and a Directions link. Flutter: `flutter_map` + `geolocator`, keep the
 "© OpenStreetMap contributors" attribution (ODbL) and the mirror fallback.
 
+**Built (phase 6)** — `features/nearby/`. Overpass goes through its **own** dio with
+no interceptors: it is a third-party origin that must never see a MediStore bearer,
+and a 401 from a busy mirror must never be able to sign anyone out. All three mirrors
+are tried in order, 429 and 504 are treated as "try the next one" rather than as
+errors, and if every one refuses the map still renders with the user's own pin and
+says the data service is busy. Location failure and Overpass failure are separate
+fields for the same reason — a denied permission still gives a usable map centred on
+Kathmandu. Pins carry a letter as well as a colour (H/C/P), because three pin colours
+on a busy map is exactly where a colour-blind reader is left guessing. The
+attribution is required by the ODbL and is not decoration.
+
 ### 9.6 AI assistant — `front/components/ChatBot.tsx`
 `POST /api/chatbot` `{messages:[{role, content}]}` → `{reply}`. Auth required; 500
 when `GROQ_API_KEY` is unset, 502 on an upstream error. The **whole history is resent
 each turn** and nothing is persisted server-side — the app should keep the transcript
 locally and cap what it sends. Voice input via `speech_to_text`. Never render this
 inside a caretaker context.
+
+**Built (phase 6)** — `features/assistant/`, a full screen rather than the web's
+floating bubble: a bubble over a medicine list is a desktop pattern that covers what
+you were reading. Reached from Account only, and never from the caretaker screens.
+
+The transcript lives in a `NotifierProvider` — it survives switching tabs and dies
+with the process. Nothing written to disk, and nothing to delete later. What goes
+back up is capped at 12 turns, because there is no thread id and an unbounded
+transcript grows the request until Groq refuses it on token count and the assistant
+silently stops working. The app's own error bubbles are excluded from that history:
+feeding "Network error" to the model as though it had said it is nonsense.
+
+The two failures are told apart. A 500 carrying "Groq API key not configured" means
+this deployment has no key and retrying cannot help — the composer is replaced by an
+explanation rather than left there to fail again. A 502 means Groq itself refused,
+and Retry is offered on the failed turn (which re-asks without duplicating the
+question). The disclaimer sits above the conversation, not below it, and does not
+dismiss.
 
 ### 9.7 Settings (new screen; the web has no settings page)
 Profile (`GET|PUT /api/users/me` — `{name?, address?, city?, latitude?, longitude?}`;
@@ -700,11 +798,34 @@ ignored by the `if user_data.x:` guards) · Two-factor (§3.4) · Theme (web kee
 `theme` in localStorage with a `prefers-color-scheme` fallback) · Language (`en`/`ne`,
 `lang` in localStorage) · Caretakers (§6.3) · Sign out.
 
+**Built (phase 6), in part** — `features/settings/`: Language, Appearance and Dose
+reminders, plus Caretakers and Sign out reachable from Account. All three settings
+are per-device and stored in a JSON file, not on the server: `PUT /api/users/me` has
+no column for any of them, and a phone in Nepali beside a tablet in English is a
+reasonable thing to want. Profile editing and two-factor setup are **not** here —
+they are account operations, they are phase 8, and mixing "how the app looks" with
+"change my password" makes both harder to find.
+
+The reminders switch is where the notification permission is asked for, because that
+is the moment the user has just said they want reminders. Asking on first launch is
+the prompt everybody refuses.
+
 ### 9.8 Localisation
 `front/lib/i18n.tsx` has exactly **17 keys, all navigation** — every other string in
 the product is hard-coded English. Carrying over "every existing string" therefore
 means: port those 17 `nav.*` keys to ARB, and write `ne` translations for the rest as
 new work. Scope that honestly when phase 6 is planned.
+
+**Built (phase 6), and scoped honestly** — `flutter_localizations` + `gen-l10n`, with
+`lib/l10n/app_en.arb` and `app_ne.arb` checked in beside the generated Dart so the
+analyzer and CI see the same file. The 17 `nav.*` keys are carried over with the
+web's own Nepali wording, and the ARB grew to about 90: the bottom bar, Account,
+Settings and the five phase 6 screens. `untranslated.json` is empty — the two files
+are in step.
+
+Everything else in the product is still an English literal, which is precisely the
+coverage the web has. It is written up as `KNOWN_ISSUES.md` **P6-1**, along with the
+other half of the problem: I wrote the Nepali, and a native speaker has not read it.
 
 ---
 

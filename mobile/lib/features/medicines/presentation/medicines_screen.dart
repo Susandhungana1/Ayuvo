@@ -5,6 +5,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/widgets/skeleton.dart';
@@ -17,19 +18,52 @@ import 'widgets/interaction_banner.dart';
 import 'widgets/medicine_card.dart';
 
 class MedicinesScreen extends ConsumerWidget {
-  const MedicinesScreen({super.key, this.patientId});
+  const MedicinesScreen({
+    super.key,
+    this.patientId,
+    this.title,
+    this.banner,
+    this.onScopeLost,
+  });
 
-  /// Set only when a caretaker is acting for someone else (phase 6). Null is
-  /// the patient's own list.
+  /// Set only when a caretaker is acting for someone else. Null is the
+  /// patient's own list.
   final String? patientId;
+
+  /// Overridden by the caretaker view, which names whose list this is.
+  final String? title;
+
+  /// Sits between the app bar and the list. The caretaker view puts its scope
+  /// banner here so the attribution stays on screen while the list scrolls —
+  /// a column of Remove buttons with no reminder of whose they are is exactly
+  /// the confusion the banner exists to prevent.
+  final Widget? banner;
+
+  /// Called when the server says the care link is gone. Only the caretaker
+  /// view passes this; a patient's own list cannot lose scope.
+  final void Function(Object error)? onScopeLost;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final medicines = ref.watch(medicinesProvider(patientId));
 
+    if (onScopeLost != null) {
+      ref.listen(medicinesProvider(patientId), (_, next) {
+        if (next case AsyncError(:final error)
+            when ApiException.from(error).kind == ApiErrorKind.forbidden) {
+          onScopeLost!(error);
+        }
+      });
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Medicines'),
+        title: Text(title ?? 'Medicines'),
+        // A different colour from the app's own, so a caretaker can never
+        // mistake somebody else's list for their own. `front/` uses amber for
+        // the same reason; this is the theme's caution container.
+        backgroundColor:
+            patientId == null ? null : context.status.cautionContainer,
         actions: [
           IconButton(
             onPressed: () => _openHistory(context),
@@ -45,27 +79,36 @@ class MedicinesScreen extends ConsumerWidget {
               label: const Text('Add'),
             )
           : null,
-      body: RefreshIndicator(
-        onRefresh: () =>
-            ref.read(medicinesProvider(patientId).notifier).refresh(),
-        child: switch (medicines) {
-          AsyncData(:final value) when value.isEmpty => _Empty(
-              onAdd: () => showMedicineSheet(context, patientId: patientId),
+      body: Column(
+        children: [
+          ?banner,
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () =>
+                  ref.read(medicinesProvider(patientId).notifier).refresh(),
+              child: switch (medicines) {
+                AsyncData(:final value) when value.isEmpty => _Empty(
+                    onAdd: () =>
+                        showMedicineSheet(context, patientId: patientId),
+                  ),
+                AsyncData(:final value) =>
+                  _List(medicines: value, patientId: patientId),
+                AsyncError(:final error) => ListView(
+                    padding: AppSpacing.screen,
+                    children: [
+                      ErrorView(
+                        error: error,
+                        onRetry: () => ref
+                            .read(medicinesProvider(patientId).notifier)
+                            .refresh(),
+                      ),
+                    ],
+                  ),
+                _ => const _Loading(),
+              },
             ),
-          AsyncData(:final value) =>
-            _List(medicines: value, patientId: patientId),
-          AsyncError(:final error) => ListView(
-              padding: AppSpacing.screen,
-              children: [
-                ErrorView(
-                  error: error,
-                  onRetry: () =>
-                      ref.read(medicinesProvider(patientId).notifier).refresh(),
-                ),
-              ],
-            ),
-          _ => const _Loading(),
-        },
+          ),
+        ],
       ),
     );
   }

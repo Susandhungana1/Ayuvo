@@ -14,7 +14,9 @@ import 'package:medistore/app.dart';
 import 'package:medistore/core/health/health_providers.dart';
 import 'package:medistore/core/network/api_exception.dart';
 import 'package:medistore/core/network/network_providers.dart';
+import 'package:medistore/core/notifications/reminders.dart';
 import 'package:medistore/core/session/session_controller.dart';
+import 'package:medistore/core/storage/local_store.dart';
 import 'package:medistore/core/storage/session_store.dart';
 import 'package:medistore/features/auth/data/auth_repository.dart';
 import 'package:medistore/features/shell/presentation/more_screen.dart';
@@ -47,6 +49,11 @@ Future<FakeAuthRepository> pumpApp(
         sessionStoreProvider.overrideWithValue(InMemorySessionStore(stored)),
         authRepositoryProvider.overrideWithValue(repo),
         healthProvider.overrideWith((ref) async => testHealth),
+        // Both are method channels with nobody answering in a `flutter test`,
+        // and an unanswered channel hangs rather than throwing — which would
+        // wedge the medicine list the dashboard is waiting on.
+        localStoreProvider.overrideWithValue(InMemoryLocalStore()),
+        remindersProvider.overrideWithValue(NoReminders()),
         apiClientProvider.overrideWith((ref) {
           final client = api.client();
           ref.onDispose(client.close);

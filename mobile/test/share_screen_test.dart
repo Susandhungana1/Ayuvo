@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medistore/core/config/env.dart';
 import 'package:medistore/features/sharing/domain/share_link.dart';
 import 'package:medistore/features/sharing/presentation/share_screen.dart';
+import 'package:medistore/features/shell/presentation/more_screen.dart';
 
 import 'support/fake_api.dart';
 import 'support/harness.dart';
@@ -27,8 +28,13 @@ FakeApi backend({
 Future<void> openSharing(WidgetTester tester, FakeApi api) async {
   await pumpSignedIn(tester, api);
   await openTab(tester, 'Account');
-  await tester.tap(find.text('Sharing'));
-  await settle(tester);
+  // Account grew a second group of tiles in phase 6, so Sharing is below the
+  // fold on a small viewport.
+  await tapAfterScroll(
+    tester,
+    find.text('Sharing'),
+    scrollable: scrollableIn(MoreScreen),
+  );
 }
 
 const _live = '2030-08-08T09:14:22';

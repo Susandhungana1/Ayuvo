@@ -46,10 +46,29 @@ dependencies:
   printing: ^5.15.0
   pdf: ^3.13.0
   path_provider: ^2.1.6
-  intl: ^0.20.3
+  # Pinned by flutter_localizations, which depends on exactly 0.20.2. Raising
+  # this constraint makes the SDK package unresolvable — see the phase 6 group
+  # below.
+  intl: ^0.20.2
   qr_flutter: ^4.1.0
   url_launcher: ^6.3.2
   share_plus: ^13.3.0
+  # Phase 6. The four browser-only pieces the web app used, replaced:
+  # Leaflet → flutter_map, Web Push → flutter_local_notifications (scheduled
+  # locally, so the frozen backend needs nothing), Web Speech → speech_to_text,
+  # and `front/lib/i18n.tsx` → flutter_localizations + ARB.
+  flutter_localizations:
+    sdk: flutter
+  flutter_map: ^8.3.1
+  latlong2: ^0.10.1
+  geolocator: ^14.0.3
+  flutter_local_notifications: ^22.2.0
+  # A reminder fires at a wall-clock time, so it has to be scheduled in a named
+  # zone rather than as an offset — `timezone` holds the database and
+  # `flutter_timezone` asks the OS which entry in it the user is standing in.
+  timezone: ^0.11.1
+  flutter_timezone: ^5.1.0
+  speech_to_text: ^7.4.0
 
 dev_dependencies:
   flutter_test:
@@ -79,6 +98,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Builds AppLocalizations from lib/l10n/*.arb — see l10n.yaml.
+  generate: true
 
   # To add assets to your application, add an assets section, like this:
   # assets:

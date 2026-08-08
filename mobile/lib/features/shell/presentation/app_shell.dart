@@ -6,27 +6,41 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/l10n/context_l10n.dart';
+import '../../../core/notifications/reminder_sync.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 
-class AppShell extends StatelessWidget {
-  const AppShell({
-    super.key,
-    required this.shell,
-    required this.destinations,
-  });
+/// Which set of tabs to draw. The labels are looked up at build time rather
+/// than baked into a const list, so switching to Nepali relabels the bar
+/// without a restart.
+enum ShellKind { patient, doctor }
+
+class AppShell extends ConsumerWidget {
+  const AppShell({super.key, required this.shell, required this.kind});
 
   final StatefulNavigationShell shell;
-  final List<NavigationDestination> destinations;
+  final ShellKind kind;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Mounted here, at the root of the signed-in app, because this is the
+    // widest scope that exists exactly while somebody is signed in. Reminders
+    // are rescheduled whenever the medicine list or the setting changes, and
+    // the seven-day window rolls forward every time the app is opened.
+    ref.watch(reminderSyncProvider);
+
     return Scaffold(
       body: shell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: shell.currentIndex,
-        destinations: destinations,
+        destinations: switch (kind) {
+          ShellKind.patient => patientDestinations(context.l10n),
+          ShellKind.doctor => doctorDestinations(context.l10n),
+        },
         onDestinationSelected: (index) => shell.goBranch(
           index,
           // Tapping the tab you are already on returns it to its root, which is
@@ -39,51 +53,51 @@ class AppShell extends StatelessWidget {
 }
 
 /// The five patient destinations, in the order DESIGN.md fixes them.
-const patientDestinations = <NavigationDestination>[
-  NavigationDestination(
-    icon: Icon(Icons.home_outlined),
-    selectedIcon: Icon(Icons.home),
-    label: 'Home',
-  ),
-  NavigationDestination(
-    icon: Icon(Icons.medication_outlined),
-    selectedIcon: Icon(Icons.medication),
-    label: 'Medicines',
-  ),
-  NavigationDestination(
-    icon: Icon(Icons.monitor_heart_outlined),
-    selectedIcon: Icon(Icons.monitor_heart),
-    label: 'Vitals',
-  ),
-  NavigationDestination(
-    icon: Icon(Icons.description_outlined),
-    selectedIcon: Icon(Icons.description),
-    label: 'Reports',
-  ),
-  NavigationDestination(
-    icon: Icon(Icons.person_outline),
-    selectedIcon: Icon(Icons.person),
-    label: 'Account',
-  ),
-];
+List<NavigationDestination> patientDestinations(AppL10n l10n) => [
+      NavigationDestination(
+        icon: const Icon(Icons.home_outlined),
+        selectedIcon: const Icon(Icons.home),
+        label: l10n.navHome,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.medication_outlined),
+        selectedIcon: const Icon(Icons.medication),
+        label: l10n.navMedicines,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.monitor_heart_outlined),
+        selectedIcon: const Icon(Icons.monitor_heart),
+        label: l10n.navVitals,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.description_outlined),
+        selectedIcon: const Icon(Icons.description),
+        label: l10n.navReports,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.person_outline),
+        selectedIcon: const Icon(Icons.person),
+        label: l10n.navAccount,
+      ),
+    ];
 
-const doctorDestinations = <NavigationDestination>[
-  NavigationDestination(
-    icon: Icon(Icons.inbox_outlined),
-    selectedIcon: Icon(Icons.inbox),
-    label: 'Appointments',
-  ),
-  NavigationDestination(
-    icon: Icon(Icons.event_available_outlined),
-    selectedIcon: Icon(Icons.event_available),
-    label: 'Availability',
-  ),
-  NavigationDestination(
-    icon: Icon(Icons.person_outline),
-    selectedIcon: Icon(Icons.person),
-    label: 'Account',
-  ),
-];
+List<NavigationDestination> doctorDestinations(AppL10n l10n) => [
+      NavigationDestination(
+        icon: const Icon(Icons.inbox_outlined),
+        selectedIcon: const Icon(Icons.inbox),
+        label: l10n.navAppointments,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.event_available_outlined),
+        selectedIcon: const Icon(Icons.event_available),
+        label: l10n.navAvailability,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.person_outline),
+        selectedIcon: const Icon(Icons.person),
+        label: l10n.navAccount,
+      ),
+    ];
 
 /// Shown for the moment between launch and knowing whether there is a stored
 /// session. Deliberately quiet: it is usually on screen for one frame.

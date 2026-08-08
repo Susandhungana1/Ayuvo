@@ -70,27 +70,41 @@ Models use freezed + json_serializable. After editing anything with a
 dart run build_runner build
 ```
 
-Generated files are committed, so a fresh clone builds without running it.
+Strings use `gen_l10n`. After editing `lib/l10n/app_*.arb`:
+
+```bash
+flutter gen-l10n
+```
+
+Both sets of generated files are committed, so a fresh clone builds without
+running either. `lib/l10n/untranslated.json` is the gap report — it should stay
+`{}`, and an entry in it means `app_ne.arb` has fallen behind `app_en.arb`.
 
 ## Layout
 
 ```
 lib/
   core/
+    cache/      the offline read path — stale-while-revalidate, one owner per entry
     config/     Env — the API base URL and the web app's, nothing else
+    l10n/       context.l10n, over the ARB files generated into lib/l10n/
     network/    ApiClient (bearer, 401, form login), ApiException, ScopedUrl
+    notifications/  dose reminders, scheduled on the device
     session/    who is signed in; restore, sign out, seven-day expiry
-    storage/    the keystore wrapper the token lives in
+    settings/   language, theme and reminders — per device, never on the server
+    storage/    the keystore the token lives in, and the file store everything
+                non-secret lives in
     health/     GET /health, including the caretaker feature flag
     router/     go_router: auth-aware redirect, role-aware shells
     theme/      the design system — the only file with a raw colour in it
     widgets/    RangeBar, StatusChip, CardHeader, LinkCard/QrPanel,
                 FormSheet, Skeleton, EmptyState, ErrorView
   features/<feature>/{data,domain,presentation}
+  l10n/         app_en.arb, app_ne.arb, and the generated AppL10n
   dev/          the design gallery (not part of the app)
 ```
 
-Two rules that are load-bearing rather than stylistic:
+Five rules that are load-bearing rather than stylistic:
 
 - **`ScopedUrl` is the only thing that may build a patient-scoped URL.** Ids
   contain `#`; interpolated raw, the id vanishes and the server quietly returns
@@ -100,9 +114,20 @@ Two rules that are load-bearing rather than stylistic:
 - **A `Row` does not clip an oversized child, it overflows.** Any header that
   pairs text with a badge goes through `CardHeader`, which caps the badge at
   half the line so neither side can run off the screen at large text sizes.
-  Six of these were shipped broken and caught by `phase5_text_scale_test.dart`.
+  Eight of these have been shipped broken and caught by the two
+  `phase*_text_scale_test.dart` files. A new screen without one of those tests
+  should be assumed broken.
+- **Never write another person's data to disk.** `offline_cache.dart` refuses a
+  patient-scoped entry outright, and every entry it does write is stamped with
+  the account it belongs to — a read by anyone else deletes the file rather
+  than rendering it. A care link can be revoked at any moment and a cached copy
+  would outlive the permission that justified it.
+- **A dose time from `/api/care/links` is the patient's wall clock, not an
+  instant.** Render `next_dose_local` verbatim. Parsing `"08:00"` into a
+  `DateTime` re-expresses it in the caretaker's timezone and shows a time
+  neither party acts on.
 
-## What works today (end of phase 5)
+## What works today (end of phase 6)
 
 **Account.** Sign in, sign out, register, the two-factor challenge,
 forgot/reset password, session restore across launches, and a 401 anywhere
@@ -142,19 +167,57 @@ same thing, and revoking says what it does to whoever is already holding one.
 a card and as a QR a paramedic can scan without this app installed. Each contact
 is one tap to call.
 
-**For doctors.** A separate two-tab shell: the appointment inbox, on the route
-that actually works for a doctor, and a weekly availability editor with slot
-length and a pause switch per window. Plus registration, which explains the two
-steps only an operator can do rather than offering buttons that cannot work.
+**Timeline.** Everything on the record in one story, grouped by day, paged forty
+at a time. Each row says its kind once — in a coloured badge, not also in the
+title the server pre-formatted.
 
-Timeline, search, the assistant, nearby care and caretakers are not built yet.
+**Search.** One box over reports, medicines and visits, debounced, grouped by
+kind, and deep-linked: a report opens the report, a visit opens its card already
+expanded, a medicine opens its edit sheet.
+
+**Health assistant.** A full screen rather than a floating bubble, with voice
+input where the phone has a recogniser. The transcript stays in memory and is
+never written anywhere; what goes back to the server is capped at twelve turns,
+because the whole conversation is resent each time. A server with no AI key says
+so instead of failing on every question.
+
+**Nearby care.** Hospitals, clinics and pharmacies within 4 km on an
+OpenStreetMap map, nearest first, each one tappable through to directions. Works
+without a location permission — it centres on Kathmandu and says so.
+
+**Caretakers.** Issue a code, read it out, watch it count down; see who holds
+one, what they have changed, and undo a deletion. On the other side: the people
+you care for, on your own dashboard, with their next dose in *their* clock — and
+a medicines-only screen for each, marked so it can never be mistaken for your
+own list.
+
+**Reminders.** A notification at each dose time, scheduled on the phone for the
+next seven days and rebuilt whenever the list or the setting changes. Off by
+default; the permission is asked for at the moment the switch goes on.
+
+**Offline.** Medicines and vitals are saved locally and shown immediately while
+the app checks for changes behind them. If the check fails the saved copy stays
+and the dashboard says how old it is.
+
+**Language.** English and Nepali, switchable in Settings without a restart —
+covering navigation, Account, Settings and the phase 6 screens. The rest of the
+app is still English (`KNOWN_ISSUES.md` P6-1).
+
+**For doctors.** A separate three-tab shell: the appointment inbox, on the route
+that actually works for a doctor, a weekly availability editor with slot length
+and a pause switch per window, and an Account holding registration and settings.
+Registration explains the two steps only an operator can do rather than offering
+buttons that cannot work.
+
 There is no mock data anywhere in this app, by design.
 
-Known gaps are in `KNOWN_ISSUES.md`. The four that matter most today: a doctor's
+Known gaps are in `KNOWN_ISSUES.md`. The five that matter most today: a doctor's
 inbox can never show a request to accept, because the server confirms bookings
 on their behalf (P5-1); two patients tapping the same slot at the same moment
-both get it (P5-2); a dose marked taken does not survive a restart (P4-1); and
-nothing in this app has been run on a real device since phase 3 (P4-2, P5-8).
+both get it (P5-2); reminders live on one phone and never reach a caretaker
+(P6-2); a dose marked taken does not survive a restart (P4-1); and **nothing in
+this app has been run on a real device since phase 3** — which now includes the
+map, the GPS, the notifications and the microphone (P4-2, P5-8, P6-11).
 
 ## iOS parity
 
@@ -171,6 +234,15 @@ build should check them in order:
 | `NSCameraUsageDescription` — photographing a printed report | `ios/Runner/Info.plist` | that the prompt appears and the wording reads sensibly |
 | `NSPhotoLibraryUsageDescription` — choosing an existing scan | `ios/Runner/Info.plist` | the same, plus that `file_picker` reaches iCloud Drive |
 | `Printing.sharePdf` for the formal report | `digital_report_screen.dart` | the iOS share sheet at all — this has never been opened on either platform |
+| `NSLocationWhenInUseUsageDescription` — the nearby map | `ios/Runner/Info.plist` | that the prompt appears, and that a refusal really does fall back to Kathmandu rather than hanging |
+| `NSMicrophoneUsageDescription` + `NSSpeechRecognitionUsageDescription` — voice input | `ios/Runner/Info.plist` | that iOS asks for **both**, and that `speech_to_text` reports unavailable rather than throwing when either is refused |
+| `LSApplicationQueriesSchemes` — `tel`, `maps`, `comgooglemaps` | `ios/Runner/Info.plist` | that `canLaunchUrl` returns true for an emergency contact's number. Without the entry iOS answers false and the tap silently does nothing |
+| Darwin notification settings, permission requested on demand not at launch | `lib/core/notifications/reminders.dart` | that a reminder actually fires, and that `requestPermissions` is reached from the settings switch rather than on first run |
+| Named-timezone scheduling via `flutter_timezone` | same | that the identifier iOS returns is one the `timezone` database knows |
 
-Local notifications arrive with reminders in phase 6; the key goes in with the
-feature and gets a row here.
+**Android is no better verified for phase 6.** The manifest gained
+`POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, both location permissions,
+`RECORD_AUDIO`, the two `flutter_local_notifications` receivers and `<queries>`
+entries for `tel:`/`https:`/speech; `build.gradle.kts` gained core-library
+desugaring, which that plugin requires. None of it has been run. See
+`KNOWN_ISSUES.md` P6-11.

@@ -18,7 +18,9 @@ import 'package:medistore/app.dart';
 import 'package:medistore/core/health/health_providers.dart';
 import 'package:medistore/core/health/health_status.dart';
 import 'package:medistore/core/network/network_providers.dart';
+import 'package:medistore/core/notifications/reminders.dart';
 import 'package:medistore/core/session/session_controller.dart';
+import 'package:medistore/core/storage/local_store.dart';
 import 'package:medistore/core/storage/session_store.dart';
 import 'package:medistore/features/auth/data/auth_repository.dart';
 import 'package:medistore/features/auth/domain/auth_user.dart';
@@ -26,7 +28,21 @@ import 'package:medistore/features/auth/domain/auth_user.dart';
 import 'fake_api.dart';
 import 'fakes.dart';
 
+/// What most deployments look like: caretakers off.
+///
+/// Deliberately the default, because it is what production runs today and
+/// because the caretaker surfaces are supposed to be *completely* absent when
+/// the flag is off — a test that never sees them is the assertion.
 const testHealth = HealthStatus(
+  status: 'ok',
+  database: true,
+  email: 'brevo',
+  caretaker: false,
+);
+
+/// A server with `CARETAKER_ENABLED=true`. Pass to [pumpSignedIn] for the care
+/// screens; anything that uses it must script `GET /api/care/links`.
+const caretakerHealth = HealthStatus(
   status: 'ok',
   database: true,
   email: 'brevo',
@@ -51,10 +67,18 @@ Future<void> settle(WidgetTester tester) async {
 }
 
 /// Boots the app already signed in, with [api] answering every request.
+///
+/// Two things are replaced besides the socket, and both would otherwise hang
+/// rather than fail: [localStoreProvider], because `path_provider` is a method
+/// channel with nobody on the other end in a `flutter test`, and
+/// [remindersProvider], because scheduling one would need three more.
 Future<void> pumpSignedIn(
   WidgetTester tester,
   FakeApi api, {
   AuthUser user = testUser,
+  HealthStatus health = testHealth,
+  LocalStore? store,
+  Reminders? reminders,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -62,7 +86,9 @@ Future<void> pumpSignedIn(
         sessionStoreProvider
             .overrideWithValue(InMemorySessionStore(storedSession(user: user))),
         authRepositoryProvider.overrideWithValue(FakeAuthRepository(user: user)),
-        healthProvider.overrideWith((ref) async => testHealth),
+        healthProvider.overrideWith((ref) async => health),
+        localStoreProvider.overrideWithValue(store ?? InMemoryLocalStore()),
+        remindersProvider.overrideWithValue(reminders ?? NoReminders()),
         apiClientProvider.overrideWith((ref) {
           final client = api.client();
           ref.onDispose(client.close);

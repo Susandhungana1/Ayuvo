@@ -11,10 +11,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/appointments/presentation/appointments_screen.dart';
+import '../../features/assistant/presentation/assistant_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/auth/presentation/sign_in_screen.dart';
+import '../../features/care/presentation/caretakers_screen.dart';
 import '../../features/doctors/presentation/availability_screen.dart';
 import '../../features/doctors/presentation/doctor_inbox_screen.dart';
 import '../../features/doctors/presentation/doctor_profile_screen.dart';
@@ -22,10 +24,14 @@ import '../../features/documents/presentation/documents_screen.dart';
 import '../../features/emergency/presentation/emergency_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/medicines/presentation/medicines_screen.dart';
+import '../../features/nearby/presentation/nearby_screen.dart';
 import '../../features/reports/presentation/reports_screen.dart';
+import '../../features/search/presentation/search_screen.dart';
+import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/sharing/presentation/share_screen.dart';
 import '../../features/shell/presentation/app_shell.dart';
 import '../../features/shell/presentation/more_screen.dart';
+import '../../features/timeline/presentation/timeline_screen.dart';
 import '../../features/vitals/presentation/vitals_screen.dart';
 import '../session/session_controller.dart';
 import '../session/session_state.dart';
@@ -101,7 +107,7 @@ final _routes = <RouteBase>[
   ),
   StatefulShellRoute.indexedStack(
     builder: (context, state, shell) =>
-        AppShell(shell: shell, destinations: patientDestinations),
+        AppShell(shell: shell, kind: ShellKind.patient),
     branches: [
       StatefulShellBranch(
         routes: [
@@ -158,6 +164,33 @@ final _routes = <RouteBase>[
                 path: 'emergency',
                 builder: (context, state) => const EmergencyScreen(),
               ),
+              GoRoute(
+                path: 'timeline',
+                builder: (context, state) => const TimelineScreen(),
+              ),
+              GoRoute(
+                path: 'search',
+                builder: (context, state) => const SearchScreen(),
+              ),
+              GoRoute(
+                path: 'assistant',
+                builder: (context, state) => const AssistantScreen(),
+              ),
+              GoRoute(
+                path: 'nearby',
+                builder: (context, state) => const NearbyScreen(),
+              ),
+              // Reachable even when `/health` says the feature is off: the
+              // screen itself explains that, which is more useful than a tile
+              // that silently is not there. The tile on Account *is* hidden.
+              GoRoute(
+                path: 'caretakers',
+                builder: (context, state) => const CaretakersScreen(),
+              ),
+              GoRoute(
+                path: 'settings',
+                builder: (context, state) => const SettingsScreen(),
+              ),
             ],
           ),
         ],
@@ -166,7 +199,7 @@ final _routes = <RouteBase>[
   ),
   StatefulShellRoute.indexedStack(
     builder: (context, state, shell) =>
-        AppShell(shell: shell, destinations: doctorDestinations),
+        AppShell(shell: shell, kind: ShellKind.doctor),
     branches: [
       StatefulShellBranch(
         routes: [
@@ -193,6 +226,10 @@ final _routes = <RouteBase>[
               GoRoute(
                 path: 'profile',
                 builder: (context, state) => const DoctorProfileScreen(),
+              ),
+              GoRoute(
+                path: 'settings',
+                builder: (context, state) => const SettingsScreen(),
               ),
             ],
           ),

@@ -1,8 +1,16 @@
 # Backend notes
 
 **Status.** §1 and §2 were approved and are **shipped locally** (not deployed).
-§3–§9 remain deferred until the app produces evidence. A third fix — a 500 in
+§3–§15 remain deferred until the app produces evidence. A third fix — a 500 in
 `GET /api/documents` — was found while testing §2 and is described in §0.
+
+**As of the end of phase 6 the list is complete**: §1–§15 are everything six phases
+of building against this API turned up. Phase 7 is where you approve some subset of
+it. Four are proven against a running server rather than read off the source —
+§11 (two patients given the same slot), §15 (search returns deleted medicines),
+§10 (a booking is confirmed on the doctor's behalf, so `PENDING` is unreachable),
+and the answer written into §8 (local reminders cover the patient and cannot reach
+a caretaker).
 
 `python -m pytest -q` → **147 passed** (130 before, +17 new tests). Commits:
 
@@ -274,6 +282,35 @@ bodies, which is a separate question worth asking before copying the pattern.
   the patient's medicine list it is already allowed to read. Phase 6 will show whether
   that is enough.
 
+**Phase 6 answer: it is enough for the patient and not for anyone else.** Built and
+shipped in `core/notifications/`: the next seven days of doses are scheduled in the
+device's named timezone whenever the app is opened, rebuilt from scratch on every
+sync so an edited dose time cannot leave a stale alarm, capped at 120 so Android's
+per-app alarm ceiling is never approached, and re-registered after a reboot by
+`ScheduledNotificationBootReceiver`. No backend change was needed for any of it.
+Three things it cannot do, all of which are this proposal:
+
+1. **Survive a reinstall or a new phone.** The alarms are device state.
+2. **Survive eight days of the app not being opened.** The window only rolls forward
+   when something opens it.
+3. **Reach a caretaker at all.** This is the sharp one. `CareLink.notify` exists, the
+   app exposes it as a bell on each client card, and `reminder_scheduler.py` honours
+   it — over Web Push, which an Android caretaker does not have. So a caretaker
+   using the mobile app receives nothing, and the toggle they can see changes a
+   column with no observable effect (`KNOWN_ISSUES.md` P6-3).
+
+The caretaker's own device *could* schedule from the patient's medicine list it is
+allowed to read, and I did not do it: it would mean holding another person's dose
+times on the caretaker's phone, which is exactly the disk copy
+`offline_cache.dart` refuses to make for the same data. Server-side fan-out is the
+right place for it.
+
+On the payload question raised above — the local notification does name the medicine
+("Time for Amlodipine · 5 mg"), matching what `_payload` already sends over Web Push.
+That is defensible for something that never leaves the device and is a separate
+decision for something that crosses a network. Do not copy it into FCM without
+asking.
+
 ---
 
 ## 9. Pagination on the list endpoints
@@ -289,6 +326,16 @@ return today; push `/api/timeline`'s slice into SQL.
 - **Migration:** none, though `/api/timeline` would benefit from indexes.
 - **`front/` affected:** no.
 - **Priority: low** until an account is large enough to notice.
+
+**Phase 6 raises this from "low" to "the timeline specifically".** `/api/timeline`
+is now a screen somebody scrolls, and it already takes `limit`/`offset` — so the
+client pages at 40 and the wire stays small. What does not stay small is the work:
+`timeline.py` runs four unbounded `SELECT`s, concatenates them in Python, sorts the
+list, and *then* slices. Pressing "Show older" re-reads the entire account to hand
+back the next forty rows, so the cost per page grows with the record and the last
+page is the most expensive one. Pushing the slice into SQL changes no request and no
+response shape; it is the one item in this section with a user-visible symptom
+waiting at the end of it.
 
 ---
 
@@ -447,6 +494,56 @@ the compiled-in default.
   at build time solves the same problem with no backend change at all. Recorded
   because the runtime answer is strictly more robust — it survives the frontend
   moving.
+
+---
+
+## 15. `GET /api/search` returns medicines the user has deleted
+
+`app/api/search.py` scans three tables. Two of them respect the soft delete and one
+does not:
+
+```python
+# documents — filtered
+select(MedicalDocument)
+    .where(MedicalDocument.user_id == current_user.id)
+    .where(MedicalDocument.deleted_at.is_(None))     # line 98
+
+# medicines — not filtered
+select(Medicine)
+    .where(Medicine.user_id == current_user.id)      # lines 70-74
+    .order_by(Medicine.created_at.desc())
+```
+
+So a medicine a patient removed keeps appearing in search results forever, while a
+visit they removed does not. It is inconsistent with `GET /api/medicines`, which
+does filter, and inconsistent with the file's own treatment of documents four
+functions down.
+
+**Proved live, not inferred.** `live_backend_test.dart` creates a medicine, deletes
+it, confirms it is gone from `GET /api/medicines`, and then finds it in
+`GET /api/search`:
+
+```
+phase 6, signed in a soft-deleted medicine still turns up in search   ✓
+```
+
+**Proposal.** One line — `.where(Medicine.deleted_at.is_(None))` — to match the
+documents branch.
+
+- **Blast radius:** one route, and only rows that are already hidden everywhere else.
+- **Migration:** none.
+- **`front/` affected:** yes, and favourably. `front/app/search/page.tsx` links a
+  medicine hit to `/medicines`, where the row is absent — a dead end today.
+- **Client-side first:** done, and it is the best the client can do. The app cannot
+  tell a deleted medicine from one the list has not loaded, so tapping such a hit
+  says the medicine was removed and offers **Restore**, which works because the row
+  is soft-deleted and `POST /{id}/restore` will bring it back. That turns a confusing
+  dead end into something useful, and it is still the wrong default: a patient who
+  deliberately removed a medicine should not have to keep seeing it.
+- **Note the asymmetry cuts the other way too.** If search *should* surface retired
+  medicines on purpose — "what was I on last year?" — then the fix is to say so, with
+  a badge on the row and the same treatment for documents. Either answer is fine.
+  What is not fine is the two tables disagreeing by accident.
 
 ---
 

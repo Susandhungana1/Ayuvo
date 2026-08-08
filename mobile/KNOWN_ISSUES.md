@@ -101,12 +101,17 @@ it is one edit to `pubspec.yaml` and none to the theme.
 
 `DESIGN.md` §3 makes "survives `MediaQuery.textScaler` at 2.0" a review item at
 the end of every phase. It is now automated for the design gallery
-(`design_review_test.dart`), the sign-in screen (`auth_flow_test.dart`) and the
-five screens phase 5 added (`phase5_text_scale_test.dart`, both brightnesses, a
-320-wide viewport). Phase 4's screens — Medicines, Vitals, Reports, Documents,
-Home — still have no such test, and "should hold" is doing the work for them.
-Every screen that has been tested failed the first time it was; phase 5's found
-six real overflows on five screens. Assume phase 4's would too.
+(`design_review_test.dart`), the sign-in screen (`auth_flow_test.dart`), the
+five screens phase 5 added (`phase5_text_scale_test.dart`) and the six phase 6
+added (`phase6_text_scale_test.dart`) — both brightnesses, a 320-wide viewport,
+and for phase 6 also in Nepali, whose Devanagari sets longer than the English it
+replaces.
+
+Phase 4's screens — Medicines, Vitals, Reports, Documents, Home — still have no
+such test, and "should hold" is doing the work for them. **Every screen that has
+been tested failed the first time it was**: phase 5's found six overflows on
+five screens, phase 6's found two more on the day they were written. Assume
+phase 4's would too.
 
 ### P1.5-3 · Dark mode has never been seen on a device — **Papercut**
 
@@ -275,15 +280,23 @@ server enforces a 10 MB upload cap so the worst case is bounded, and no page
 holds more than one file at a time. Streaming to a temp file would be the fix
 if this ever bites.
 
-### P4-6 · Caretaker scope covers medicines and nothing else — **Watch (phase 6)**
+### P4-6 · Caretaker scope covers medicines and nothing else — **Decided in phase 6: it is the product**
 
 `resolve_medicine_scope` is the one authorisation chokepoint and it guards
 `/api/medicines*` only. Vitals, reports and documents have no `patient_id` at
-all, so a caretaker in phase 6 will be able to manage someone's prescriptions
-and see none of their readings or scans. The client is built for it — the
-medicine providers are already a family keyed by patient id, and the vitals and
-reports providers deliberately are not — but phase 6 has to decide whether that
-asymmetry is the product or a gap to propose closing in phase 7.
+all, so a caretaker can manage someone's prescriptions and see none of their
+readings or scans. The client was built for it — the medicine providers are a
+family keyed by patient id, and the vitals and reports providers deliberately
+are not.
+
+**Phase 6 decided this asymmetry is the feature, and did not propose widening
+it.** "Someone can help with my pills" is a much easier thing to consent to than
+"someone can read my record", and the narrower grant is what makes the code
+worth handing to a neighbour. `care_medicines_screen.dart` renders medicines and
+nothing else — and, as importantly, *fetches* nothing else, so another person's
+vitals never reach the caretaker's device at all. There is no phase-7 proposal
+to broaden the scope, and `BACKEND_NOTES.md` still lists touching the chokepoint
+under **Rejected — never**.
 
 ### P4-7 · The web app labels blood sugar mmol/L and stores mg/dL — **Papercut**
 
@@ -456,6 +469,175 @@ screens.
 
 ---
 
+## Phase 6 — Extras
+
+Timeline, search, the assistant, the nearby map, caretakers, local reminders,
+the offline cache and `en`/`ne`. Eight things, and the honest summary is that
+five of them are finished and three are the *shape* of the feature with a real
+limit written down beside it.
+
+### P6-1 · Nepali covers navigation and phase 6, and nothing else — **Ship**
+
+`lib/l10n/app_ne.arb` has every key `app_en.arb` does — the two files are in
+step, and `untranslated.json` is empty. But the ARB holds about 90 keys: the
+bottom bar, Account, Settings, and the five screens this phase added. Every
+other string in the product is a Dart literal in English — Medicines, Vitals,
+Reports, Documents, Appointments, Sharing, Emergency ID, all three doctor
+screens, every form sheet, every validation message and every error string.
+Switching to Nepali therefore gives a Nepali frame around an English app.
+
+That is the same coverage `front/lib/i18n.tsx` has (17 nav keys, everything else
+hard-coded), so nothing regressed — but the brief asked to "carry over every
+existing string", and the existing strings were only ever the navigation.
+Finishing this is mechanical and large: roughly 400 more keys, and each one is a
+sentence somebody has to write twice.
+
+**And the translations are unreviewed.** I wrote the Nepali. It is careful, and
+it is not a native speaker's. Somebody who speaks it should read
+`app_ne.arb` end to end before this is shown to a patient — particularly
+`caretakersBlurb` and `assistantDisclaimer`, where a clumsy phrasing is a
+consent problem rather than a typo.
+
+### P6-2 · Reminders live and die on one phone — **Deferred** (backend)
+
+`flutter_local_notifications` schedules the next seven days of doses whenever
+the app is opened, and that is genuinely all the freeze allows. Three limits
+follow, none of them fixable client-side:
+
+- **Reinstall or a new phone loses every alarm** until the app is opened again.
+- **A phone that does not open MediStore for eight days runs out** of scheduled
+  reminders and goes quiet, with no signal that it has.
+- **A caretaker is never notified.** `reminder_scheduler.py` fans out to Web
+  Push subscriptions; a caretaker on Android has none, so the patient's doses
+  reach nobody but the patient.
+
+`BACKEND_NOTES.md` §8 is the fix and now has phase 6's answer written into it.
+
+### P6-3 · The bell on a client card mutes something a phone cannot hear — **Ship**
+
+`PATCH /api/care/links/{id}` sets `CareLink.notify`, which controls whether
+`reminder_scheduler.py` sends *that caretaker* the patient's dose reminders —
+over Web Push. A caretaker using this app has no web-push subscription, so the
+toggle changes a column and nothing else the caretaker can observe. The control
+is real, the server honours it, and it currently has no visible effect on
+mobile. It is shipped rather than hidden because it also governs what a
+caretaker who *also* uses the web app receives, and because hiding it would
+silently change a preference that is already set — but it is misleading, and it
+should be relabelled or hidden once §8 lands and mobile actually receives
+something.
+
+### P6-4 · The lock screen says what you take — **Watch**
+
+A dose reminder reads "Time for Amlodipine · 5 mg". That is visible to anyone
+holding the phone, and it is a deliberate choice: a reminder that will not say
+what to take is not a reminder, and it matches what the product already does —
+`_payload` in `reminder_scheduler.py` sends "Time for Amlodipine 5 mg" over Web
+Push today. Nothing leaves the device. Recorded because it is a disclosure
+somebody should get to decline: a "discreet reminders" switch that shows only
+"Time for a dose" is a small phase-8 addition.
+
+### P6-5 · The offline cache covers two lists, not the app — **Watch**
+
+Medicines and vitals are saved and served stale-while-revalidate; everything
+else — reports, documents, appointments, the timeline, search — still needs the
+network and shows an error card without it. That was the choice: those two are
+the dashboard and the daily schedule, which is what somebody actually needs in a
+lift or a hospital basement. A report list nobody can open the files of is worth
+much less offline. Widening it is a per-controller change of about ten lines
+each, and `cached_list.dart` exists so it stays one behaviour.
+
+### P6-6 · The cache is plaintext JSON in app-private storage — **Watch**
+
+`FileLocalStore` writes to the app support directory, which is sandboxed per app
+on both platforms and not in the default backup set for this location. It is not
+encrypted. Hive would not have been either. A rooted or jailbroken phone, or a
+full-disk forensic image, reads a medicine list. The JWT is in the keystore and
+stays there; this is the deliberate lower bar for a cache. Encrypting it means
+a key that also has to live somewhere, which is a real design decision and not
+a phase-6 one.
+
+### P6-7 · Search finds medicines you deleted — **Ship** (backend)
+
+`GET /api/search` filters `MedicalDocument.deleted_at` and does **not** filter
+`Medicine.deleted_at` (`search.py:70-74` against `95-100`). A removed medicine
+keeps turning up in results forever. Proven live — `live_backend_test.dart`
+deletes one and then finds it. Client-side the app makes the best of it: the row
+is tappable, and tapping says the medicine was removed and offers Restore, which
+works. `BACKEND_NOTES.md` §15.
+
+### P6-8 · The timeline reads the whole account to show forty rows — **Watch** (backend)
+
+`timeline.py` runs four unbounded selects, concatenates, sorts in Python, then
+slices. `limit` bounds the response, not the work. The client pages at 40 to
+keep the response small, which helps the wire and not the database. Already in
+`BACKEND_NOTES.md` §9; noted here because phase 6 is what made it a screen
+somebody will scroll.
+
+### P6-9 · The assistant forgets the conversation when the app closes — **Deferred**
+
+The transcript lives in a Riverpod provider: it survives switching tabs and dies
+with the process. Nothing is written to disk, and nothing is stored server-side
+either — `chatbot.py` keeps no thread. That is a choice, not an oversight: a list
+of somebody's symptoms is the most sensitive text in the product and there is no
+feature here that needs it to outlive the session. If history is wanted later it
+should be an explicit, deletable thing, not a side effect of a cache.
+
+### P6-10 · The map depends on a free service that is often busy — **Watch**
+
+Nearby care has no MediStore endpoint behind it. Tiles come from OpenStreetMap
+and places from Overpass, a donated public service that rate-limits and returns
+429/504 under load. Three mirrors are tried in order, the map still renders with
+the user's own pin when all three refuse, and the message says the data service
+is busy rather than blaming the connection. There is no fallback beyond that.
+OSM's tile policy also expects an identifiable user agent; the app sends
+`com.medistore.app`, and a real deployment should keep that accurate.
+
+### P6-11 · Four new platform channels, none of them run on a device — **Ship**
+
+Map tiles, `geolocator`, `flutter_local_notifications` and `speech_to_text` are
+all wired, permission-declared on both platforms, and exercised only against
+fakes. Every one of them is the kind of thing that only fails on hardware: a
+notification channel that is never created, an OEM that refuses a cold GPS fix,
+a recogniser that is not installed, a tile server that blocks the default agent.
+The Android manifest and `Info.plist` entries added this phase — `POST_NOTIFICATIONS`,
+`RECEIVE_BOOT_COMPLETED`, the two location permissions, `RECORD_AUDIO`, the boot
+receiver, core-library desugaring, `NSLocationWhenInUseUsageDescription`,
+`NSMicrophoneUsageDescription`, `NSSpeechRecognitionUsageDescription` — are all
+unverified. Same family as P4-2 and P5-8; this does not close either.
+
+**One of them is a fix for a phase-5 bug, also unverified:** the `<queries>`
+block for `tel:` and `https:`. Without it, Android 11+ hides installed apps from
+`canLaunchUrl`, so the emergency contact's phone number and the Directions link
+both silently do nothing. It is in the manifest now and nobody has watched it
+work.
+
+### P6-12 · A caretaker's dashboard costs a request everyone else does not pay — **Papercut**
+
+`PeopleICareFor` calls `GET /api/care/links?role=caretaker` on every dashboard
+open, and that endpoint computes a next-dose summary per client. It is skipped
+entirely when `/health` says caretakers are off, and it renders nothing when
+there are no links — but a caretaker pays for it every time the app opens. Cheap
+to make conditional on something cached; not worth it before anyone complains.
+
+### P6-13 · The nearby screen has no widget test — **Papercut**
+
+`FlutterMap` wants real tiles and a real ticker; standing one up in a widget test
+means faking a tile provider and is more scaffolding than the assertion is worth.
+The decoding, the distance maths, the mirror fallback and the result cap are all
+covered by `nearby_test.dart` against a fake adapter, which is where the logic
+lives. What is untested is the widget tree — including whether it survives 2×
+text, which every other phase 6 screen is now checked for.
+
+### P6-14 · The live suite takes a minute and leaves accounts behind — **Papercut**
+
+`live_backend_test.dart` now registers seven throwaway accounts per run, which
+trips slowapi's `5/minute` on `/api/auth/register`. `registerPatiently` waits out
+the window rather than weakening the limit, so a full run takes just over a
+minute and the file carries a five-minute timeout. The accounts stay in local
+Postgres. Extends P3-6 rather than closing it.
+
+---
+
 ## Closed
 
 | Entry | Closed by | What it was |
@@ -492,3 +674,14 @@ defect a user would have hit, not just a refactor:
 | The availability editor could not be corrected | `availability_screen.dart` — `AvailabilityController.update` | Named `update`, which illegally overrode `AsyncNotifier.update`. It compiled as an override and did the wrong thing. Renamed to `edit`, with the reason in a comment so it does not come back. |
 | A past slot was offered for booking | `appointments_controller.dart` — `bookableSlots` | The server's "is this in the future" check runs against `datetime.now()` in the *server's* zone — UTC on Render, 5h45m behind Kathmandu. A Nepali patient booking this morning would be offered slots the server would then refuse. Filtered client-side against the phone's clock. |
 | Clearing an emergency field left it unchanged | `emergency_repository.dart` | `PUT /api/emergency/profile` reads `null` as "leave alone", so a form that sends null for an emptied box makes an allergy that no longer applies impossible to remove. The repository now always sends all three fields, empty string included. Pinned by a test. |
+
+**Found and fixed inside phase 6:**
+
+| What | Where | Why it mattered |
+|---|---|---|
+| Signing out would have reset the user's language | `local_store.dart` — `clear()` → `clearPrefix()` | Preferences and the offline cache share one folder, so the blanket `clear()` I first wrote meant signing out silently put a Nepali-speaking user back into English. The store now deletes by prefix and the session controller asks for `cache.` only. |
+| Clearing the cache on sign-out was a dependency cycle | `session_controller.dart` | `offlineCacheProvider` watches the session to know whose cache it is, so reading it from `signOut` threw `CircularDependencyError` — a crash on the way out of the app. It goes through `LocalStore` directly now, with the reason in a comment. |
+| A wedged platform channel would have hung the medicine list | `local_store.dart` | `getApplicationSupportDirectory()` sits in front of every cached read, and an unanswered method channel never completes — it does not throw. The whole dashboard hung behind it in the test suite before a 3-second timeout was added. On a device it resolves; the timeout is there so a broken one degrades to "no cache" rather than "no app". |
+| Two more 2×-text overflows | `people_i_care_for.dart`, `timeline_screen.dart` | The same `Row` rule phase 5 wrote `CardHeader` for: a `Row` hands a non-flex child unbounded width, so "Add someone" ran 45px off the heading and "APPOINTMENT" ran 32px out of its card. Found by `phase6_text_scale_test.dart` on the day it was written. |
+| A `RadioListTile` group that would not compile clean | `settings_screen.dart` | `groupValue`/`onChanged` are deprecated in Flutter 3.44 in favour of a `RadioGroup` ancestor, and `flutter analyze` counts an info as an issue. Rewritten with `RadioGroup`, and the language options got a real enum rather than a nullable locale so "follow the phone" and "nothing selected" stay distinguishable. |
+| The live suite tripped the server's own rate limit | `live_backend_test.dart` | Adding a seventh registration pushed the run past `5/minute` on `/api/auth/register`. The 429 is the server working; the suite now waits out the window instead, and carries a 5-minute timeout so the wait is not killed at 30 seconds. |

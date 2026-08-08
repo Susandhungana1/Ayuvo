@@ -7,6 +7,11 @@
 ///
 /// It registers a throwaway account (unique email per run) in whatever database
 /// that server points at, so point it at local Postgres — never production.
+///
+/// The generous timeout is not slack: `/api/auth/register` is limited to
+/// 5/minute and a full run needs seven accounts, so [registerPatiently] sleeps
+/// out a window or two. The default 30 seconds would kill it mid-sleep.
+@Timeout(Duration(minutes: 5))
 library;
 
 import 'dart:io';
@@ -18,15 +23,23 @@ import 'package:medistore/core/network/scoped_url.dart';
 import 'package:medistore/core/time/medi_time.dart';
 import 'package:medistore/features/appointments/data/appointment_repository.dart';
 import 'package:medistore/features/appointments/domain/appointment.dart';
+import 'package:medistore/features/assistant/data/chat_repository.dart';
+import 'package:medistore/features/assistant/domain/chat_message.dart';
 import 'package:medistore/features/auth/data/auth_repository.dart';
+import 'package:medistore/features/auth/domain/auth_user.dart';
+import 'package:medistore/features/care/data/care_repository.dart';
 import 'package:medistore/features/doctors/data/doctor_repository.dart';
 import 'package:medistore/features/documents/data/document_repository.dart';
 import 'package:medistore/features/emergency/data/emergency_repository.dart';
 import 'package:medistore/features/medicines/data/medicine_repository.dart';
 import 'package:medistore/features/medicines/domain/dose_times.dart';
 import 'package:medistore/features/reports/data/report_repository.dart';
+import 'package:medistore/features/search/data/search_repository.dart';
+import 'package:medistore/features/search/domain/search_hit.dart';
 import 'package:medistore/features/sharing/data/share_repository.dart';
 import 'package:medistore/features/sharing/domain/share_link.dart';
+import 'package:medistore/features/timeline/data/timeline_repository.dart';
+import 'package:medistore/features/timeline/domain/timeline_event.dart';
 import 'package:medistore/features/vitals/data/vital_repository.dart';
 
 const _enabled = bool.fromEnvironment('LIVE_BACKEND');
@@ -34,6 +47,31 @@ const _baseUrl = String.fromEnvironment(
   'API_BASE_URL',
   defaultValue: 'http://127.0.0.1:3001',
 );
+
+/// Registers, waiting out slowapi's `5/minute` limit if the suite has already
+/// used it up.
+///
+/// Seven accounts are created over a full run — one per phase group, plus the
+/// auth tests' own — and a fast machine does all of that inside two windows.
+/// The 429 is the server working correctly, so the fix is to wait rather than
+/// to weaken the limit. It is also why a full run takes minutes, not seconds.
+Future<AuthSession> registerPatiently(
+  AuthRepository auth, {
+  required String name,
+  required String email,
+  required String password,
+}) async {
+  for (var attempt = 0; ; attempt++) {
+    try {
+      return await auth.register(name: name, email: email, password: password);
+    } on ApiException catch (error) {
+      if (error.kind != ApiErrorKind.rateLimited || attempt >= 4) rethrow;
+      // Just past a minute, because the limiter's window is fixed: polling
+      // sooner only spends another hit on a window that has not rolled over.
+      await Future<void>.delayed(const Duration(seconds: 62));
+    }
+  }
+}
 
 void main() {
   if (!_enabled) {
@@ -77,11 +115,12 @@ void main() {
   });
 
   test('register, then sign in, then read yourself back', () async {
-    final registered = await auth.register(
+    final registered = await registerPatiently(
+      auth,
       name: 'Phase Three',
       email: email,
       password: password,
-    );
+      );
     expect(registered.user.email, email);
     expect(registered.user.role, 'PATIENT');
     expect(registered.user.id, startsWith('#'));
@@ -109,7 +148,12 @@ void main() {
 
   test('the wrong password is a credentials failure, not a dead session',
       () async {
-    await auth.register(name: 'Phase Three', email: email, password: password);
+    await registerPatiently(
+      auth,
+      name: 'Phase Three',
+      email: email,
+      password: password,
+    );
 
     await expectLater(
       auth.login(email: email, password: 'not-the-password'),
@@ -131,11 +175,12 @@ void main() {
   });
 
   test('an authenticated data call works, # in the id and all', () async {
-    final session = await auth.register(
+    final session = await registerPatiently(
+      auth,
       name: 'Phase Three',
       email: email,
       password: password,
-    );
+      );
     client.useToken(session.token);
 
     // The id in the JWT contains a `#`; this proves the round trip survives it
@@ -167,11 +212,12 @@ void main() {
 
     setUpAll(() async {
       scoped = ApiClient(baseUrl: _baseUrl);
-      final session = await AuthRepository(scoped).register(
+      final session = await registerPatiently(
+        AuthRepository(scoped),
         name: 'Phase Four',
         email: 'phase4+${DateTime.now().microsecondsSinceEpoch}@example.com',
         password: password,
-      );
+        );
       scoped.useToken(session.token);
       medicines = MedicineRepository(scoped);
       vitals = VitalRepository(scoped);
@@ -383,11 +429,12 @@ void main() {
 
     setUpAll(() async {
       scoped = ApiClient(baseUrl: _baseUrl);
-      final session = await AuthRepository(scoped).register(
+      final session = await registerPatiently(
+        AuthRepository(scoped),
         name: 'Phase Five',
         email: 'phase5+${DateTime.now().microsecondsSinceEpoch}@example.com',
         password: password,
-      );
+        );
       scoped.useToken(session.token);
       appointments = AppointmentRepository(scoped);
       doctors = DoctorRepository(scoped);
@@ -641,6 +688,210 @@ void main() {
           isA<ApiException>()
               .having((e) => e.kind, 'kind', ApiErrorKind.notFound),
         ),
+      );
+    });
+  });
+
+  group('phase 6, signed in', () {
+    late ApiClient scoped;
+    late MedicineRepository medicines;
+    late TimelineRepository timeline;
+    late SearchRepository search;
+    late CareRepository care;
+    late ChatRepository chat;
+    late bool caretakerEnabled;
+
+    setUpAll(() async {
+      scoped = ApiClient(baseUrl: _baseUrl);
+      final session = await registerPatiently(
+        AuthRepository(scoped),
+        name: 'Phase Six',
+        email: 'phase6+${DateTime.now().microsecondsSinceEpoch}@example.com',
+        password: password,
+        );
+      scoped.useToken(session.token);
+      medicines = MedicineRepository(scoped);
+      timeline = TimelineRepository(scoped);
+      search = SearchRepository(scoped);
+      care = CareRepository(scoped);
+      chat = ChatRepository(scoped);
+
+      final health = await scoped.get<Map<String, dynamic>>(
+        '/health',
+        options: unauthenticated,
+      );
+      caretakerEnabled = health['caretaker'] == true;
+    });
+
+    tearDownAll(() => scoped.close());
+
+    test('a brand-new account has an empty timeline', () async {
+      final page = await timeline.page();
+
+      expect(page.events, isEmpty);
+      expect(page.total, 0);
+    });
+
+    test('adding a medicine puts a row on the timeline', () async {
+      await medicines.create(
+        name: 'Atorvastatin',
+        dosage: '20 mg',
+        frequency: 'Once daily',
+        startDate: MediTime.dateOnly(DateTime.now()),
+        times: const ['21:00'],
+        notes: 'Live check for the timeline.',
+      );
+
+      final page = await timeline.page();
+
+      expect(page.total, 1);
+      final row = page.events.single;
+      expect(row.kind, TimelineKind.medicine);
+      // The server pre-formats the title; the app strips the prefix so the
+      // badge does not say "Medicine" twice.
+      expect(row.title, 'Medicine: Atorvastatin');
+      expect(row.headline, 'Atorvastatin');
+      // Naive UTC, and recent — a decoder that read it as local would be
+      // hours out in either direction.
+      expect(
+        DateTime.now().difference(row.when!).abs(),
+        lessThan(const Duration(minutes: 5)),
+      );
+    });
+
+    test('the page size is respected and the total is the whole record',
+        () async {
+      for (var i = 0; i < 3; i++) {
+        await medicines.create(
+          name: 'Filler $i',
+          dosage: '1 mg',
+          frequency: 'Once daily',
+          startDate: MediTime.dateOnly(DateTime.now()),
+        );
+      }
+
+      final first = await timeline.page(limit: 2);
+
+      expect(first.events, hasLength(2));
+      expect(first.total, greaterThanOrEqualTo(4));
+      expect(first.hasMore, isTrue);
+
+      final second = await timeline.page(limit: 2, offset: 2);
+      expect(
+        second.events.map((e) => e.id),
+        isNot(anyElement(isIn(first.events.map((e) => e.id)))),
+      );
+    });
+
+    test('search finds a medicine by name', () async {
+      final results = await search.find('atorvasta');
+
+      expect(results.total, greaterThanOrEqualTo(1));
+      final hit = results.of(SearchKind.medicine).single;
+      expect(hit.title, 'Atorvastatin');
+      expect(hit.snippet, '20 mg - Once daily');
+    });
+
+    test('search matches a medicine\'s notes, not only its name', () async {
+      final results = await search.find('live check for the timeline');
+
+      expect(results.of(SearchKind.medicine), hasLength(1));
+    });
+
+    test('a query with no matches is an empty list, not an error', () async {
+      final results = await search.find('zzzzz-nothing-matches-this');
+
+      expect(results.results, isEmpty);
+      expect(results.total, 0);
+    });
+
+    test('an empty query never reaches the server', () async {
+      // `q` has min_length=1, so asking would be a 422 rather than an empty
+      // result — the repository answers it locally.
+      expect((await search.find('   ')).results, isEmpty);
+    });
+
+    test('a soft-deleted medicine still turns up in search', () async {
+      // Not a client bug: `search.py` filters deleted documents but not
+      // deleted medicines. Pinned here so a phase-7 fix has a test that
+      // notices — see BACKEND_NOTES §15.
+      final doomed = await medicines.create(
+        name: 'Doxycycline',
+        dosage: '100 mg',
+        frequency: 'Twice daily',
+        startDate: MediTime.dateOnly(DateTime.now()),
+      );
+      await medicines.remove(doomed.id);
+
+      expect((await medicines.list()).map((m) => m.id),
+          isNot(contains(doomed.id)));
+      expect(
+        (await search.find('doxycycline')).of(SearchKind.medicine),
+        hasLength(1),
+      );
+    });
+
+    test('the assistant answers, or says why it cannot', () async {
+      // A local dev server usually has no GROQ_API_KEY. Both outcomes are
+      // correct; what must not happen is an unhandled error or a blank reply.
+      try {
+        final reply = await chat.reply([
+          const ChatMessage.user('In one sentence: what is a normal pulse?'),
+        ]);
+        expect(reply, isNotEmpty);
+      } on AssistantUnavailable catch (failure) {
+        expect(failure.message, isNotEmpty);
+      }
+    });
+
+    test('the care routes match what /health advertises', () async {
+      if (!caretakerEnabled) {
+        // The whole router 404s while the flag is off, and the app has to read
+        // that as "switched off" rather than "not available on your account".
+        await expectLater(
+          care.links(CareRole.patient),
+          throwsA(
+            isA<CareFailure>()
+                .having((f) => f.kind, 'kind', CareFailureKind.featureOff),
+          ),
+          reason: 'the whole /api/care router 404s while the flag is off',
+        );
+        return;
+      }
+
+      expect(await care.links(CareRole.patient), isEmpty);
+      expect(await care.links(CareRole.caretaker), isEmpty);
+    });
+
+    test('a code can be issued and cannot be redeemed by its own author',
+        () async {
+      if (!caretakerEnabled) return;
+
+      final invite = await care.createInvite();
+      expect(invite.code, matches(RegExp(r'^[A-Z0-9]{4}-[A-Z0-9]{4}$')));
+      // Fifteen minutes, and the timestamp carries a real Z.
+      expect(invite.remaining(DateTime.now()).inMinutes, inInclusiveRange(13, 15));
+
+      await expectLater(
+        care.redeem(invite.code),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.message,
+            'message',
+            contains('your own code'),
+          ),
+        ),
+      );
+    });
+
+    test('a made-up code is refused with one uninformative message', () async {
+      if (!caretakerEnabled) return;
+
+      // Wrong, expired and already-used all answer identically on purpose, so
+      // the small code space cannot be probed.
+      await expectLater(
+        care.redeem('ZZZZ-ZZZZ'),
+        throwsA(isA<ApiException>()),
       );
     });
   });

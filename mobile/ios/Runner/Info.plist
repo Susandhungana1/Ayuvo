@@ -32,6 +32,26 @@
 	<string>Take a photo of a report or a prescription to add it to your health record.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose a photo of a report or a prescription to add it to your health record.</string>
+	<!-- Phase 6. When-in-use only: the map is a screen you look at, and a
+	     background location permission for "hospitals near me" would be asking
+	     for far more than the feature needs. -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Show hospitals, clinics and pharmacies near you on the map.</string>
+	<!-- Voice input in the health assistant. Two prompts, because iOS treats
+	     recording audio and having Apple transcribe it as separate consents. -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Ask the health assistant a question by speaking instead of typing.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Turn what you say to the health assistant into text.</string>
+	<!-- url_launcher on iOS refuses any scheme not listed here. `tel` is the
+	     emergency contact's number; `maps` and `comgooglemaps` are what the
+	     Directions link falls back to when a map app is installed. -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>maps</string>
+		<string>comgooglemaps</string>
+	</array>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

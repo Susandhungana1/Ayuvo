@@ -29,14 +29,24 @@ abstract final class Routes {
   static const appointments = '/more/appointments';
   static const share = '/more/share';
   static const emergency = '/more/emergency';
+  static const timeline = '/more/timeline';
+  static const search = '/more/search';
+  static const assistant = '/more/assistant';
+  static const nearby = '/more/nearby';
+  static const caretakers = '/more/caretakers';
+  static const settings = '/more/settings';
 
   // Doctor shell.
   static const doctorAppointments = '/doctor/appointments';
   static const doctorAvailability = '/doctor/availability';
   static const doctorMore = '/doctor/more';
 
-  /// A child of [doctorMore], for the same reason as the patient ones.
+  /// Children of [doctorMore], for the same reason as the patient ones. A
+  /// doctor gets Settings — language and appearance are not patient features —
+  /// but not the caretaker screens, which are about a medicine list they
+  /// do not have.
   static const doctorProfile = '/doctor/more/profile';
+  static const doctorSettings = '/doctor/more/settings';
 
   static const doctorPrefix = '/doctor';
 }

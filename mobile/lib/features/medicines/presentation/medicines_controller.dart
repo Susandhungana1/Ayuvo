@@ -4,6 +4,8 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/cache/cached_list.dart';
+import '../../../core/cache/offline_cache.dart';
 import '../../../core/session/session_controller.dart';
 import '../data/medicine_repository.dart';
 import '../domain/medicine.dart';
@@ -23,6 +25,11 @@ class MedicinesController
 
   String? get _patientId => arg;
 
+  /// False once this controller has been thrown away. The offline read
+  /// publishes its result asynchronously, and by then a sign-out may have
+  /// disposed the notifier underneath it.
+  bool _alive = true;
+
   @override
   Future<List<Medicine>> build(String? patientId) async {
     // A medicine list belongs to an account, so it is derived from who is
@@ -30,11 +37,40 @@ class MedicinesController
     // refetches — instead of one person's prescriptions sitting in a cache
     // while another reads the screen.
     if (ref.watch(currentUserProvider) == null) return const [];
-    return _repository.list(patientId: patientId);
+
+    _alive = true;
+    ref.onDispose(() => _alive = false);
+
+    // A caretaker's view of somebody else's medicines is never written to
+    // disk — the link that authorises it can be revoked at any moment, and a
+    // cached copy would outlive the permission. `offline_cache.dart` has the
+    // full reasoning; this is the only place the rule is applied.
+    if (patientId != null) return _repository.list(patientId: patientId);
+
+    return loadWithCache<Medicine>(
+      cache: ref.watch(offlineCacheProvider),
+      status: ref.read(cacheStatusProvider(CacheKeys.medicines).notifier),
+      name: CacheKeys.medicines,
+      fetch: () => _repository.list(),
+      decode: Medicine.fromJson,
+      encode: (medicine) => medicine.toJson(),
+      publish: (fresh) => state = AsyncData(fresh),
+      alive: () => _alive,
+    );
   }
 
   Future<void> refresh() async {
     state = await AsyncValue.guard(() => _repository.list(patientId: _patientId));
+    if (state.hasValue && _patientId == null) {
+      // A successful manual refresh is the moment the "showing a saved copy"
+      // banner should go away, and the moment the saved copy should be the one
+      // just fetched.
+      ref.read(cacheStatusProvider(CacheKeys.medicines).notifier).live();
+      await ref.read(offlineCacheProvider).write(
+            CacheKeys.medicines,
+            [for (final medicine in state.value!) medicine.toJson()],
+          );
+    }
   }
 
   Future<Medicine> add({

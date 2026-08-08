@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/cache/offline_cache.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/session/session_controller.dart';
 import '../../../core/theme/app_theme.dart';
@@ -20,6 +21,7 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/time/medi_time.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/states.dart';
+import '../../care/presentation/people_i_care_for.dart';
 import '../../medicines/data/medicine_repository.dart';
 import '../../medicines/domain/dose_schedule.dart';
 import '../../medicines/domain/medicine.dart';
@@ -66,6 +68,7 @@ class HomeScreen extends ConsumerWidget {
               style: context.texts.headlineMedium,
             ),
             const SizedBox(height: AppSpacing.lg),
+            const _OfflineNotice(),
             const _NextDose(),
             const SizedBox(height: AppSpacing.lg),
             const _Today(),
@@ -77,8 +80,38 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.xl),
               const _Shortcuts(),
             ],
+            // Nothing at all for the vast majority of accounts, which have no
+            // care links. See `people_i_care_for.dart`.
+            const SizedBox(height: AppSpacing.xl),
+            const PeopleICareFor(),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// "You are looking at a saved copy."
+///
+/// Only appears when the app is actually showing cached rows *and* the attempt
+/// to refresh them failed. Silence otherwise: a permanent "offline mode"
+/// banner is furniture, and one that appears while the data is in fact current
+/// teaches people to ignore it.
+class _OfflineNotice extends ConsumerWidget {
+  const _OfflineNotice();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(cacheStatusProvider(CacheKeys.medicines));
+    if (!status.isStale) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      child: MessageBanner(
+        tone: BannerTone.notice,
+        message: 'Showing what was saved ${MediTime.ago(status.savedAt!)}. '
+            'MediStore could not be reached, so anything added since is '
+            'missing.',
       ),
     );
   }

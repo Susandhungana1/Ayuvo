@@ -18,7 +18,13 @@ import '../domain/document.dart';
 import 'documents_controller.dart';
 
 class DocumentsScreen extends ConsumerWidget {
-  const DocumentsScreen({super.key});
+  const DocumentsScreen({super.key, this.highlightId});
+
+  /// Opened from a search result: that visit's card starts expanded, so the
+  /// user lands on the thing they searched for rather than on a list they have
+  /// to find it in again. There is no document detail screen to deep-link to —
+  /// the card *is* the detail view.
+  final String? highlightId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -46,7 +52,10 @@ class DocumentsScreen extends ConsumerWidget {
                   : Padding(
                       key: ValueKey(value[index].id),
                       padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                      child: _DocumentCard(document: value[index]),
+                      child: _DocumentCard(
+                        document: value[index],
+                        startExpanded: value[index].id == highlightId,
+                      ),
                     ),
             ),
           AsyncError(:final error) => ListView(
@@ -74,9 +83,10 @@ class DocumentsScreen extends ConsumerWidget {
 }
 
 class _DocumentCard extends ConsumerWidget {
-  const _DocumentCard({required this.document});
+  const _DocumentCard({required this.document, this.startExpanded = false});
 
   final MedicalDocument document;
+  final bool startExpanded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -85,6 +95,7 @@ class _DocumentCard extends ConsumerWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
+        initiallyExpanded: startExpanded,
         // No border under the header when collapsed — the card already has one.
         shape: const Border(),
         collapsedShape: const Border(),

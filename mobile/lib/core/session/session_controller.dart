@@ -14,9 +14,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/data/auth_repository.dart';
 import '../../features/auth/domain/auth_user.dart';
+import '../cache/offline_cache.dart';
 import '../network/api_client.dart';
 import '../network/api_exception.dart';
 import '../network/network_providers.dart';
+import '../storage/local_store.dart';
 import '../storage/session_store.dart';
 import 'jwt.dart';
 import 'session_state.dart';
@@ -96,9 +98,20 @@ class SessionController extends AsyncNotifier<SessionState> {
   }
 
   /// The user asked to sign out. No notice — they know why they are here.
+  ///
+  /// The offline cache goes with the token. Its entries are stamped with the
+  /// owner and would be refused for anyone else anyway, but a phone handed to a
+  /// family member should not still have a medicine list on it, refused or not.
+  ///
+  /// Cleared through [LocalStore] rather than through `offlineCacheProvider`:
+  /// that provider watches the session to know whose cache it is, so reading it
+  /// from here would be a circular dependency.
   Future<void> signOut() async {
     _client.useToken(null);
-    await _store.clear();
+    await Future.wait([
+      _store.clear(),
+      ref.read(localStoreProvider).clearPrefix(OfflineCache.filePrefix),
+    ]);
     if (_alive) state = const AsyncData(SignedOut());
   }
 

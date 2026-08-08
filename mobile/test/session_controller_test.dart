@@ -12,6 +12,7 @@ import 'package:medistore/core/network/api_exception.dart';
 import 'package:medistore/core/network/network_providers.dart';
 import 'package:medistore/core/session/session_controller.dart';
 import 'package:medistore/core/session/session_state.dart';
+import 'package:medistore/core/storage/local_store.dart';
 import 'package:medistore/core/storage/session_store.dart';
 import 'package:medistore/features/auth/data/auth_repository.dart';
 import 'package:medistore/features/auth/domain/auth_user.dart';
@@ -37,6 +38,9 @@ import 'support/fakes.dart';
   final container = ProviderContainer(
     overrides: [
       sessionStoreProvider.overrideWithValue(store),
+      // Signing out clears the offline cache as well as the keystore, and the
+      // real store is a method channel that never answers under `flutter test`.
+      localStoreProvider.overrideWithValue(InMemoryLocalStore()),
       apiClientProvider.overrideWith(
         (ref) => ApiClient(
           baseUrl: 'http://127.0.0.1:3001',

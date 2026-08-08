@@ -1,0 +1,201 @@
+{
+  "@@locale": "en",
+
+  "navHome": "Home",
+  "navMedicines": "Medicines",
+  "navVitals": "Vitals",
+  "navReports": "Reports",
+  "navMore": "More",
+  "navAppointments": "Appointments",
+  "navAvailability": "Availability",
+  "navAccount": "Account",
+  "navDocuments": "Documents",
+  "navSharing": "Sharing",
+  "navEmergency": "Emergency ID",
+  "navTimeline": "Timeline",
+  "navSearch": "Search",
+  "navAssistant": "Health assistant",
+  "navNearby": "Nearby care",
+  "navCaretakers": "Caretakers",
+  "navSettings": "Settings",
+  "navDoctorProfile": "Doctor profile",
+
+  "moreAppointmentsBlurb": "Book a doctor, or keep a reminder of one you booked yourself",
+  "moreDocumentsBlurb": "Visits, and the files each one produced",
+  "moreSharingBlurb": "Links that let a doctor read your record without an account",
+  "moreEmergencyBlurb": "Blood type, allergies and who to call, behind a QR",
+  "moreTimelineBlurb": "Everything you have recorded, newest first",
+  "moreSearchBlurb": "Find a report, a medicine or a visit by name",
+  "moreAssistantBlurb": "Ask a general health question. Not a diagnosis",
+  "moreNearbyBlurb": "Hospitals, clinics and pharmacies within 4 km",
+  "moreCaretakersBlurb": "Let someone you trust manage your medicines",
+  "moreSettingsBlurb": "Language, appearance and dose reminders",
+  "moreDoctorProfileBlurb": "Your NMC registration and verification status",
+
+  "signOut": "Sign out",
+  "signOutTitle": "Sign out?",
+  "signOutBody": "Your records stay on the server. You will need your password to get back in.",
+  "signOutStay": "Stay signed in",
+  "retry": "Try again",
+  "cancel": "Cancel",
+  "close": "Close",
+  "remove": "Remove",
+  "copy": "Copy",
+  "copied": "Copied",
+
+  "settingsTitle": "Settings",
+  "settingsLanguage": "Language",
+  "settingsLanguageBlurb": "Navigation and this screen change straight away. Most other text is still English only.",
+  "languageEnglish": "English",
+  "languageNepali": "नेपाली",
+  "settingsAppearance": "Appearance",
+  "themeSystem": "Match my phone",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "settingsReminders": "Dose reminders",
+  "settingsRemindersBlurb": "A notification at each dose time, scheduled on this phone. Nothing about a medicine is sent anywhere.",
+  "settingsRemindersOn": "Remind me to take my medicines",
+  "settingsRemindersDenied": "Notifications are switched off for MediStore. Turn them on in your phone's settings, then come back.",
+  "settingsRemindersScheduled": "{count, plural, =0{Nothing scheduled yet} =1{1 reminder scheduled} other{{count} reminders scheduled}}",
+  "@settingsRemindersScheduled": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "settingsRemindersHorizon": "Covers the next 7 days. The app refreshes them whenever you open it.",
+
+  "timelineTitle": "Timeline",
+  "timelineSubtitle": "Everything on your record, newest first",
+  "timelineEmptyTitle": "Nothing recorded yet",
+  "timelineEmptyBody": "Upload a report, add a medicine or take a reading, and it shows up here in order.",
+  "timelineEventCount": "{count, plural, =1{1 entry} other{{count} entries}}",
+  "@timelineEventCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "timelineLoadMore": "Show older",
+  "timelineAllLoaded": "That is the whole record.",
+  "timelineTypeReport": "Report",
+  "timelineTypeMedicine": "Medicine",
+  "timelineTypeAppointment": "Appointment",
+  "timelineTypeVital": "Reading",
+
+  "searchTitle": "Search",
+  "searchHint": "Reports, medicines, documents",
+  "searchPromptTitle": "Search your record",
+  "searchPromptBody": "Matches a report's summary and its scanned text, a medicine's name and notes, and a visit's hospital, doctor or department.",
+  "searchNoResultsTitle": "Nothing matched",
+  "searchNoResultsBody": "No report, medicine or document contains “{query}”.",
+  "@searchNoResultsBody": {
+    "placeholders": { "query": { "type": "String" } }
+  },
+  "searchResultCount": "{count, plural, =1{1 result} other{{count} results}}",
+  "@searchResultCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "searchTypeReport": "Report",
+  "searchTypeMedicine": "Medicine",
+  "searchTypeDocument": "Visit",
+
+  "assistantTitle": "Health assistant",
+  "assistantGreeting": "Ask me about symptoms, medicines, nutrition or fitness. I answer in general terms only.",
+  "assistantDisclaimer": "An AI, not a doctor. Nothing here is a diagnosis, and it cannot see your records.",
+  "assistantHint": "Ask about health",
+  "assistantListening": "Listening…",
+  "assistantSend": "Send",
+  "assistantVoice": "Speak your question",
+  "assistantThinking": "Thinking…",
+  "assistantClear": "Clear this conversation",
+  "assistantCleared": "Conversation cleared",
+  "assistantOffTitle": "The assistant is not switched on",
+  "assistantOffBody": "This server has no GROQ_API_KEY set, so there is nothing to answer with.",
+  "assistantTrimmed": "Older messages are dropped from what gets sent, so a long conversation keeps working.",
+
+  "nearbyTitle": "Nearby care",
+  "nearbyLocating": "Finding you…",
+  "nearbyShowingYours": "Care within 4 km of you.",
+  "nearbyDenied": "Location is off, so this is Kathmandu. Allow location to see what is near you.",
+  "nearbyUnavailable": "This phone would not give a location, so this is Kathmandu.",
+  "nearbyNone": "Nothing found within 4 km.",
+  "nearbyFailed": "Could not reach the map data service. It is a public service and is sometimes busy.",
+  "nearbyDirections": "Directions",
+  "nearbyUseMyLocation": "Use my location",
+  "nearbyKindHospital": "Hospital",
+  "nearbyKindClinic": "Clinic",
+  "nearbyKindPharmacy": "Pharmacy",
+  "nearbyDistanceKm": "{km} km away",
+  "@nearbyDistanceKm": {
+    "placeholders": { "km": { "type": "String" } }
+  },
+  "nearbyAttribution": "© OpenStreetMap contributors",
+  "nearbyYouAreHere": "You are here",
+
+  "caretakersTitle": "Caretakers",
+  "caretakersBlurb": "A caretaker can see and manage your medicines, and gets your dose reminders. They cannot see your vitals, reports, documents or anything else.",
+  "caretakersAddTitle": "Add a caretaker",
+  "caretakersAddBlurb": "Generate a code and read it out to the person with you. It works once, and only for the next 15 minutes.",
+  "caretakersGenerate": "Generate a code",
+  "caretakersGenerating": "Generating…",
+  "caretakersCodeWarning": "This code cannot be shown again once hidden or expired. Generating a new one cancels it.",
+  "caretakersExpiresIn": "Expires in {time}",
+  "@caretakersExpiresIn": {
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "caretakersExpired": "Expired",
+  "caretakersHide": "Hide",
+  "caretakersYours": "Your caretakers",
+  "caretakersNone": "Nobody is helping manage your medicines yet.",
+  "caretakersAdded": "Added {date}",
+  "@caretakersAdded": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "caretakersRemoveTitle": "Remove {name}?",
+  "@caretakersRemoveTitle": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "caretakersRemoveBody": "They lose access to your medicines immediately and stop getting your reminders.",
+  "caretakersActivity": "Recent caretaker activity",
+  "caretakersActivityNone": "No changes by a caretaker yet.",
+  "caretakersRestore": "Restore",
+  "caretakersOffTitle": "Caretakers is switched off",
+  "caretakersOffBody": "This server has the caretaker feature disabled. It needs CARETAKER_ENABLED=true on the API.",
+
+  "careMineTitle": "People I care for",
+  "careMineAdd": "Add someone",
+  "careMinePrompt": "Caring for someone? Enter their code",
+  "careRedeemTitle": "Enter a care code",
+  "careRedeemBlurb": "The person you are helping generates this on their own phone, under Caretakers. It lasts 15 minutes.",
+  "careRedeemLabel": "Their care code",
+  "careRedeemSubmit": "Add",
+  "careMedicineCount": "{count, plural, =0{No medicines} =1{1 medicine} other{{count} medicines}}",
+  "@careMedicineCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "careNextDose": "Next: {label}",
+  "@careNextDose": {
+    "placeholders": { "label": { "type": "String" } }
+  },
+  "careNoDoses": "No upcoming doses",
+  "careDoseAt": "{name} at {time}",
+  "@careDoseAt": {
+    "placeholders": { "name": { "type": "String" }, "time": { "type": "String" } }
+  },
+  "careDoseTomorrow": "{time} tomorrow",
+  "@careDoseTomorrow": {
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "careTheirTime": "(their time)",
+  "careManage": "Manage medicines",
+  "careMuted": "Reminders muted",
+  "careMute": "Mute reminders",
+  "careUnmute": "Unmute reminders",
+  "careScopeBanner": "You are managing medicines for {name}.",
+  "@careScopeBanner": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "careScopeOnly": "Medicines only — nothing else on their record is shown here, or fetched.",
+  "careGoneTitle": "No longer available",
+  "careGoneBody": "You do not have access to this person's medicines.",
+  "careRevoked": "{name} removed your caretaker access.",
+  "@careRevoked": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "careBackToMine": "Back to my own record"
+}
