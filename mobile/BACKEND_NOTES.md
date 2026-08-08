@@ -6,11 +6,19 @@
 
 **As of the end of phase 6 the list is complete**: §1–§15 are everything six phases
 of building against this API turned up. Phase 7 is where you approve some subset of
-it. Four are proven against a running server rather than read off the source —
+it. Five are proven against a running server rather than read off the source —
 §11 (two patients given the same slot), §15 (search returns deleted medicines),
 §10 (a booking is confirmed on the doctor's behalf, so `PENDING` is unreachable),
+§7 (a caretaker is shown the wrong medicine at the wrong time on the wrong day),
 and the answer written into §8 (local reminders cover the patient and cannot reach
 a caretaker).
+
+**Opening phase 7 closed the two entries that said "measure this first."** §3 asked
+for the payload it saves and now has it — 86% of the list, but only ≈172 KB at 30
+reports, so it is **downgraded**. §7 asked for its symptom to be observed and now has
+it, and the symptom is not the one this file claimed: it is not a shifted clock, it
+is the wrong dose. §7 is **upgraded to high** and is the only item here that makes a
+shipped screen state something false. Neither of those edits touched `server/`.
 
 `python -m pytest -q` → **147 passed** (130 before, +17 new tests). Commits:
 
@@ -150,9 +158,8 @@ correctly in the list.
 ## 3. `GET /api/reports` ships the full OCR text and full AI report for every report
 
 **Problem.** `ReportResponse` includes `extracted_text` and `ai_report_text`, and the
-list endpoint returns every report with both. A user with 30 scanned reports pulls
-several MB on every visit to the Reports tab, over mobile data, to render cards that
-show only type, date, filename and notes.
+list endpoint returns every report with both, to render cards that show only type,
+date, filename, notes and `result_summary`.
 
 **Proposal.** An optional `?include_text=false` on `GET /api/reports`, defaulting to
 `true` so today's callers are unchanged. With it, `extracted_text` and
@@ -162,8 +169,30 @@ show only type, date, filename and notes.
 - **Blast radius:** one optional query parameter; default reproduces today exactly.
 - **Migration:** none.
 - **`front/` affected:** no — it never sends the parameter.
-- **Evidence needed first:** measure the real payload on a populated account during
-  phase 4 and put the number here before proposing it for real.
+
+**Measured, and it downgrades this item.** Phase 4 asked for a number before
+proposing this for real. Taken from the three real reports in the local database
+(`select length(extracted_text), length(ai_report_text) from medical_reports`):
+
+| Per report | Bytes |
+|---|---|
+| `ai_report_text` | 4 661 – 5 752 (avg 5 234) |
+| `extracted_text` | 36 – 701 (avg 479) |
+| everything the card actually renders | ≈ 900 incl. `result_summary` ≈ 730 |
+
+So the suppressible text is **≈ 5.7 KB per report, 86% of the list payload**, and
+`ai_report_text` alone is 92% of that. But the absolute number is an order of
+magnitude below what this entry originally claimed: 30 reports is **≈ 172 KB**, not
+"several MB". That is one second on a bad connection, not a broken screen.
+`thumbnail` and `file_content` are *not* in `ReportResponse`, which is what keeps it
+small — the OCR text is the only bulk on the wire.
+
+**And it is not a server-only change.** `report_detail_screen.dart:32` deliberately
+reads the report out of the list rather than refetching, precisely because the list
+already carried every field. Suppressing the text means that screen needs a
+`GET /api/reports/{id}` fetch with its own loading and error states. Two-sided work
+for 150 KB. **Priority: low** — recorded as correct but not worth phase-7 budget
+unless an account gets far bigger than any on this machine.
 
 ---
 
@@ -235,14 +264,48 @@ and revocation on sign-out.
 
 ---
 
-## 7. The server cannot learn a mobile user's timezone
+## 7. The server cannot learn a mobile user's timezone — **proved live, and worse than written**
 
 **Problem.** `app/core/doses.py::patient_timezone` infers the zone from the newest
 row in `push_subscriptions` — a **browser** Web Push subscription. A patient who only
-ever uses the Flutter app has no such row, so the server treats them as UTC. Two
-things go wrong: the caretaker's "next dose" card
-(`care.py::_client_summary`) reports a UTC wall clock, and any server-driven reminder
-fires at the wrong hour.
+ever uses the Flutter app has no such row, so the server treats them as UTC. In Nepal
+that is 5h45m of error, and for this app it is not an edge case: a mobile-only
+patient can never have a push-subscription row, so UTC is what they always get.
+
+**The symptom this entry originally claimed was wrong.** It said the caretaker card
+"reports a UTC wall clock". It does not: `next_dose_local` is
+`slot.strftime("%H:%M")` where the slot is built from a `taking_times` string
+(`doses.py:114`), so the *string* is verbatim and correct whatever the zone. The
+timezone only decides **which** slot is next — which makes it worse, not better,
+because a plausible-looking time is harder to distrust than an obviously shifted one.
+What the UTC fallback actually corrupts is the choice of slot, the medicine named
+beside it, and `next_dose_is_today`.
+
+**Proved against the running local backend, 2026-08-08.** Two throwaway accounts,
+two medicines, a real care link, read back through `GET /api/care/links?role=caretaker`
+(the rows were deleted afterwards):
+
+```
+UTC now  2026-08-08 14:03
+NPT now  2026-08-08 19:48   ← the patient's actual wall clock
+
+caretaker's card:   Amlodipine at 17:00, next_dose_is_today = true, timezone "UTC"
+the patient's own phone, from the same taking_times:
+                    Metformin at 07:00, tomorrow
+```
+
+Wrong medicine, wrong time, wrong day — and wrong in the dangerous direction. The
+card points a caretaker at a dose that passed nearly three hours ago and labels it
+as still to come. A caretaker who acts on that prompts a second Amlodipine.
+
+**No client can fix this.** The mitigation this entry used to recommend does not
+work. A caretaker's phone knows its own zone and the patient's `taking_times`, but
+it does not know and cannot learn **the patient's zone** — nothing in any response
+carries it except `next_dose_timezone`, which is the wrong value being explained.
+Without that, "is 07:00 still ahead for them?" is unanswerable. The mobile app
+therefore renders the server's answer verbatim, which is the documented rule
+(`README.md`) and is now known to render a wrong answer
+(`KNOWN_ISSUES.md` P7-1).
 
 **Proposal.** A nullable `users.timezone` column, settable through the existing
 `PUT /api/users/me` as one more optional field, with `patient_timezone` preferring it
@@ -252,11 +315,16 @@ and falling back to the push-subscription lookup exactly as today.
   order that is a strict fallback (unset column ⇒ identical behaviour).
 - **Migration:** yes — nullable column, `_ADD_COLUMNS`, production first.
 - **`front/` affected:** no.
-- **Client-side mitigation that mostly works:** a caretaker can already read the
-  patient's `taking_times`, which are wall-clock strings needing no timezone at all.
-  The Flutter caretaker card can compute the next dose itself and only loses the
-  today/tomorrow distinction. Do that first; revisit if server-driven reminders (§8)
-  are ever approved.
+- **Priority: high**, raised from medium. Not for the missing column itself but for
+  what it makes a live screen say. It is also cheap: one nullable column, one
+  optional field on a route that already accepts a partial body, and a lookup order
+  that is a strict fallback. Every existing web user keeps the push-subscription
+  answer they have today.
+- **The one design question in it.** A timezone is weak location data. `PUT
+  /api/users/me` is the right place (the user owns the row), it must stay optional
+  and unset-by-default, and it must not go anywhere near a log or Sentry. The app
+  would send `flutter_timezone`'s identifier once at sign-in — the same string it
+  already uses locally to schedule reminders.
 
 ---
 

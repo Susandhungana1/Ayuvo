@@ -638,6 +638,48 @@ Postgres. Extends P3-6 rather than closing it.
 
 ---
 
+## Phase 7 — Backend pass
+
+Opened while assembling the approval list, before any `server/` edit. Both entries
+are findings, not regressions: nothing here was introduced by phase 7.
+
+### P7-1 · A caretaker is shown the wrong dose, for the wrong medicine, on the wrong day — **Blocked** (backend)
+
+The single worst thing this app currently states as fact. `people_i_care_for.dart`
+renders `next_dose_local`, `next_dose_name` and `next_dose_is_today` from
+`GET /api/care/links` verbatim, which is the correct rule — the caretaker must see
+the patient's wall clock, not their own. The values themselves are wrong for any
+patient who has only ever used the mobile app, because
+`doses.py::patient_timezone` learns a zone from Web Push subscriptions and a
+mobile-only patient has none, so the server picks the next slot against a UTC
+"now" that runs 5h45m behind Kathmandu.
+
+Measured on the running local backend at 19:48 NPT, with doses at 07:00 and 17:00:
+the card said **Amlodipine, 17:00, today** where the truth was **Metformin, 07:00,
+tomorrow**. It points at a dose that passed hours ago and calls it upcoming, which
+is the direction that gets somebody a second tablet.
+
+**Blocked, not deferred.** No client can compute its way out: the patient's
+timezone is not in any response, so "is 07:00 still ahead for them?" has no
+client-side answer. `BACKEND_NOTES.md` §7 is the fix — one nullable column — and
+it is on the approval list as high priority. Until it lands, the honest fallback
+would be to drop the today/tomorrow line and the time from the card and show only
+the medicine count, which is worse as a feature and better as a claim. **That
+choice is yours; I have not made it unilaterally, because it removes something
+you approved in phase 6.**
+
+### P7-2 · The §3 payload saving is real and small — **Papercut** (backend)
+
+Recorded because the measurement contradicts what `BACKEND_NOTES.md` claimed for
+five phases. `GET /api/reports` ships `extracted_text` + `ai_report_text` for every
+report — 86% of the list payload, but ≈5.7 KB a report, so ≈172 KB at thirty. The
+entry said "several MB". It is worth fixing eventually and it is not worth a
+migration slot, and it would need a client change too:
+`report_detail_screen.dart:32` reads the report out of the list precisely because
+the list already carries everything.
+
+---
+
 ## Closed
 
 | Entry | Closed by | What it was |
