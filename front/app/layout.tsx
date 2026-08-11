@@ -42,7 +42,13 @@ export default function RootLayout({
         />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){try{if(navigator.serviceWorker){navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(s){s.unregister()})})}if(window.caches&&caches.keys){caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k)})})}}catch(e){}}})();`,
+            // Local dev keeps its service worker — do NOT unregister it here.
+            // Unregistering deletes the registration's Web Push subscriptions,
+            // so a reload on localhost silently killed every medicine reminder
+            // the user had enabled. The stale-cache problem this once solved is
+            // handled by the versioned cache name in sw.js, so only caches are
+            // cleared (harmless) while the registration survives.
+            __html: `(function(){if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){try{if(window.caches&&caches.keys){caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k)})})}}catch(e){}}})();`,
           }}
         />
       </head>
