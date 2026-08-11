@@ -33,7 +33,10 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../../features/medicines/domain/dose_schedule.dart';
 import '../../features/medicines/domain/medicine.dart';
+import '../network/network_providers.dart';
 import '../time/medi_time.dart';
+import 'web_reminders_stub.dart'
+    if (dart.library.js_interop) 'web_reminders.dart' as web_reminders;
 
 enum ReminderPermission {
   /// Allowed to post notifications.
@@ -67,6 +70,11 @@ abstract interface class Reminders {
   Future<int> schedule(List<DoseSlot> slots);
 
   Future<void> cancelAll();
+
+  /// Schedules a single notification a few seconds from now so the user can
+  /// verify end-to-end delivery without waiting for a dose time. Returns false
+  /// when permission is missing or scheduling fails — the caller says why.
+  Future<bool> sendTest();
 }
 
 /// How far ahead to schedule, and how many alarms that may cost.
@@ -240,6 +248,42 @@ class LocalReminders implements Reminders {
     await _plugin.cancelAll();
   }
 
+  /// A fixed id outside the dose-id space, so a test notification can never be
+  /// mistaken for a real dose slot by a re-sync.
+  static const _testId = 0x7ffffff0;
+
+  @override
+  Future<bool> sendTest() async {
+    await initialise();
+    if (await status() != ReminderPermission.granted) return false;
+    try {
+      await _plugin.zonedSchedule(
+        id: _testId,
+        title: 'MediStore test reminder',
+        body: 'Your dose reminders are working.',
+        scheduledDate:
+            tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10)),
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            _channelName,
+            channelDescription: _channelDescription,
+            importance: Importance.high,
+            priority: Priority.high,
+            category: AndroidNotificationCategory.reminder,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+      return true;
+    } catch (error) {
+      // One bad schedule must not take the settings screen down with it.
+      debugPrint('Could not schedule test reminder: $error');
+      return false;
+    }
+  }
+
   /// A stable 31-bit id derived from the slot's own key, so re-scheduling the
   /// same dose reuses the same notification instead of stacking duplicates.
   static int _idFor(DoseSlot slot) => slot.key.hashCode & 0x7fffffff;
@@ -256,6 +300,10 @@ class NoReminders implements Reminders {
   final scheduled = <List<DoseSlot>>[];
 
   int cancels = 0;
+
+  /// How many times a test reminder was asked for. Lets a widget test assert on
+  /// the button without a platform channel.
+  int testRequests = 0;
 
   @override
   Future<void> initialise() async {}
@@ -274,12 +322,21 @@ class NoReminders implements Reminders {
 
   @override
   Future<void> cancelAll() async => cancels++;
+
+  @override
+  Future<bool> sendTest() async {
+    testRequests++;
+    return permission == ReminderPermission.granted;
+  }
 }
 
-/// The real thing on a phone, a no-op everywhere else. A widget test overrides
-/// this; nothing else should have to know which it got.
+/// The real thing on a phone, the server's Web Push in a browser, a no-op
+/// everywhere else (a widget test overrides this; nothing else should have to
+/// know which it got).
 final remindersProvider = Provider<Reminders>((ref) {
-  if (kIsWeb) return NoReminders();
+  if (kIsWeb) {
+    return web_reminders.createWebReminders(ref.watch(apiClientProvider));
+  }
   return switch (defaultTargetPlatform) {
     TargetPlatform.android || TargetPlatform.iOS => LocalReminders(),
     _ => NoReminders(),

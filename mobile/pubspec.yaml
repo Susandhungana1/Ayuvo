@@ -16,6 +16,8 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
+# Read more about Windows versioning at
+# https://developer.microsoft.com/en-us/windows/apps/publish/versioning
 version: 1.0.0+1
 
 environment:
@@ -41,11 +43,15 @@ dependencies:
   freezed_annotation: ^3.1.0
   json_annotation: ^4.12.0
   fl_chart: ^1.2.0
-  file_picker: ^3.0.4
+  file_picker: ^12.0.0-beta.7
   image_picker: ^1.2.3
   printing: ^5.15.0
   pdf: ^3.13.0
   path_provider: ^2.1.6
+  # Browser APIs (localStorage, Notification, PushManager, ServiceWorker) for
+  # the web build. Present transitively already; declared so the web-only files
+  # that import it can lint cleanly.
+  web: ^1.1.1
   # Pinned by flutter_localizations, which depends on exactly 0.20.2. Raising
   # this constraint makes the SDK package unresolvable — see the phase 6 group
   # below.
@@ -81,7 +87,7 @@ dev_dependencies:
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
+  # package. See that file for information on deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   build_runner: ^2.15.1
@@ -94,10 +100,33 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
 
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
   uses-material-design: true
+
+  fonts:
+    - family: Figtree
+      fonts:
+        - asset: assets/fonts/Figtree-Regular.ttf
+        - asset: assets/fonts/Figtree-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Figtree-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Figtree-Bold.ttf
+          weight: 700
+    - family: Noto Sans
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf
+        - asset: assets/fonts/NotoSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/NotoSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/NotoSans-Bold.ttf
+          weight: 700
+    - family: Noto Sans Devanagari
+      fonts:
+        - asset: assets/fonts/NotoSansDevanagari-Regular.ttf
+
+  assets:
+    - assets/fonts/
 
   # Builds AppLocalizations from lib/l10n/*.arb — see l10n.yaml.
   generate: true
@@ -130,5 +159,5 @@ flutter:
   #       - asset: fonts/TrajanPro_Bold.ttf
   #         weight: 700
   #
-  # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/to/font-from-package
+  # For details regarding fonts from package dependencies, see
+  # https://flutter.dev/to/font-from-package

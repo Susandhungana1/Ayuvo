@@ -20,6 +20,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'local_store_io.dart'
+    if (dart.library.js_interop) 'local_store_web.dart' as impl;
+
 abstract interface class LocalStore {
   Future<String?> read(String key);
 
@@ -152,7 +155,7 @@ class InMemoryLocalStore implements LocalStore {
       _values.removeWhere((key, _) => key.startsWith(prefix));
 }
 
-final localStoreProvider = Provider<LocalStore>((ref) => FileLocalStore());
+final localStoreProvider = Provider<LocalStore>((ref) => impl.createDefaultLocalStore());
 
 /// Reads a JSON object, tolerating a file written by an older version or
 /// truncated by a crash mid-write. Corrupt input is a cache miss, never a
