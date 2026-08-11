@@ -191,6 +191,14 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return output;
 }
 
+// The VAPID public key we last subscribed with. Browsers do not expose which
+// key an existing subscription was created under, so we remember it ourselves:
+// if the server rotates its keypair, every old subscription is silently
+// rejected by the push service (the classic "push worked, then stopped" bug)
+// and the only fix is a brand-new subscription. When this stored key differs
+// from the server's current one we tear the old subscription down and resubscribe.
+const VAPID_KEY_STORE = "medpush:vapidKey";
+
 export async function ensurePushSubscription(): Promise<boolean> {
   try {
     if (typeof window === "undefined") return false;
@@ -206,11 +214,30 @@ export async function ensurePushSubscription(): Promise<boolean> {
 
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
+
+    let lastKey: string | null = null;
+    try {
+      lastKey = localStorage.getItem(VAPID_KEY_STORE);
+    } catch {
+      /* private-mode storage — treated as "never subscribed" */
+    }
+
+    const keyChanged = lastKey !== null && lastKey !== publicKey;
+    if (sub && keyChanged) {
+      await sub.unsubscribe().catch(() => {});
+      sub = null;
+    }
+
     if (!sub) {
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
       });
+      try {
+        localStorage.setItem(VAPID_KEY_STORE, publicKey);
+      } catch {
+        /* see above */
+      }
     }
 
     const json = sub.toJSON();
