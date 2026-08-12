@@ -1,0 +1,204 @@
+{
+  "@@locale": "ne",
+
+  "navHome": "गृहपृष्ठ",
+  "navMedicines": "औषधिहरू",
+  "navVitals": "स्वास्थ्य नाप",
+  "navReports": "रिपोर्टहरू",
+  "navMore": "थप",
+  "navAppointments": "अपोइन्टमेन्ट",
+  "navAvailability": "उपलब्धता",
+  "navAccount": "खाता",
+  "navDocuments": "कागजातहरू",
+  "navSharing": "साझेदारी",
+  "navEmergency": "आपतकालीन आईडी",
+  "navTimeline": "समयरेखा",
+  "navSearch": "खोज",
+  "navAssistant": "स्वास्थ्य सहायक",
+  "navNearby": "नजिकैको सेवा",
+  "navCaretakers": "हेरचाहकर्ता",
+  "navSettings": "सेटिङ",
+  "navDoctorProfile": "डाक्टर प्रोफाइल",
+
+  "moreAppointmentsBlurb": "डाक्टरसँग समय लिनुहोस्, वा आफैंले लिएको भेटको सम्झना राख्नुहोस्",
+  "moreDocumentsBlurb": "अस्पताल भ्रमण, र हरेकबाट आएका कागजातहरू",
+  "moreSharingBlurb": "खाता नबनाई डाक्टरले तपाईंको रेकर्ड हेर्न सक्ने लिंक",
+  "moreEmergencyBlurb": "रगतको समूह, एलर्जी र कसलाई फोन गर्ने — QR भित्र",
+  "moreTimelineBlurb": "तपाईंले राख्नुभएको सबै कुरा, नयाँदेखि क्रमैसँग",
+  "moreSearchBlurb": "रिपोर्ट, औषधि वा भ्रमण नामबाट खोज्नुहोस्",
+  "moreAssistantBlurb": "सामान्य स्वास्थ्य प्रश्न सोध्नुहोस्। यो निदान होइन",
+  "moreNearbyBlurb": "४ कि.मि. भित्रका अस्पताल, क्लिनिक र फार्मेसी",
+  "moreCaretakersBlurb": "विश्वास लाग्ने कसैलाई आफ्नो औषधि हेर्न दिनुहोस्",
+  "moreSettingsBlurb": "भाषा, रूप र औषधिको सम्झना",
+  "moreDoctorProfileBlurb": "तपाईंको NMC दर्ता र प्रमाणीकरणको अवस्था",
+
+  "signOut": "लगआउट",
+  "signOutTitle": "लगआउट गर्ने?",
+  "signOutBody": "तपाईंको रेकर्ड सर्भरमै रहन्छ। फेरि भित्र पस्न पासवर्ड चाहिन्छ।",
+  "signOutStay": "लगइन नै रहने",
+  "retry": "फेरि प्रयास गर्नुहोस्",
+  "cancel": "रद्द गर्नुहोस्",
+  "close": "बन्द गर्नुहोस्",
+  "remove": "हटाउनुहोस्",
+  "copy": "कपी गर्नुहोस्",
+  "copied": "कपी भयो",
+
+  "settingsTitle": "सेटिङ",
+  "settingsLanguage": "भाषा",
+  "settingsLanguageBlurb": "नेभिगेसन र यो पृष्ठ तुरुन्तै बदलिन्छ। अरू धेरै पाठ अझै अंग्रेजीमै छ।",
+  "languageEnglish": "English",
+  "languageNepali": "नेपाली",
+  "settingsAppearance": "रूप",
+  "themeSystem": "फोनले जे भन्छ",
+  "themeLight": "उज्यालो",
+  "themeDark": "अँध्यारो",
+  "settingsReminders": "औषधिको सम्झना",
+  "settingsRemindersBlurb": "हरेक औषधिको समयमा यही फोनबाट सूचना आउँछ। औषधिको कुनै विवरण कतै पठाइँदैन।",
+  "settingsRemindersOn": "औषधि खाने बेला सम्झाइदेऊ",
+  "settingsRemindersDenied": "MediStore का लागि सूचना बन्द छ। फोनको सेटिङबाट खोलेर फर्किनुहोस्।",
+  "settingsRemindersScheduled": "{count, plural, =0{अहिलेसम्म केही मिलाइएको छैन} other{{count} वटा सम्झना मिलाइएको छ}}",
+  "@settingsRemindersScheduled": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "settingsRemindersHorizon": "आउने ७ दिनका लागि। एप खोल्दा हरेक पटक नयाँ गरिन्छ।",
+  "settingsRemindersTest": "परीक्षण सम्झना पठाउनुहोस्",
+  "settingsRemindersTestSent": "परीक्षण सम्झना मिलाइयो — केही सेकेन्डमा स्क्रिन जाँच गर्नुहोस्।",
+  "settingsRemindersTestFailed": "परीक्षण सम्झना मिलाउन सकिएन। MediStore का लागि सूचना अनुमति जाँच गर्नुहोस्।",
+
+  "timelineTitle": "समयरेखा",
+  "timelineSubtitle": "तपाईंको रेकर्डको सबै कुरा, नयाँदेखि क्रमैसँग",
+  "timelineEmptyTitle": "अहिलेसम्म केही छैन",
+  "timelineEmptyBody": "रिपोर्ट राख्नुहोस्, औषधि थप्नुहोस् वा नाप लिनुहोस् — यहाँ क्रमैसँग देखिन्छ।",
+  "timelineEventCount": "{count, plural, =1{१ वटा} other{{count} वटा}}",
+  "@timelineEventCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "timelineLoadMore": "पुराना हेर्नुहोस्",
+  "timelineAllLoaded": "यत्ति नै हो — पूरै रेकर्ड।",
+  "timelineTypeReport": "रिपोर्ट",
+  "timelineTypeMedicine": "औषधि",
+  "timelineTypeAppointment": "अपोइन्टमेन्ट",
+  "timelineTypeVital": "नाप",
+
+  "searchTitle": "खोज",
+  "searchHint": "रिपोर्ट, औषधि, कागजात",
+  "searchPromptTitle": "आफ्नो रेकर्डमा खोज्नुहोस्",
+  "searchPromptBody": "रिपोर्टको सारांश र स्क्यान गरिएको पाठ, औषधिको नाम र टिप्पणी, अनि भ्रमणको अस्पताल, डाक्टर वा विभागसँग मिलाइन्छ।",
+  "searchNoResultsTitle": "केही मिलेन",
+  "searchNoResultsBody": "कुनै पनि रिपोर्ट, औषधि वा कागजातमा “{query}” छैन।",
+  "@searchNoResultsBody": {
+    "placeholders": { "query": { "type": "String" } }
+  },
+  "searchResultCount": "{count, plural, =1{१ वटा नतिजा} other{{count} वटा नतिजा}}",
+  "@searchResultCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "searchTypeReport": "रिपोर्ट",
+  "searchTypeMedicine": "औषधि",
+  "searchTypeDocument": "भ्रमण",
+
+  "assistantTitle": "स्वास्थ्य सहायक",
+  "assistantGreeting": "लक्षण, औषधि, खानपान वा व्यायामबारे सोध्नुहोस्। म सामान्य जानकारी मात्र दिन्छु।",
+  "assistantDisclaimer": "म AI हुँ, डाक्टर होइन। यो निदान होइन, र मैले तपाईंको रेकर्ड देख्दिनँ।",
+  "assistantHint": "स्वास्थ्यबारे सोध्नुहोस्",
+  "assistantListening": "सुन्दैछु…",
+  "assistantSend": "पठाउनुहोस्",
+  "assistantVoice": "बोलेर सोध्नुहोस्",
+  "assistantThinking": "सोच्दैछु…",
+  "assistantClear": "यो कुराकानी मेटाउनुहोस्",
+  "assistantCleared": "कुराकानी मेटियो",
+  "assistantOffTitle": "सहायक चालु छैन",
+  "assistantOffBody": "यो सर्भरमा GROQ_API_KEY राखिएको छैन, त्यसैले जवाफ दिने केही छैन।",
+  "assistantTrimmed": "पुराना सन्देश पठाउने सूचीबाट हटाइन्छ, ताकि लामो कुराकानी पनि चलिरहोस्।",
+
+  "nearbyTitle": "नजिकैको सेवा",
+  "nearbyLocating": "तपाईं कहाँ हुनुहुन्छ हेर्दैछु…",
+  "nearbyShowingYours": "तपाईंबाट ४ कि.मि. भित्रका सेवा।",
+  "nearbyDenied": "स्थान बन्द छ, त्यसैले यो काठमाडौं हो। नजिकैको हेर्न स्थान खोल्नुहोस्।",
+  "nearbyUnavailable": "यो फोनले स्थान दिएन, त्यसैले यो काठमाडौं हो।",
+  "nearbyNone": "४ कि.मि. भित्र केही भेटिएन।",
+  "nearbyFailed": "नक्सा सेवासँग सम्पर्क भएन। यो सार्वजनिक सेवा हो र कहिलेकाहीँ व्यस्त हुन्छ।",
+  "nearbyDirections": "बाटो",
+  "nearbyUseMyLocation": "मेरो स्थान प्रयोग गर्नुहोस्",
+  "nearbyKindHospital": "अस्पताल",
+  "nearbyKindClinic": "क्लिनिक",
+  "nearbyKindPharmacy": "फार्मेसी",
+  "nearbyDistanceKm": "{km} कि.मि. टाढा",
+  "@nearbyDistanceKm": {
+    "placeholders": { "km": { "type": "String" } }
+  },
+  "nearbyAttribution": "© OpenStreetMap contributors",
+  "nearbyYouAreHere": "तपाईं यहाँ हुनुहुन्छ",
+
+  "caretakersTitle": "हेरचाहकर्ता",
+  "caretakersBlurb": "हेरचाहकर्ताले तपाईंको औषधि हेर्न र मिलाउन सक्छ, र तपाईंको सम्झना पाउँछ। तर स्वास्थ्य नाप, रिपोर्ट, कागजात वा अरू केही देख्दैन।",
+  "caretakersAddTitle": "हेरचाहकर्ता थप्नुहोस्",
+  "caretakersAddBlurb": "कोड बनाएर आफूसँगै भएको मान्छेलाई भन्नुहोस्। एक पटक मात्र चल्छ, र १५ मिनेटसम्म मात्र।",
+  "caretakersGenerate": "कोड बनाउनुहोस्",
+  "caretakersGenerating": "बन्दैछ…",
+  "caretakersCodeWarning": "लुकाएपछि वा समय सकिएपछि यो कोड फेरि देखाउन मिल्दैन। नयाँ बनाउँदा यो रद्द हुन्छ।",
+  "caretakersExpiresIn": "{time} मा सकिन्छ",
+  "@caretakersExpiresIn": {
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "caretakersExpired": "समय सकियो",
+  "caretakersHide": "लुकाउनुहोस्",
+  "caretakersYours": "तपाईंका हेरचाहकर्ता",
+  "caretakersNone": "अहिलेसम्म कसैले तपाईंको औषधि हेरिरहेको छैन।",
+  "caretakersAdded": "{date} मा थपिएको",
+  "@caretakersAdded": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "caretakersRemoveTitle": "{name} लाई हटाउने?",
+  "@caretakersRemoveTitle": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "caretakersRemoveBody": "उहाँले तुरुन्तै तपाईंको औषधि हेर्न पाउनुहुन्न र सम्झना पनि आउँदैन।",
+  "caretakersActivity": "हालैका हेरचाहकर्ताका काम",
+  "caretakersActivityNone": "हेरचाहकर्ताले अहिलेसम्म केही बदलेको छैन।",
+  "caretakersRestore": "फिर्ता ल्याउनुहोस्",
+  "caretakersOffTitle": "हेरचाहकर्ता सुविधा बन्द छ",
+  "caretakersOffBody": "यो सर्भरमा हेरचाहकर्ता सुविधा बन्द छ। API मा CARETAKER_ENABLED=true चाहिन्छ।",
+
+  "careMineTitle": "मैले हेरचाह गर्ने मान्छे",
+  "careMineAdd": "कसैलाई थप्नुहोस्",
+  "careMinePrompt": "कसैको हेरचाह गर्दै हुनुहुन्छ? उहाँको कोड हाल्नुहोस्",
+  "careRedeemTitle": "हेरचाह कोड हाल्नुहोस्",
+  "careRedeemBlurb": "तपाईंले सघाउने मान्छेले आफ्नै फोनको हेरचाहकर्ता पृष्ठबाट यो बनाउँछन्। १५ मिनेट टिक्छ।",
+  "careRedeemLabel": "उहाँको हेरचाह कोड",
+  "careRedeemSubmit": "थप्नुहोस्",
+  "careMedicineCount": "{count, plural, =0{औषधि छैन} other{{count} वटा औषधि}}",
+  "@careMedicineCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "careNextDose": "अर्को: {label}",
+  "@careNextDose": {
+    "placeholders": { "label": { "type": "String" } }
+  },
+  "careNoDoses": "आउँदो औषधि छैन",
+  "careDoseAt": "{time} मा {name}",
+  "@careDoseAt": {
+    "placeholders": { "name": { "type": "String" }, "time": { "type": "String" } }
+  },
+  "careDoseTomorrow": "भोलि {time}",
+  "@careDoseTomorrow": {
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "careTheirTime": "(उहाँको समय)",
+  "careManage": "औषधि मिलाउनुहोस्",
+  "careMuted": "सम्झना बन्द छ",
+  "careMute": "सम्झना बन्द गर्नुहोस्",
+  "careUnmute": "सम्झना खोल्नुहोस्",
+  "careScopeBanner": "तपाईं {name} को औषधि मिलाउँदै हुनुहुन्छ।",
+  "@careScopeBanner": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "careScopeOnly": "औषधि मात्र — उहाँको रेकर्डको अरू केही यहाँ देखिँदैन, र मगाइँदैन पनि।",
+  "careGoneTitle": "अब उपलब्ध छैन",
+  "careGoneBody": "यो मान्छेको औषधि हेर्ने अनुमति तपाईंसँग छैन।",
+  "careRevoked": "{name} ले तपाईंको हेरचाह अनुमति हटाउनुभयो।",
+  "@careRevoked": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "careBackToMine": "आफ्नै रेकर्डमा फर्कनुहोस्"
+}

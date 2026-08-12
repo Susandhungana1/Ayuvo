@@ -1,6 +1,6 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlmodel import Session, select
 
 from app.api.auth import get_current_user, get_session
@@ -15,6 +15,14 @@ class UserUpdate(BaseModel):
     city: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    # IANA timezone (e.g. "Asia/Kathmandu"), sent by the mobile app at sign-in.
+    # Optional and unset by default; an empty string means "unset".
+    timezone: Optional[str] = None
+
+    @field_validator("timezone")
+    @classmethod
+    def _blank_timezone_is_none(cls, v: Optional[str]) -> Optional[str]:
+        return v.strip() if isinstance(v, str) and v.strip() else None
 
 
 class UserDetail(BaseModel):
@@ -24,6 +32,7 @@ class UserDetail(BaseModel):
     role: str
     address: Optional[str] = None
     city: Optional[str] = None
+    timezone: Optional[str] = None
 
 
 @router.get("/me", response_model=UserDetail)
@@ -37,7 +46,8 @@ async def get_current_user_profile(
         email=current_user.email,
         role=current_user.role,
         address=current_user.address,
-        city=current_user.city
+        city=current_user.city,
+        timezone=current_user.timezone
     )
 
 
@@ -57,7 +67,9 @@ async def update_current_user(
         current_user.latitude = user_data.latitude
     if user_data.longitude is not None:
         current_user.longitude = user_data.longitude
-    
+    if "timezone" in user_data.model_fields_set:
+        current_user.timezone = user_data.timezone
+
     db.add(current_user)
     db.commit()
     db.refresh(current_user)
@@ -68,5 +80,6 @@ async def update_current_user(
         email=current_user.email,
         role=current_user.role,
         address=current_user.address,
-        city=current_user.city
+        city=current_user.city,
+        timezone=current_user.timezone
     )

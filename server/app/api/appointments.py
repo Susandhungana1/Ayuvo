@@ -171,19 +171,32 @@ def is_slot_available(db: Session, doctor_id: str, appointment_date: datetime, d
 
     appt_end = appointment_date + timedelta(minutes=duration_minutes)
 
-    overlapping = db.exec(
-        select(Appointment).where(
+    # Overlap check. The SQL filter is deliberately broad but *bounded*: any
+    # overlapping PENDING/CONFIRMED appointment must start before the requested
+    # end, so this select is a superset of the candidates and never inspects the
+    # whole diary. The exact end-overlap test then runs over the few rows it
+    # returns. The previous code selected a single arbitrary row (no ORDER BY)
+    # and inspected it in Python, so with two appointments on file it inspected
+    # the oldest — whose end was long past — and wrongly accepted a double
+    # booking. FOR UPDATE (Postgres) locks the matched rows so two concurrent
+    # requests cannot both pass; SQLite ignores it, which is fine for tests.
+    candidates = db.exec(
+        select(Appointment)
+        .where(
             and_(
                 Appointment.doctor_id == doctor_id,
-                Appointment.appointment_date < appt_end
+                Appointment.appointment_date < appt_end,
+                Appointment.status.in_(
+                    [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED]
+                ),
             )
         )
-    ).first()
+        .with_for_update()
+    ).all()
 
-    if overlapping and overlapping.status in [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED]:
-        appt_start = overlapping.appointment_date
-        appt_dur = overlapping.duration_minutes
-        if appt_start + timedelta(minutes=appt_dur) > appointment_date:
+    for other in candidates:
+        other_end = other.appointment_date + timedelta(minutes=other.duration_minutes)
+        if other_end > appointment_date:
             return False
 
     return True
@@ -203,7 +216,10 @@ async def create_appointment(
         if not is_slot_available(db, appt_data.doctor_id, appt_data.appointment_date, appt_data.duration_minutes):
             raise HTTPException(status_code=400, detail="The requested time slot is not available. Please check the doctor's available slots.")
 
-    status = AppointmentStatus.CONFIRMED if appt_data.doctor_id else AppointmentStatus.PENDING
+    if settings.doctor_confirms_bookings and appt_data.doctor_id:
+        status = AppointmentStatus.PENDING
+    else:
+        status = AppointmentStatus.CONFIRMED if appt_data.doctor_id else AppointmentStatus.PENDING
 
     appointment = Appointment(
         user_id=current_user.id,
@@ -348,6 +364,59 @@ async def update_appointment_status(
 ):
     appointment = db.get(Appointment, appt_id)
     if not appointment or appointment.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    appointment.status = status
+    appointment.updated_at = datetime.utcnow()
+
+    db.add(appointment)
+    db.commit()
+    db.refresh(appointment)
+
+    return AppointmentResponse(
+        id=appointment.id,
+        title=appointment.title,
+        description=appointment.description,
+        doctor_id=appointment.doctor_id,
+        doctor_name=appointment.doctor_name,
+        hospital=appointment.hospital,
+        appointment_date=appointment.appointment_date,
+        duration_minutes=appointment.duration_minutes,
+        status=appointment.status.value if isinstance(appointment.status, AppointmentStatus) else appointment.status,
+        reason=appointment.reason,
+        reminder_sent=appointment.reminder_sent
+    )
+
+
+@router.patch("/{appt_id}/status/by-doctor", response_model=AppointmentResponse)
+async def update_appointment_status_as_doctor(
+    appt_id: str,
+    status: AppointmentStatus,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    """Let the doctor of record accept, decline or complete an appointment.
+
+    PATCH /{appt_id}/status authorises against Appointment.user_id, which is the
+    *patient* who booked. A doctor is never that user, so every status change a
+    doctor attempts through it 404s — the doctor's inbox has never been able to
+    act on anything. This is the doctor's side of the same operation.
+
+    Deliberately a second route rather than a wider check on the first: front/
+    calls that one in production, and a route that quietly starts accepting a
+    new class of caller is the kind of change nobody notices in review.
+    """
+    if current_user.role not in ["DOCTOR", "ADMIN"]:
+        raise HTTPException(status_code=403, detail="Only doctors can access this resource")
+
+    doctor = db.exec(select(Doctor).where(Doctor.user_id == current_user.id)).first()
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor profile not found")
+
+    appointment = db.get(Appointment, appt_id)
+    # 404 rather than 403 when the appointment belongs to a different doctor:
+    # the response must not confirm that some other practice holds that id.
+    if not appointment or appointment.doctor_id != doctor.id:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
     appointment.status = status

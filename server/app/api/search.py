@@ -70,6 +70,7 @@ async def search(
     medicines = db.exec(
         select(Medicine)
         .where(Medicine.user_id == current_user.id)
+        .where(Medicine.deleted_at.is_(None))
         .order_by(Medicine.created_at.desc())
     ).all()
 

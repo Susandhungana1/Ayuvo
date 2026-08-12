@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/card';
 import { Button } from '@/components/button';
 import { DigitizedReport } from '@/components/DigitizedReport';
+import { formatServerDateTime } from '@/lib/datetime';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
@@ -176,7 +177,7 @@ export default function ViewSharedReport() {
             </h1>
             {report?.created_at && (
               <p className="text-subtext text-sm">
-                Uploaded: {new Date(report.created_at).toLocaleString()}
+                Uploaded: {formatServerDateTime(report.created_at)}
               </p>
             )}
           </div>

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlmodel import Session, select
 
 from app.api.auth import get_current_user
@@ -19,6 +19,21 @@ class DocumentCreate(BaseModel):
     doctor_name: Optional[str] = None
     department: Optional[str] = None
     description: Optional[str] = None
+    # When the visit actually happened. Optional: omitted, the row is stamped
+    # with "now" exactly as before, so every existing caller is unaffected.
+    checkup_date: Optional[datetime] = None
+
+    @field_validator("checkup_date", mode="before")
+    @classmethod
+    def blank_means_absent(cls, v):
+        """Treat "" as "not supplied" rather than a parse error.
+
+        front/ posts this field from a date input whose initial state is an
+        empty string. It was silently discarded before this field existed, so
+        an empty value must keep behaving like an omission — otherwise adding
+        the field turns a working request into a 422.
+        """
+        return v or None
 
 
 class DocumentResponse(BaseModel):
@@ -55,6 +70,11 @@ async def create_document(
         department=doc_data.department,
         description=doc_data.description
     )
+    # Assigned rather than passed to the constructor: the column's
+    # default_factory only runs when the argument is absent, and passing None
+    # would write a NULL into a non-nullable column.
+    if doc_data.checkup_date is not None:
+        document.checkup_date = doc_data.checkup_date
     db.add(document)
     db.commit()
     db.refresh(document)
@@ -71,8 +91,15 @@ async def list_documents(
         .where(MedicalDocument.user_id == current_user.id)
         .order_by(MedicalDocument.checkup_date.desc())
     ).all()
+    # from_attributes: MedicalDocument is an ORM object, not a dict. Without it
+    # pydantic refuses the input and every call to this endpoint 500s — which is
+    # what it has been doing. The other handlers return the ORM object and let
+    # FastAPI's response_model do the conversion, so only this one was affected.
     return DocumentListResponse(
-        documents=[DocumentResponse.model_validate(doc) for doc in documents]
+        documents=[
+            DocumentResponse.model_validate(doc, from_attributes=True)
+            for doc in documents
+        ]
     )
 
 

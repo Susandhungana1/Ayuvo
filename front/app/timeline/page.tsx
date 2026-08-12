@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/card';
+import { formatServerDate, formatServerTimeOfDay } from '@/lib/datetime';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
@@ -66,7 +67,7 @@ export default function Timeline() {
   // Group by date
   const grouped: Record<string, TimelineEvent[]> = {};
   events.forEach(e => {
-    const dateKey = new Date(e.date).toLocaleDateString();
+    const dateKey = formatServerDate(e.date);
     if (!grouped[dateKey]) grouped[dateKey] = [];
     grouped[dateKey].push(e);
   });
@@ -108,7 +109,7 @@ export default function Timeline() {
                       <Card className={`p-3 sm:p-4 border-l-4 ${getTypeColor(e.type)}`}>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-0 sm:gap-2 mb-1">
                           <span className="text-xs font-medium uppercase tracking-wider text-subtext">{e.type}</span>
-                          <span className="text-xs text-subtext">{new Date(e.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span className="text-xs text-subtext">{formatServerTimeOfDay(e.date)}</span>
                         </div>
                         <h3 className="font-semibold text-text-main text-sm sm:text-base">{e.title}</h3>
                         {e.description && <p className="text-xs sm:text-sm text-subtext mt-1 line-clamp-3">{e.description}</p>}

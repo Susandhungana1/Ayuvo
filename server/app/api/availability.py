@@ -1,7 +1,7 @@
 from datetime import time
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlmodel import Session, select
 
 from app.api.auth import get_current_user
@@ -18,8 +18,17 @@ class AvailabilityCreate(BaseModel):
     slot_duration_minutes: int = 30
     is_available: bool = True
 
+    @field_validator("end_time")
+    @classmethod
+    def end_after_start(cls, v: time, info) -> time:
+        start = info.data.get("start_time")
+        if start is not None and v <= start:
+            raise ValueError("end_time must be after start_time")
+        return v
+
 
 class AvailabilityUpdate(BaseModel):
+    day_of_week: Optional[DayOfWeek] = None
     start_time: Optional[time] = None
     end_time: Optional[time] = None
     slot_duration_minutes: Optional[int] = None
@@ -145,6 +154,94 @@ async def get_my_doctor_profile(
     )
 
 
+class DoctorUpdate(BaseModel):
+    nmid: Optional[str] = None
+    degree: Optional[str] = None
+    specialty: Optional[str] = None
+
+
+@router.put("/doctors/me", response_model=DoctorResponse)
+async def update_my_doctor_profile(
+    doctor_data: DoctorUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    _require_doctor_role(current_user)
+
+    doctor = db.exec(select(Doctor).where(Doctor.user_id == current_user.id)).first()
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor profile not found")
+
+    if doctor_data.nmid is not None:
+        doctor.nmid = doctor_data.nmid
+    if doctor_data.degree is not None:
+        doctor.degree = doctor_data.degree
+    if doctor_data.specialty is not None:
+        doctor.specialty = doctor_data.specialty
+
+    # A practitioner who edits the credentials they were verified against has
+    # to be verified again. Only a real edit resets it: an empty PUT is a no-op
+    # that must not silently unverify a working doctor. `verified` itself stays
+    # operator-managed (ADD_DOCTOR_GUIDE.txt).
+    if doctor_data.model_fields_set:
+        doctor.verified = False
+
+    db.add(doctor)
+    db.commit()
+    db.refresh(doctor)
+
+    return DoctorResponse(
+        id=doctor.id,
+        nmid=doctor.nmid,
+        degree=doctor.degree,
+        specialty=doctor.specialty,
+        verified=doctor.verified,
+        user_id=doctor.user_id,
+        name=current_user.name
+    )
+
+
+def _day_overlaps(
+    db: Session, doctor_id: str, day_of_week: DayOfWeek,
+    start_time: time, end_time: time, exclude_id: Optional[str] = None,
+) -> bool:
+    """True if the (day, start, end) window overlaps another availability row.
+
+    Reused by create and update so the two paths cannot disagree. Rows on a
+    different day never overlap, so the check is per-day.
+    """
+    existing = db.exec(
+        select(DoctorAvailability)
+        .where(
+            (DoctorAvailability.doctor_id == doctor_id)
+            & (DoctorAvailability.day_of_week == day_of_week)
+            & (
+                (DoctorAvailability.id != exclude_id)
+                if exclude_id
+                else True
+            )
+        )
+    ).all()
+
+    for ex in existing:
+        if start_time < ex.end_time and end_time > ex.start_time:
+            return True
+    return False
+
+
+def _reject_overlap(
+    db: Session, doctor: Doctor, day_of_week: DayOfWeek,
+    start_time: time, end_time: time, exclude_id: Optional[str] = None,
+) -> None:
+    if _day_overlaps(
+        db, doctor.id, day_of_week, start_time, end_time, exclude_id
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Overlapping availability exists for {day_of_week.value}",
+        )
+
+
 @router.post("/availability", response_model=AvailabilityResponse)
 async def create_availability(
     avail_data: AvailabilityCreate,
@@ -157,21 +254,10 @@ async def create_availability(
     if not doctor:
         raise HTTPException(status_code=404, detail="Doctor profile not found")
 
-    # Check for overlapping availability
-    existing = db.exec(
-        select(DoctorAvailability)
-        .where(
-            (DoctorAvailability.doctor_id == doctor.id) &
-            (DoctorAvailability.day_of_week == avail_data.day_of_week)
-        )
-    ).all()
-
-    for ex in existing:
-        if (avail_data.start_time < ex.end_time and avail_data.end_time > ex.start_time):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Overlapping availability exists for {avail_data.day_of_week.value}"
-            )
+    _reject_overlap(
+        db, doctor, avail_data.day_of_week,
+        avail_data.start_time, avail_data.end_time,
+    )
 
     availability = DoctorAvailability(
         doctor_id=doctor.id,
@@ -276,6 +362,29 @@ async def update_availability(
     if not availability or availability.doctor_id != doctor.id:
         raise HTTPException(status_code=404, detail="Availability not found")
 
+    # Resolve the window the row will end up with, so the overlap check and the
+    # end-after-start rule see the *merged* state — exactly what the create path
+    # would have rejected before this row existed.
+    new_day = avail_data.day_of_week if avail_data.day_of_week is not None else availability.day_of_week
+    new_start = avail_data.start_time if avail_data.start_time is not None else availability.start_time
+    new_end = avail_data.end_time if avail_data.end_time is not None else availability.end_time
+
+    if new_end <= new_start:
+        raise HTTPException(
+            status_code=400,
+            detail="end_time must be after start_time",
+        )
+
+    if availability.day_of_week != new_day or (
+        availability.start_time != new_start or availability.end_time != new_end
+    ):
+        _reject_overlap(
+            db, doctor, new_day, new_start, new_end,
+            exclude_id=availability.id,
+        )
+
+    if avail_data.day_of_week is not None:
+        availability.day_of_week = avail_data.day_of_week
     if avail_data.start_time is not None:
         availability.start_time = avail_data.start_time
     if avail_data.end_time is not None:

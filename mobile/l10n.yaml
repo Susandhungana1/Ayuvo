@@ -1,0 +1,17 @@
+# Generates lib/l10n/app_localizations.dart from the ARB files beside it.
+# `flutter gen-l10n` runs automatically on build; run it by hand after editing
+# an ARB if the analyzer has not caught up.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppL10n
+
+# Checked in beside the ARBs rather than left in .dart_tool, so the analyzer
+# and the tests see the same file a build does and a missing `flutter gen-l10n`
+# cannot make the outcome depend on whoever ran it last.
+output-dir: lib/l10n
+
+# An untranslated key falls back to English rather than throwing. The Nepali
+# file is deliberately incomplete — see KNOWN_ISSUES P6-9 — and a missing
+# sentence should read as English, not crash the screen.
+untranslated-messages-file: lib/l10n/untranslated.json

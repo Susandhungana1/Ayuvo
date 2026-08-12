@@ -23,6 +23,7 @@ export default function DoctorAvailability() {
   const [availability, setAvailability] = useState<Record<string, Availability>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
@@ -48,22 +49,33 @@ export default function DoctorAvailability() {
   const fetchAvailability = async () => {
     try {
       const token = localStorage.getItem('token');
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      
-      const res = await fetch(`${API_URL}/api/doctors/availability/${user.id}`, {
+      // GET /availability (no id) is "my own windows", resolved from the token.
+      // This used to call /availability/{user.id}, which is wrong twice over:
+      // that path wants a Doctor UUID, not a user id, and user ids contain a
+      // '#' that truncates the URL into a fragment before it is even sent.
+      const res = await fetch(`${API_URL}/api/doctors/availability`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
-      if (res.ok) {
-        const data = await res.json();
-        const availMap: Record<string, Availability> = {};
-        (data.availability || []).forEach((a: Availability) => {
-          availMap[a.day_of_week] = a;
-        });
-        setAvailability(availMap);
+
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null);
+        setError(
+          res.status === 404
+            ? 'You don’t have a doctor profile yet, so there are no hours to set.'
+            : detail?.detail || `Could not load your availability (HTTP ${res.status}).`
+        );
+        return;
       }
-    } catch (err) {
-      console.error(err);
+
+      const data = await res.json();
+      const availMap: Record<string, Availability> = {};
+      (data.availability || []).forEach((a: Availability) => {
+        availMap[a.day_of_week] = a;
+      });
+      setAvailability(availMap);
+      setError('');
+    } catch {
+      setError('Could not reach the server. Check your connection and reload.');
     } finally {
       setLoading(false);
     }
@@ -73,45 +85,50 @@ export default function DoctorAvailability() {
     if (!selectedDay) return;
     
     setSaving(true);
+    setError('');
     try {
       const token = localStorage.getItem('token');
       const existing = availability[selectedDay];
-      
-      if (existing) {
-        // Update existing
-        await fetch(`${API_URL}/api/doctors/availability/${existing.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            start_time: startTime,
-            end_time: endTime,
-            is_available: true
+
+      // POST rejects a window that overlaps one already set for that weekday,
+      // so a failure here is something the doctor needs to see, not swallow.
+      const res = existing
+        ? await fetch(`${API_URL}/api/doctors/availability/${existing.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              start_time: startTime,
+              end_time: endTime,
+              is_available: true
+            })
           })
-        });
-      } else {
-        // Create new
-        await fetch(`${API_URL}/api/doctors/availability`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            day_of_week: selectedDay,
-            start_time: startTime,
-            end_time: endTime,
-            is_available: true
-          })
-        });
+        : await fetch(`${API_URL}/api/doctors/availability`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              day_of_week: selectedDay,
+              start_time: startTime,
+              end_time: endTime,
+              is_available: true
+            })
+          });
+
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null);
+        setError(detail?.detail || `Could not save those hours (HTTP ${res.status}).`);
+        return;
       }
-      
+
       setSelectedDay(null);
       fetchAvailability();
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setError('Could not reach the server. Check your connection and try again.');
     } finally {
       setSaving(false);
     }
@@ -122,15 +139,21 @@ export default function DoctorAvailability() {
     if (!avail) return;
     
     setSaving(true);
+    setError('');
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${API_URL}/api/doctors/availability/${avail.id}`, {
+      const res = await fetch(`${API_URL}/api/doctors/availability/${avail.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null);
+        setError(detail?.detail || `Could not remove those hours (HTTP ${res.status}).`);
+        return;
+      }
       fetchAvailability();
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setError('Could not reach the server. Check your connection and try again.');
     } finally {
       setSaving(false);
     }
@@ -158,6 +181,12 @@ export default function DoctorAvailability() {
           <h1 className="text-3xl font-bold text-text-main">My Availability</h1>
           <Button onClick={() => router.push('/dashboard')}>Back to Dashboard</Button>
         </div>
+
+        {error && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800">
+            {error}
+          </div>
+        )}
 
         <Card className="p-6">
           <h2 className="text-xl font-semibold text-text-main mb-4">Set Your Available Times</h2>

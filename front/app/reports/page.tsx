@@ -8,6 +8,7 @@ import { Input } from '@/components/input';
 import { DigitizedReport } from '@/components/DigitizedReport';
 import { generateReportPdf } from '@/lib/reportPdf';
 import { cacheGet, cacheSet } from '@/lib/offlineCache';
+import { formatPlainDate } from '@/lib/datetime';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
@@ -442,7 +443,7 @@ export default function Reports() {
                   </h3>
                   {report.report_date && (
                     <p className="text-subtext text-sm mb-2">
-                      Date: {new Date(report.report_date).toLocaleDateString()}
+                      Date: {formatPlainDate(report.report_date)}
                     </p>
                   )}
                   {report.file_name && (

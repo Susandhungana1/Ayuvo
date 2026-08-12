@@ -5,9 +5,10 @@ A medicine's schedule is a JSON array of "HH:MM" clock strings in
 zone, so every calculation here takes an explicit timezone rather than assuming
 the server's.
 
-There is no user-level timezone column: the app learns a user's zone from the
-Web Push subscriptions their devices register. `patient_timezone` centralises
-that lookup so callers don't reach into push_subscriptions themselves.
+`patient_timezone` centralises the timezone lookup. The patient's own
+`User.timezone` column (set by the mobile app at sign-in) is preferred; when it
+is unset the zone is inferred from the newest Web Push subscription the patient
+registered. Callers don't reach into either table themselves.
 """
 
 from __future__ import annotations
@@ -23,7 +24,7 @@ except Exception:  # pragma: no cover
 
 from sqlmodel import Session, select
 
-from app.models.models import Medicine, PushSubscription
+from app.models.models import Medicine, PushSubscription, User
 
 DEFAULT_TZ = "UTC"
 
@@ -62,12 +63,19 @@ def local_now(tz_name: Optional[str]) -> datetime:
 
 
 def patient_timezone(db: Session, patient_id: str) -> str:
-    """The patient's IANA timezone, inferred from their newest push device.
+    """The patient's IANA timezone, preferring their own column.
 
-    Falls back to UTC when the patient has never registered one. This is the
-    zone reminders fire in, for every recipient — a caretaker abroad is
-    notified at the patient's dose time, not their own.
+    `User.timezone` (set by the mobile app at sign-in) wins when present; it is
+    the one the patient actually told the server. Otherwise the zone is inferred
+    from the patient's newest push device, falling back to UTC when they have
+    never registered one. This is the zone reminders fire in, for every
+    recipient — a caretaker abroad is notified at the patient's dose time, not
+    their own.
     """
+    user = db.get(User, patient_id)
+    if user is not None and user.timezone:
+        return user.timezone
+
     sub = db.exec(
         select(PushSubscription)
         .where(PushSubscription.user_id == patient_id)

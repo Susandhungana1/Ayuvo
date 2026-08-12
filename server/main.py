@@ -122,6 +122,8 @@ async def health():
             "database": db_ok,
             "email": email,
             "caretaker": settings.caretaker_enabled,
+            "doctor_confirms_bookings": settings.doctor_confirms_bookings,
+            "frontend_url": settings.frontend_url,
         }),
         media_type="application/json",
         status_code=200 if db_ok else 503,

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { QRCodeSVG } from 'qrcode.react';
+import { formatServerDateTime, hasExpired } from '@/lib/datetime';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
@@ -206,26 +207,40 @@ export default function Share() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {shareLinks.map((link) => (
-                  <Card key={link.token} className="p-4">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-text-main text-sm sm:text-base truncate">
-                          {getReportType(link.report_id)}
-                        </p>
-                        <p className="text-subtext text-xs sm:text-sm">
-                          Expires: {new Date(link.expires_at).toLocaleString()}
-                        </p>
+                {shareLinks.map((link) => {
+                  // The API returns every link the user owns, expired ones
+                  // included. An expired link opens to "410 Share link expired"
+                  // for the recipient, so listing it as though it still works —
+                  // beside a live Revoke button — is actively misleading.
+                  const expired = hasExpired(link.expires_at);
+                  return (
+                    <Card key={link.token} className={`p-4 ${expired ? 'opacity-60' : ''}`}>
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-text-main text-sm sm:text-base truncate">
+                              {getReportType(link.report_id)}
+                            </p>
+                            {expired && (
+                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                                Expired
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-subtext text-xs sm:text-sm">
+                            {expired ? 'Expired' : 'Expires'}: {formatServerDateTime(link.expires_at)}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleDelete(link.token)}
+                          className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-medium text-sm hover:bg-red-100 transition-colors self-start sm:self-auto"
+                        >
+                          {expired ? 'Remove' : 'Revoke'}
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleDelete(link.token)}
-                        className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-medium text-sm hover:bg-red-100 transition-colors self-start sm:self-auto"
-                      >
-                        Revoke
-                      </button>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>

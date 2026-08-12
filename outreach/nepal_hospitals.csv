@@ -1,0 +1,49 @@
+Hospital,City/Location,Province,Type,Email,Confidence,Notes
+Grande International Hospital,Kathmandu (Dhapasi),Bagmati,Private,info@grandehospital.com,High,
+Nepal Mediciti Hospital,Lalitpur (Bhaisepati),Bagmati,Private,info@nepalmediciti.com,High,
+Vayodha Hospital,Kathmandu (Balkhu),Bagmati,Private,info@vayodhahospitals.com,High,
+Nobel Hospital,Kathmandu (Sinamangal),Bagmati,Private,info@nobelhospital.com.np,High,
+ERA International Hospital,Kathmandu (Sorhakhutte),Bagmati,Private,info@era-hospital.com,High,
+Chirayu National Hospital,Kathmandu (Basundhara),Bagmati,Private,info@chirayuhospital.com.np,High,
+Sumeru City Hospital,Lalitpur (Pulchowk),Bagmati,Private,info@sumerucityhospital.com,High,
+Alka Hospital,Lalitpur (Jawalakhel),Bagmati,Private,info@alkahospital.com,High,
+Norvic International Hospital,Kathmandu (Thapathali),Bagmati,Private,info@norvichospital.com,High,
+HAMS Hospital,Kathmandu (Dhumbarahi),Bagmati,Private,info@hamshospital.com,High,
+Medicare National Hospital,Kathmandu (Chabahil),Bagmati,Private,medicare@medicarehosp.com,High,
+Om Hospital & Research Center,Kathmandu (Chabahil),Bagmati,Private,omhrc@omhospitalnepal.com,High,
+Venus Hospital,Kathmandu (Mid Baneshwor),Bagmati,Private,info@venushospital.com.np,High,
+B&B Hospital,Lalitpur (Gwarko),Bagmati,Private,admin@bbhospital.com.np,High,
+Nepal Cancer Hospital & Research Center,Lalitpur (Harisiddhi),Bagmati,Private,info@nch.com.np,High,
+Blue Cross Hospital,Kathmandu (Tripureshwor),Bagmati,Private,care@bluecross.com.np,High,
+Nepal Medical College Teaching Hospital,Kathmandu (Jorpati),Bagmati,Teaching,principal@nmcth.edu,High,Principal's office
+KIST Medical College & Teaching Hospital,Lalitpur (Imadol),Bagmati,Teaching,info@kistmcth.edu.np,High,
+Kathmandu Medical College,Kathmandu (Sinamangal),Bagmati,Teaching,info@kmc.edu.np,High,
+Dhulikhel Hospital (Kathmandu University),Kavre (Dhulikhel),Bagmati,Teaching,direct@dhulikhelhospital.org,High,
+Patan Hospital (Patan Academy of Health Sciences),Lalitpur,Bagmati,Government,pahs@pahs.edu.np,High,
+Tribhuvan University Teaching Hospital (IOM),Kathmandu (Maharajgunj),Bagmati,Government,tuthdirector@gmail.com,Medium,Director's office
+Bir Hospital (NAMS),Kathmandu,Bagmati,Government,admin@nams.org.np,High,NAMS admin
+Shahid Gangalal National Heart Centre,Kathmandu (Bansbari),Bagmati,Government,info@sgnhc.org.np,High,
+Civil Service Hospital,Kathmandu (Minbhawan),Bagmati,Government,info@civilservicehospital.org,High,
+Bhaktapur Hospital,Bhaktapur,Bagmati,Government,bhaktapurhospital@gmail.com,Medium,Generic Gmail
+Shree Birendra Hospital (Army),Kathmandu (Chhauni),Bagmati,Government,bh@nepalarmy.mil.np,High,
+Manipal Teaching Hospital,Pokhara (Fulbari),Gandaki,Teaching,mth@manipal.edu.np,High,
+Gandaki Medical College,Pokhara (Prithvichowk),Gandaki,Teaching,principal@gmc.edu.np,High,
+Pokhara Academy of Health Sciences (Western Regional Hospital),Pokhara,Gandaki,Government,info@pahs.gov.np,Low,VERIFY - pahs.gov.np may resolve to Patan; confirm on hospital site
+Dhaulagiri Hospital,Baglung,Gandaki,Government,dhaulagiri.hospital@gmail.com,Medium,Generic Gmail
+Chitwan Medical College,Bharatpur (Chitwan),Bagmati,Teaching,info@cmc.edu.np,High,
+Bharatpur Hospital,Bharatpur (Chitwan),Bagmati,Government,info@bharatpurhospital.gov.np,High,
+Nobel Medical College Teaching Hospital,Biratnagar (Morang),Koshi,Teaching,mgmt@nobelmedicalcollege.com.np,High,Management office
+BP Koirala Institute of Health Sciences (BPKIHS),Dharan (Sunsari),Koshi,Teaching,bpkihs@bpkihs.edu.np,High,
+Koshi Hospital,Biratnagar (Morang),Koshi,Government,koshizonalhospital72@gmail.com,Medium,Generic Gmail
+Mechi Hospital,Bhadrapur (Jhapa),Koshi,Government,mechi.zonalhospital@yahoo.com,Medium,Generic Yahoo
+Sagarmatha Hospital,Rajbiraj (Saptari),Madhesh,Government,sagarmatha_hospital@yahoo.com,Medium,Generic Yahoo
+Janakpur Provincial Hospital,Janakpur (Dhanusha),Madhesh,Government,hospitaljanakpurzonal@gmail.com,Medium,Generic Gmail
+Narayani Hospital,Birgunj (Parsa),Madhesh,Government,hospnarayani@mohp.gov.np,High,
+Bheri Hospital,Nepalgunj (Banke),Lumbini,Government,bheri.hospital@gmail.com,Medium,Generic Gmail
+Lumbini Provincial Hospital,Butwal (Rupandehi),Lumbini,Government,lzhospital@gmail.com,Medium,Generic Gmail
+Rapti Academy of Health Sciences,Ghorahi (Dang),Lumbini,Teaching,rapti.academy@gmail.com,Medium,Generic Gmail
+Rapti Provincial Hospital,Tulsipur (Dang),Lumbini,Government,raptizonalhospital@gmail.com,Medium,Generic Gmail
+Karnali Academy of Health Sciences,Jumla,Karnali,Teaching,director@kahs.edu.np,High,Director's office
+Seti Provincial Hospital,Dhangadhi (Kailali),Sudurpashchim,Government,setihospital@gmail.com,Medium,Generic Gmail
+Mahakali Hospital,Mahendranagar (Kanchanpur),Sudurpashchim,Government,mzh.hospital@gmail.com,Medium,Generic Gmail
+Dadeldhura Hospital,Dadeldhura,Sudurpashchim,Government,srhdadeldhura@gmail.com,Medium,Generic Gmail

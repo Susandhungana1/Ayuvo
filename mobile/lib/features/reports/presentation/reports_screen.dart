@@ -1,0 +1,313 @@
+/// The reports list, and the lab values tracked across them.
+library;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_tokens.dart';
+import '../../../core/time/medi_time.dart';
+import '../../../core/widgets/range_bar.dart';
+import '../../../core/widgets/skeleton.dart';
+import '../../../core/widgets/states.dart';
+import '../domain/report.dart';
+import 'report_detail_screen.dart';
+import 'report_upload_sheet.dart';
+import 'reports_controller.dart';
+
+class ReportsScreen extends ConsumerWidget {
+  const ReportsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reports = ref.watch(reportsProvider);
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Reports')),
+      floatingActionButton: reports.hasValue && reports.value!.isNotEmpty
+          ? FloatingActionButton.extended(
+              onPressed: () => showReportUploadSheet(context),
+              icon: const Icon(Icons.upload_file),
+              label: const Text('Add'),
+            )
+          : null,
+      body: RefreshIndicator(
+        onRefresh: () => ref.read(reportsProvider.notifier).refresh(),
+        child: switch (reports) {
+          AsyncData(:final value) when value.isEmpty =>
+            _Empty(onAdd: () => showReportUploadSheet(context)),
+          AsyncData(:final value) => _Loaded(reports: value),
+          AsyncError(:final error) => ListView(
+              padding: AppSpacing.screen,
+              children: [
+                ErrorView(
+                  error: error,
+                  onRetry: () => ref.read(reportsProvider.notifier).refresh(),
+                ),
+              ],
+            ),
+          _ => const _Loading(),
+        },
+      ),
+    );
+  }
+}
+
+class _Loaded extends ConsumerWidget {
+  const _Loaded({required this.reports});
+
+  final List<MedicalReport> reports;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final trends = ref.watch(reportTrendsProvider).valueOrNull ?? const [];
+
+    return ListView(
+      padding: AppSpacing.screen,
+      children: [
+        if (trends.isNotEmpty) ...[
+          Text('Tracked values', style: context.texts.titleLarge),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            'Analytes that appear in more than one report. Anything outside '
+            'its range is listed first.',
+            style: context.texts.bodySmall
+                ?.copyWith(color: context.colors.onSurfaceVariant),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          SizedBox(
+            height: 132,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: trends.length,
+              separatorBuilder: (_, _) =>
+                  const SizedBox(width: AppSpacing.md),
+              itemBuilder: (context, index) =>
+                  _TrendCard(series: trends[index]),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+        ],
+        Text('Your reports', style: context.texts.titleLarge),
+        const SizedBox(height: AppSpacing.md),
+        for (final report in reports)
+          Padding(
+            key: ValueKey(report.id),
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: _ReportCard(report: report),
+          ),
+        const SizedBox(height: 88),
+      ],
+    );
+  }
+}
+
+class _TrendCard extends StatelessWidget {
+  const _TrendCard({required this.series});
+
+  final TrendSeries series;
+
+  @override
+  Widget build(BuildContext context) {
+    final (tone, statusLabel) = switch (series.latestStatus.toUpperCase()) {
+      'HIGH' => (RangeStatus.alert, 'High'),
+      'LOW' => (RangeStatus.alert, 'Low'),
+      _ => (RangeStatus.ok, 'Normal'),
+    };
+    final direction = switch (series.direction) {
+      'up' => RangeDirection.above,
+      'down' => RangeDirection.below,
+      _ => RangeDirection.within,
+    };
+
+    return SizedBox(
+      width: 190,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                series.name,
+                style: context.texts.labelSmall
+                    ?.copyWith(color: context.colors.onSurfaceVariant),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    _number(series.lastValue),
+                    style: context.numerals.numericLarge.copyWith(fontSize: 22),
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Flexible(
+                    child: Text(
+                      series.unit,
+                      style: context.texts.bodySmall
+                          ?.copyWith(color: context.colors.onSurfaceVariant),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              StatusChip(
+                label: statusLabel,
+                status: tone,
+                // The glyph says which way it moved since the first reading;
+                // the word says whether that matters.
+                direction: direction,
+              ),
+              const Spacer(),
+              Text(
+                _changeLine(series),
+                style: context.texts.bodySmall
+                    ?.copyWith(color: context.colors.onSurfaceVariant),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _changeLine(TrendSeries series) {
+    if (series.direction == 'flat' || series.change == 0) {
+      return 'No change · ${series.points.length} results';
+    }
+    final sign = series.change > 0 ? '+' : '';
+    final percent = series.percentChange;
+    final amount = '$sign${_number(series.change)}';
+    if (percent == null) return '$amount since the first';
+    return '$amount ($sign${percent.abs().toStringAsFixed(0)}%) since the first';
+  }
+
+  static String _number(double value) =>
+      value == value.roundToDouble() ? '${value.round()}' : value.toStringAsFixed(1);
+}
+
+class _ReportCard extends StatelessWidget {
+  const _ReportCard({required this.report});
+
+  final MedicalReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    final dated = report.dated;
+    final origin = [
+      if (report.hospital?.trim().isNotEmpty ?? false) report.hospital!.trim(),
+      if (report.doctorName?.trim().isNotEmpty ?? false)
+        report.doctorName!.trim(),
+    ].join(' · ');
+
+    return Card(
+      child: InkWell(
+        borderRadius: AppRadius.md,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => ReportDetailScreen(reportId: report.id),
+          ),
+        ),
+        child: Padding(
+          padding: AppSpacing.card,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      report.typeLabel,
+                      style: context.texts.titleMedium,
+                    ),
+                  ),
+                  Text(
+                    dated == null ? 'Undated' : MediTime.date(dated),
+                    style: context.texts.bodySmall
+                        ?.copyWith(color: context.colors.onSurfaceVariant),
+                  ),
+                ],
+              ),
+              if (origin.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  origin,
+                  style: context.texts.bodySmall
+                      ?.copyWith(color: context.colors.onSurfaceVariant),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                report.resultSummary?.trim().isNotEmpty ?? false
+                    ? report.resultSummary!.trim()
+                    // Saying which is honest: a scan with no readable text
+                    // supports none of the AI actions, and the detail screen
+                    // will show fewer of them.
+                    : 'No summary — nothing readable was extracted from this '
+                        'file.',
+                style: context.texts.bodyMedium,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                report.fileName,
+                style: context.texts.bodySmall
+                    ?.copyWith(color: context.colors.onSurfaceVariant),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Empty extends StatelessWidget {
+  const _Empty({required this.onAdd});
+
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      children: [
+        SizedBox(height: MediaQuery.sizeOf(context).height * 0.12),
+        EmptyState(
+          icon: Icons.description_outlined,
+          title: 'No reports yet',
+          message: 'Photograph a printout or upload a PDF. The text is read '
+              'on the server, lab values are pulled out, and anything that '
+              'appears twice starts a trend.',
+          actionLabel: 'Add your first report',
+          onAction: onAdd,
+        ),
+      ],
+    );
+  }
+}
+
+class _Loading extends StatelessWidget {
+  const _Loading();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: AppSpacing.screen,
+      children: const [
+        SkeletonCard(lines: 3),
+        SizedBox(height: AppSpacing.md),
+        SkeletonCard(lines: 3),
+      ],
+    );
+  }
+}
