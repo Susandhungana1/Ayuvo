@@ -65,7 +65,13 @@ String? _redirect(Ref ref, String location) {
   // Public share readers first: the token is the credential and there is no
   // session requirement, so nothing below may send a signed-in or signed-out
   // visitor elsewhere before the reader loads.
-  if (Routes.public.contains(location)) return null;
+  //
+  // A prefix check, not a pattern-list check: `location` is `matchedLocation`,
+  // the *resolved* path (`/share/qr-code/ABC123`), never the route pattern
+  // (`/share/qr-code/:token`), so comparing against the pattern list can never
+  // match. No authenticated route lives under `/share/` (the owner's sharing
+  // screen is `/more/share`), which is what makes the prefix safe.
+  if (location.startsWith(Routes.sharePrefix)) return null;
 
   final asyncSession = ref.read(sessionControllerProvider);
   final atSplash = location == Routes.splash;

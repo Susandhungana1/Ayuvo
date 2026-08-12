@@ -22,7 +22,12 @@ abstract final class Routes {
   /// never gated behind the session redirect.
   static const shareQrCode = '/share/qr-code/:token';
   static const shareSingle = '/share/:token';
-  static const public = [shareQrCode, shareSingle];
+
+  /// Every route under the public share readers. Checked as a prefix against
+  /// the resolved location (see `app_router.dart`), and safe as one because no
+  /// authenticated route lives under `/share/` — the owner's sharing screen is
+  /// [shareUnderMore], which starts with `/more/`.
+  static const sharePrefix = '/share/';
 
   // Patient shell.
   static const home = '/home';
