@@ -4,10 +4,15 @@ import { useState } from 'react';
 
 // The MediStore *app* can read a shared record too, so a recipient who holds
 // the QR or link gets the choice instead of being locked to this website
-// reader. Point NEXT_PUBLIC_APP_URL at the deployed app when it differs from
-// this default.
+// reader. The app reader lives on its **own origin** on purpose: a link to the
+// same origin as a running Home Screen web app gets swallowed by iOS (it just
+// foregrounds the app instead of navigating), and the app's cached service
+// worker + stored session would mask the reader. A fresh origin is a fresh,
+// signed-out page load, so "Open in App" always shows the bare reader.
+// Point NEXT_PUBLIC_SHARE_APP_URL at the deployed reader when it differs.
 const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL || 'https://front-medistore-app.vercel.app';
+  process.env.NEXT_PUBLIC_SHARE_APP_URL ||
+  'https://medistore-share-beige.vercel.app';
 
 export default function ShareTargetChooser({
   token,
