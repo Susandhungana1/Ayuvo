@@ -68,10 +68,7 @@ class _SharedRecordScreenState extends ConsumerState<SharedRecordScreen> {
             child: ListView(
               padding: AppSpacing.screen,
               children: [
-                Text(
-                  'Medical information from ${record.userName}',
-                  style: context.texts.titleLarge,
-                ),
+                Text('Shared medical record', style: context.texts.titleLarge),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   '${record.reports.length} report(s) · '

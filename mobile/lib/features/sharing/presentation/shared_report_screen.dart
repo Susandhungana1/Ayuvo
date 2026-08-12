@@ -65,13 +65,6 @@ class _SharedReportScreenState extends ConsumerState<SharedReportScreen> {
             child: ListView(
               padding: AppSpacing.screen,
               children: [
-                if (page.userName != null) ...[
-                  Text(
-                    'Shared by ${page.userName}',
-                    style: context.texts.titleLarge,
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                ],
                 SharedSectionHeader(report.reportType.replaceAll('_', ' ')),
                 const SizedBox(height: AppSpacing.sm),
                 Card(
