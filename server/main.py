@@ -47,11 +47,12 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Beyond the explicit CORS_ORIGINS allowlist, also accept THIS project's Vercel
 # domains via regex: the production alias (front-*.vercel.app, incl.
-# front-five-woad-12), the medistore-health.vercel.app rename, and git preview
+# front-five-woad-12), the medistore-health.vercel.app rename, the Share
+# reader's standalone app (medistore-share-*.vercel.app), and git preview
 # deploys. Scoped to our own project's subdomains — NOT all of *.vercel.app — so
 # renaming or redeploying the frontend never silently breaks API calls, without
 # hand-editing CORS_ORIGINS on Render each time.
-VERCEL_ORIGIN_REGEX = r"^https://(medistore-health|front[\w-]*)\.vercel\.app$"
+VERCEL_ORIGIN_REGEX = r"^https://(medistore-health|medistore-share[\w-]*|front[\w-]*)\.vercel\.app$"
 
 app.add_middleware(
     CORSMiddleware,
