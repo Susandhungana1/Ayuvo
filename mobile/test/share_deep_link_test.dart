@@ -10,10 +10,8 @@
 /// the login.
 library;
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
 import 'package:medistore/app.dart';
 import 'package:medistore/core/health/health_providers.dart';
 import 'package:medistore/core/network/network_providers.dart';
