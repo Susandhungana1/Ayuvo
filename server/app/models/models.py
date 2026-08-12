@@ -494,3 +494,65 @@ class ReminderDelivery(SQLModel, table=True):
     error: Optional[str] = None
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# --- Claimed shares ----------------------------------------------------------
+#
+# A share link is a bearer token: whoever holds it reads the records until it
+# expires, and the server never learns who looked. A *claim* inverts that — a
+# signed-in recipient asks to keep what they were shown, and in doing so gives
+# up their anonymity. That is the point of the feature as much as the
+# persistence is: the owner finally gets to see who is holding their reports.
+#
+# Deliberately a snapshot of report IDs, never a copy of the rows:
+#   - the recipient must not see reports uploaded *after* the claim, because
+#     the consent was for what was on screen at that moment; and
+#   - the bytes stay in exactly one place, so an owner deleting a report
+#     removes it from every recipient's view too.
+#
+# Lives down here, below the caretaker block, only because it needs _user_fk.
+
+
+class ClaimedShare(SQLModel, table=True):
+    """A share a signed-in recipient kept, outliving the link's expiry."""
+
+    __tablename__ = "claimed_shares"
+    __table_args__ = (
+        # One active claim per (recipient, token), so pressing "Save" twice is
+        # idempotent instead of stacking duplicates. Scoped to active rows —
+        # matching care_links — so a revoked claim doesn't permanently bar
+        # re-claiming a link that is still valid.
+        Index(
+            "claimed_shares_unique_active",
+            "recipient_id",
+            "token",
+            unique=True,
+            postgresql_where=text("status = 'active'"),
+            sqlite_where=text("status = 'active'"),
+        ),
+        CheckConstraint("recipient_id <> owner_id", name="claimed_shares_no_self"),
+    )
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    # The token that was claimed. Kept so a second click on the same link is
+    # recognised as the same claim; never re-validated on read, because by then
+    # the link has usually expired and that is exactly what the claim survives.
+    token: str = Field(index=True)
+
+    recipient_id: str = Field(sa_column=_user_fk(cascade=True, index=True))
+    owner_id: str = Field(sa_column=_user_fk(cascade=True, index=True))
+
+    kind: str                                       # report | all
+    # The reports visible at claim time — frozen. JSON (not JSONB): the test
+    # suite runs on SQLite, which has no JSONB.
+    report_ids: list[str] = Field(default_factory=list, sa_type=JSON)
+    # The owner's name as it read at claim time, so the recipient's list can
+    # say who sent it without joining users on every render.
+    owner_name: str
+
+    status: str = Field(default="active")           # active | revoked
+    claimed_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    revoked_at: Optional[datetime] = None
+    revoked_by: Optional[str] = Field(
+        default=None, sa_column=_user_fk(cascade=False, nullable=True)
+    )

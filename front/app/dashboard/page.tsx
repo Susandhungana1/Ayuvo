@@ -14,11 +14,15 @@ const links = [
   { href: '/emergency', title: 'Emergency ID', desc: 'Blood type, allergies, emergency contacts' },
   { href: '/timeline', title: 'Timeline', desc: 'Chronological view of all health events' },
   { href: '/settings/caretakers', title: 'Caretakers', desc: 'Let someone help manage your medicines' },
+  { href: '/shared-with-me', title: 'Shared with me', desc: 'Records others shared that you saved' },
 ];
 
+// Doctors are the likeliest recipients of a share link, so "Shared with me"
+// matters more here than on the patient side, not less.
 const doctorLinks = [
   { href: '/doctor/appointments', title: 'Patient Appointments', desc: 'View appointments booked by patients' },
   { href: '/doctor/availability', title: 'My Availability', desc: 'Set your working hours' },
+  { href: '/shared-with-me', title: 'Shared with me', desc: 'Patient records shared with you' },
 ];
 
 export default function Dashboard() {
