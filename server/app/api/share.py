@@ -625,13 +625,28 @@ async def access_shared_report(
     if share_link.expires_at < datetime.utcnow():
         raise HTTPException(status_code=410, detail="Share link expired")
 
+    # A whole-record link carries no report_id, so it cannot be read here. The
+    # mirror of the all_reports check in access_all_shared_reports; without it
+    # the db.get below looks up a None primary key and the endpoint 500s.
+    if share_link.all_reports or not share_link.report_id:
+        raise HTTPException(status_code=404, detail="Invalid share link")
+
     record_access(
         db, "share.view",
         subject_id=share_link.user_id, resource_type="MedicalReport",
         resource_id=share_link.report_id, request=request, detail=f"token={token[:8]}…",
     )
 
+    # The report can be gone — the owner may have deleted it while the link was
+    # still live, and a share link is not a foreign key. Same predicate as
+    # _resolve_shared_report: missing, or no longer the sharer's to share.
     report = db.get(MedicalReport, share_link.report_id)
+    if not report or report.user_id != share_link.user_id:
+        raise HTTPException(
+            status_code=404,
+            detail="This report is no longer available — the sender removed it.",
+        )
+
     user = db.get(User, share_link.user_id)
 
     file_content_b64 = ""
