@@ -1,6 +1,7 @@
 """Web Push subscription management for medicine reminders."""
 
 from typing import Optional
+from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
@@ -31,6 +32,32 @@ class UnsubscribeRequest(BaseModel):
     endpoint: str
 
 
+def canonical_timezone(tz: Optional[str]) -> Optional[str]:
+    """Fold a client-reported timezone into one zoneinfo can load, or None.
+
+    The app sends the browser's IANA zone ("Asia/Kathmandu"), but a bare
+    `DateTime.now().timeZoneName` on iOS reports a display name ("Nepal Time")
+    and the legacy "Asia/Katmandu" spelling also circulates. zoneinfo cannot
+    load those; if we stored them as-is, the scheduler would silently fall back
+    to UTC and fire reminders ~6 hours off by the wall clock.
+    """
+    if not tz:
+        return None
+    try:
+        ZoneInfo(tz)
+        return tz
+    except Exception:
+        pass
+    return _TZ_ALIASES.get(tz)
+
+
+_TZ_ALIASES = {
+    "Nepal Time": "Asia/Kathmandu",
+    "Nepal Standard Time": "Asia/Kathmandu",
+    "Asia/Katmandu": "Asia/Kathmandu",
+}
+
+
 class VapidKeyResponse(BaseModel):
     public_key: str
     enabled: bool
@@ -55,6 +82,18 @@ async def subscribe(
     if not settings.push_enabled:
         raise HTTPException(status_code=503, detail="Push notifications are not configured")
 
+    # The app sends the browser's IANA zone ("Asia/Kathmandu"); iOS can send a
+    # display name ("Nepal Time") that zoneinfo cannot load. Store a canonical
+    # zone — never a name the scheduler would silently resolve to UTC. When the
+    # caller gave us a real zone, adopt it on the user too, so reminder ticks
+    # prefer it even before this subscription exists.
+    canonical = canonical_timezone(data.timezone)
+    if canonical is None:
+        canonical = "UTC"
+    elif data.timezone != canonical and current_user.timezone != canonical:
+        current_user.timezone = canonical
+        db.add(current_user)
+
     existing = db.exec(
         select(PushSubscription).where(PushSubscription.endpoint == data.endpoint)
     ).first()
@@ -64,7 +103,7 @@ async def subscribe(
         existing.user_id = current_user.id
         existing.p256dh = data.keys.p256dh
         existing.auth = data.keys.auth
-        existing.timezone = data.timezone or "UTC"
+        existing.timezone = canonical
         db.add(existing)
     else:
         db.add(
@@ -73,7 +112,7 @@ async def subscribe(
                 endpoint=data.endpoint,
                 p256dh=data.keys.p256dh,
                 auth=data.keys.auth,
-                timezone=data.timezone or "UTC",
+                timezone=canonical,
             )
         )
     db.commit()

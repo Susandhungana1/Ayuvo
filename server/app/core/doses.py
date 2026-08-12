@@ -28,6 +28,15 @@ from app.models.models import Medicine, PushSubscription, User
 
 DEFAULT_TZ = "UTC"
 
+# Zone names Apple's web push reports that zoneinfo cannot load, mapped to the
+# IANA equivalent. Mirrors app/api/push.py::canonical_timezone so old rows
+# stored before that normalization existed still resolve to the right clock.
+_TZ_ALIASES = {
+    "Nepal Time": "Asia/Kathmandu",
+    "Nepal Standard Time": "Asia/Kathmandu",
+    "Asia/Katmandu": "Asia/Kathmandu",
+}
+
 
 def parse_times(taking_times: Optional[str]) -> list[str]:
     """The "HH:MM" entries of a medicine's schedule, or [] if unset/malformed."""
@@ -51,8 +60,9 @@ def minutes_of_day(hhmm: str) -> Optional[int]:
 def zone(tz_name: Optional[str]):
     if ZoneInfo is None:
         return None
+    name = _TZ_ALIASES.get(tz_name or "", tz_name)
     try:
-        return ZoneInfo(tz_name or DEFAULT_TZ)
+        return ZoneInfo(name or DEFAULT_TZ)
     except Exception:
         return ZoneInfo(DEFAULT_TZ)
 

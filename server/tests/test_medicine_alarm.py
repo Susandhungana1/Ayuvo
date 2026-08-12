@@ -247,3 +247,78 @@ def test_scheduler_deletes_dead_subscription(auth_client, monkeypatch):
             select(PushSubscription).where(PushSubscription.endpoint == "https://push.example/dead-1")
         ).first()
         assert gone is None
+
+
+def test_subscribe_normalizes_nepal_time_zone(auth_client, monkeypatch):
+    """iOS reports 'Nepal Time'; the server must store the IANA zone, and adopt
+    it on the user so reminder ticks use the right clock."""
+    client, _ = auth_client
+    monkeypatch.setattr(settings, "vapid_public_key", "PUB", raising=False)
+    monkeypatch.setattr(settings, "vapid_private_key", "PRIV", raising=False)
+
+    r = client.post(
+        "/api/push/subscribe",
+        json={
+            "endpoint": "https://push.example/endpoint-tz-1",
+            "keys": {"p256dh": "key-p", "auth": "key-a"},
+            "timezone": "Nepal Time",
+        },
+    )
+    assert r.status_code == 200, r.text
+
+    with Session(engine) as db:
+        sub = db.exec(
+            select(PushSubscription)
+            .where(PushSubscription.endpoint == "https://push.example/endpoint-tz-1")
+        ).first()
+        assert sub is not None
+        assert sub.timezone == "Asia/Kathmandu"
+        from app.models.models import User
+
+        user = db.get(User, sub.user_id)
+        assert user.timezone == "Asia/Kathmandu"
+
+
+def test_subscribe_keeps_utc_for_unparseable_zone(auth_client, monkeypatch):
+    """A zone zoneinfo cannot load must not silently skew reminders; store UTC
+    and do not stamp a bogus zone onto the user."""
+    client, _ = auth_client
+    monkeypatch.setattr(settings, "vapid_public_key", "PUB", raising=False)
+    monkeypatch.setattr(settings, "vapid_private_key", "PRIV", raising=False)
+
+    r = client.post(
+        "/api/push/subscribe",
+        json={
+            "endpoint": "https://push.example/endpoint-tz-2",
+            "keys": {"p256dh": "key-p", "auth": "key-a"},
+            "timezone": "Somewhere/Fantasy",
+        },
+    )
+    assert r.status_code == 200, r.text
+
+    with Session(engine) as db:
+        sub = db.exec(
+            select(PushSubscription)
+            .where(PushSubscription.endpoint == "https://push.example/endpoint-tz-2")
+        ).first()
+        assert sub is not None
+        assert sub.timezone == "UTC"
+        from app.models.models import User
+
+        user = db.get(User, sub.user_id)
+        assert user.timezone is None
+
+
+def test_scheduler_resolves_legacy_nepal_time_alias(monkeypatch):
+    """Rows stored before the canonicalization still resolve to Kathmandu time,
+    not UTC — the exact 5h45m late-delivery bug seen in production."""
+    from app.core import doses
+    import datetime as _dt
+
+    monkeypatch.setattr(doses, "_TZ_ALIASES", {
+        "Nepal Time": "Asia/Kathmandu",
+        "Nepal Standard Time": "Asia/Kathmandu",
+        "Asia/Katmandu": "Asia/Kathmandu",
+    })
+    now = doses.local_now("Nepal Time")
+    assert now.utcoffset() == _dt.timedelta(hours=5, minutes=45)

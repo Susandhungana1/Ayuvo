@@ -30,6 +30,31 @@ import 'reminders.dart';
 /// Picked by the conditional import in `reminders.dart` on the web build only.
 Reminders createWebReminders(ApiClient client) => WebReminders(client);
 
+@JS('Intl.DateTimeFormat')
+extension type _IntlDateTimeFormat._(JSObject _) implements JSObject {
+  external factory _IntlDateTimeFormat();
+
+  external _ResolvedOptions resolvedOptions();
+}
+
+@JS()
+extension type _ResolvedOptions(JSObject _) implements JSObject {
+  /// `Asia/Kathmandu`, `America/New_York`, ... — the browser's IANA zone id.
+  external JSString get timeZone;
+}
+
+/// The browser's IANA timezone id, or '' when Intl is unavailable.
+///
+/// `DateTime.now().timeZoneName` reports display names on iOS ("Nepal Time"),
+/// which the server cannot map to a clock; `Intl` gives the real IANA id.
+String _browserIanaTimeZone() {
+  try {
+    return _IntlDateTimeFormat().resolvedOptions().timeZone.toDart;
+  } catch (_) {
+    return '';
+  }
+}
+
 class WebReminders implements Reminders {
   WebReminders(this._client);
 
@@ -62,8 +87,9 @@ class WebReminders implements Reminders {
     }
 
     try {
-      _registration =
-          await web.window.navigator.serviceWorker.register(_swUrl.toJS).toDart;
+      _registration = await web.window.navigator.serviceWorker
+          .register(_swUrl.toJS)
+          .toDart;
       // The key is public (it only lets a server encrypt a message to us), so
       // it is fetched without a session.
       final key = await _client.get<Map<String, dynamic>>(
@@ -111,8 +137,7 @@ class WebReminders implements Reminders {
     await initialise();
     if (!_webPushSupported()) return ReminderPermission.unsupported;
     try {
-      final permission =
-          await web.Notification.requestPermission().toDart;
+      final permission = await web.Notification.requestPermission().toDart;
       return switch (permission) {
         'granted' => ReminderPermission.granted,
         'denied' => ReminderPermission.denied,
@@ -172,7 +197,8 @@ class WebReminders implements Reminders {
     } catch (_) {
       // iOS only exposes PushManager inside a Home Screen web app; in a
       // Safari tab this is undefined and every reminder stays silent.
-      _setupNote = 'Open MediStore from your Home Screen to receive '
+      _setupNote =
+          'Open MediStore from your Home Screen to receive '
           'notifications (this browser tab cannot).';
       return false;
     }
@@ -220,7 +246,8 @@ class WebReminders implements Reminders {
     } catch (_) {
       // iOS only exposes PushManager inside a Home Screen web app; in a
       // Safari tab this is undefined and every reminder stays silent.
-      _setupNote = 'Open MediStore from your Home Screen to receive '
+      _setupNote =
+          'Open MediStore from your Home Screen to receive '
           'notifications (this browser tab cannot).';
       return null;
     }
@@ -248,13 +275,15 @@ class WebReminders implements Reminders {
       // Map<String, dynamic> throws a TypeError. Use raw Map access instead.
       final Object? payload = sub.toJSON().dartify();
       if (payload is! Map) {
-        throw const FormatException('PushSubscription.toJSON() did not return an object');
+        throw const FormatException(
+          'PushSubscription.toJSON() did not return an object',
+        );
       }
       final Object? keys = payload['keys'];
       if (keys is! Map) {
         throw const FormatException('PushSubscription did not include keys');
       }
-      final timezone = DateTime.now().timeZoneName;
+      final timezone = _browserIanaTimeZone();
       await _client.post<Map<String, dynamic>>(
         '/api/push/subscribe',
         body: {
@@ -268,8 +297,9 @@ class WebReminders implements Reminders {
       debugPrint('Push subscribe (server) failed: $error');
       // The status and server detail go straight into the settings-screen note
       // so a phone user can read back exactly what the server refused.
-      final detail =
-          error is ApiException ? '${error.statusCode}: ${error.message}' : '$error';
+      final detail = error is ApiException
+          ? '${error.statusCode}: ${error.message}'
+          : '$error';
       _setupNote = 'The server did not accept the subscription ($detail).';
       return false;
     }
