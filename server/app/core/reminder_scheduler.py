@@ -150,16 +150,17 @@ def _claim(
 
 
 def _deliver(
-    db: Session, recipient: Recipient, payload: dict, row: ReminderDelivery
+    db: Session, subs: list[PushSubscription], payload: dict, row: ReminderDelivery
 ) -> bool:
     """Push to every device the recipient has, recording the outcome.
+
+    [subs] is the recipient's pre-loaded subscription list — loading it here
+    would cost one `push_subscriptions` query per (dose, recipient) pair, which
+    is the N+1 Sentry flags on every tick.
 
     A failure for one recipient never aborts the others: the exception is
     captured onto their own ledger row and the loop moves on.
     """
-    subs = db.exec(
-        select(PushSubscription).where(PushSubscription.user_id == recipient.user_id)
-    ).all()
     if not subs:
         row.status = "skipped"
         row.error = "no push subscription"
@@ -247,6 +248,20 @@ def _run_tick() -> int:
     return sent_count
 
 
+def _subscriptions_for(
+    db: Session, user_ids: list[str]
+) -> dict[str, list[PushSubscription]]:
+    """All subscriptions for [user_ids] in one query, grouped by owner."""
+    subs: dict[str, list[PushSubscription]] = {}
+    if not user_ids:
+        return subs
+    for sub in db.exec(
+        select(PushSubscription).where(PushSubscription.user_id.in_(user_ids))
+    ).all():
+        subs.setdefault(sub.user_id, []).append(sub)
+    return subs
+
+
 def _tick_patient(db: Session, patient_id: str) -> int:
     from app.models.models import User
 
@@ -273,6 +288,11 @@ def _tick_patient(db: Session, patient_id: str) -> int:
     recipients = recipients_for(db, patient_id)
     patient = db.get(User, patient_id)
     patient_name = patient.name if patient else "Your patient"
+    # One query for every recipient, not one per dose slot — the N+1 Sentry
+    # flags on /api/push/run-tick.
+    subs_by_user = _subscriptions_for(
+        db, [r.user_id for r in recipients]
+    )
 
     sent = 0
     for med, slot in due:
@@ -300,7 +320,10 @@ def _tick_patient(db: Session, patient_id: str) -> int:
             if row is None:
                 continue  # already delivered on an earlier tick
             if _deliver(
-                db, recipient, _payload(med, patient_name, slot, today, recipient), row
+                db,
+                subs_by_user.get(recipient.user_id, []),
+                _payload(med, patient_name, slot, today, recipient),
+                row,
             ):
                 sent += 1
 

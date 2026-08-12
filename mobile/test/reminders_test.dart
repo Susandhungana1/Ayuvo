@@ -178,6 +178,37 @@ void main() {
     });
   });
 
+  group('test reminder', () {
+    test('says yes when permission is granted and records the request',
+        () async {
+      final reminders = NoReminders(permission: ReminderPermission.granted);
+
+      expect(await reminders.sendTest(), isTrue);
+      expect(reminders.testRequests, 1);
+    });
+
+    test('refuses when permission is missing, without scheduling anything',
+        () async {
+      final reminders = NoReminders(permission: ReminderPermission.denied);
+
+      expect(await reminders.sendTest(), isFalse);
+      expect(reminders.testRequests, 1);
+      expect(reminders.scheduled, isEmpty);
+    });
+  });
+
+  group('subscription', () {
+    test('subscribes only once permission is granted', () async {
+      final granted = NoReminders(permission: ReminderPermission.granted);
+      final denied = NoReminders(permission: ReminderPermission.denied);
+
+      expect(await granted.ensureSubscribed(), isTrue);
+      expect(granted.subscribes, 1);
+      expect(await denied.ensureSubscribed(), isFalse);
+      expect(denied.subscribes, 0);
+    });
+  });
+
   group('settings on disk', () {
     test('a round trip keeps all three choices', () {
       const settings = AppSettings(

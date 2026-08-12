@@ -61,6 +61,9 @@
     "placeholders": { "count": { "type": "int" } }
   },
   "settingsRemindersHorizon": "Covers the next 7 days. The app refreshes them whenever you open it.",
+  "settingsRemindersTest": "Send test reminder",
+  "settingsRemindersTestSent": "Test reminder scheduled — check your lock screen in a few seconds.",
+  "settingsRemindersTestFailed": "Could not schedule a test reminder. Check that notifications are allowed for MediStore.",
 
   "timelineTitle": "Timeline",
   "timelineSubtitle": "Everything on your record, newest first",

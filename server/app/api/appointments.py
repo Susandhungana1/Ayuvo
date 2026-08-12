@@ -171,19 +171,32 @@ def is_slot_available(db: Session, doctor_id: str, appointment_date: datetime, d
 
     appt_end = appointment_date + timedelta(minutes=duration_minutes)
 
-    overlapping = db.exec(
-        select(Appointment).where(
+    # Overlap check. The SQL filter is deliberately broad but *bounded*: any
+    # overlapping PENDING/CONFIRMED appointment must start before the requested
+    # end, so this select is a superset of the candidates and never inspects the
+    # whole diary. The exact end-overlap test then runs over the few rows it
+    # returns. The previous code selected a single arbitrary row (no ORDER BY)
+    # and inspected it in Python, so with two appointments on file it inspected
+    # the oldest — whose end was long past — and wrongly accepted a double
+    # booking. FOR UPDATE (Postgres) locks the matched rows so two concurrent
+    # requests cannot both pass; SQLite ignores it, which is fine for tests.
+    candidates = db.exec(
+        select(Appointment)
+        .where(
             and_(
                 Appointment.doctor_id == doctor_id,
-                Appointment.appointment_date < appt_end
+                Appointment.appointment_date < appt_end,
+                Appointment.status.in_(
+                    [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED]
+                ),
             )
         )
-    ).first()
+        .with_for_update()
+    ).all()
 
-    if overlapping and overlapping.status in [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED]:
-        appt_start = overlapping.appointment_date
-        appt_dur = overlapping.duration_minutes
-        if appt_start + timedelta(minutes=appt_dur) > appointment_date:
+    for other in candidates:
+        other_end = other.appointment_date + timedelta(minutes=other.duration_minutes)
+        if other_end > appointment_date:
             return False
 
     return True
@@ -203,7 +216,10 @@ async def create_appointment(
         if not is_slot_available(db, appt_data.doctor_id, appt_data.appointment_date, appt_data.duration_minutes):
             raise HTTPException(status_code=400, detail="The requested time slot is not available. Please check the doctor's available slots.")
 
-    status = AppointmentStatus.CONFIRMED if appt_data.doctor_id else AppointmentStatus.PENDING
+    if settings.doctor_confirms_bookings and appt_data.doctor_id:
+        status = AppointmentStatus.PENDING
+    else:
+        status = AppointmentStatus.CONFIRMED if appt_data.doctor_id else AppointmentStatus.PENDING
 
     appointment = Appointment(
         user_id=current_user.id,

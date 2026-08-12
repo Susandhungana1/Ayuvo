@@ -191,6 +191,17 @@ class AppL10nNe extends AppL10n {
       'आउने ७ दिनका लागि। एप खोल्दा हरेक पटक नयाँ गरिन्छ।';
 
   @override
+  String get settingsRemindersTest => 'परीक्षण सम्झना पठाउनुहोस्';
+
+  @override
+  String get settingsRemindersTestSent =>
+      'परीक्षण सम्झना मिलाइयो — केही सेकेन्डमा स्क्रिन जाँच गर्नुहोस्।';
+
+  @override
+  String get settingsRemindersTestFailed =>
+      'परीक्षण सम्झना मिलाउन सकिएन। MediStore का लागि सूचना अनुमति जाँच गर्नुहोस्।';
+
+  @override
   String get timelineTitle => 'समयरेखा';
 
   @override

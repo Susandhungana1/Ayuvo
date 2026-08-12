@@ -61,6 +61,9 @@
     "placeholders": { "count": { "type": "int" } }
   },
   "settingsRemindersHorizon": "आउने ७ दिनका लागि। एप खोल्दा हरेक पटक नयाँ गरिन्छ।",
+  "settingsRemindersTest": "परीक्षण सम्झना पठाउनुहोस्",
+  "settingsRemindersTestSent": "परीक्षण सम्झना मिलाइयो — केही सेकेन्डमा स्क्रिन जाँच गर्नुहोस्।",
+  "settingsRemindersTestFailed": "परीक्षण सम्झना मिलाउन सकिएन। MediStore का लागि सूचना अनुमति जाँच गर्नुहोस्।",
 
   "timelineTitle": "समयरेखा",
   "timelineSubtitle": "तपाईंको रेकर्डको सबै कुरा, नयाँदेखि क्रमैसँग",

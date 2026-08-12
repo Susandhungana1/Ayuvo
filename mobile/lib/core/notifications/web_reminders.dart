@@ -24,6 +24,7 @@ import 'package:web/web.dart' as web;
 
 import '../../features/medicines/domain/dose_schedule.dart';
 import '../network/api_client.dart';
+import '../network/api_exception.dart';
 import 'reminders.dart';
 
 /// Picked by the conditional import in `reminders.dart` on the web build only.
@@ -43,11 +44,22 @@ class WebReminders implements Reminders {
   String _vapidPublicKey = '';
   web.ServiceWorkerRegistration? _registration;
 
+  /// Why reminders could not be armed, set at whichever step failed. Shown on
+  /// the settings screen when nothing is scheduled, so a user can read back
+  /// exactly what the browser refused.
+  String? _setupNote;
+
+  @override
+  String? get setupNote => _setupNote;
+
   @override
   Future<void> initialise() async {
     if (_ready) return;
     _ready = true;
-    if (!_webPushSupported()) return;
+    if (!_webPushSupported()) {
+      _setupNote = 'This browser cannot show notifications (no web push API).';
+      return;
+    }
 
     try {
       _registration =
@@ -62,6 +74,7 @@ class WebReminders implements Reminders {
       _vapidPublicKey = (key['public_key'] as String?) ?? '';
     } catch (error) {
       debugPrint('Web push initialise failed: $error');
+      _setupNote = 'Could not reach the push service ($error).';
     }
   }
 
@@ -110,6 +123,76 @@ class WebReminders implements Reminders {
     }
   }
 
+  @override
+  bool? permissionNow() {
+    try {
+      return switch (web.Notification.permission) {
+        'granted' => true,
+        'denied' => false,
+        _ => null,
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Creates the push subscription and tells the server about it, so the
+  /// reminder scheduler can push to this device.
+  ///
+  /// This is the web build's critical gesture: on iOS, `subscribe()` only
+  /// succeeds as the *first* awaited call of the user tap that reached it —
+  /// any earlier `await` (even of an already-resolved future) revokes the
+  /// gesture token and the call throws `NotAllowedError`. The settings screen
+  /// therefore calls this straight from the toggle's tap handler, and we lean
+  /// on [initialise] having already registered the service worker and fetched
+  /// the VAPID key (pre-warmed at app launch), so there is nothing left to
+  /// await before `subscribe()` here.
+  @override
+  Future<bool> ensureSubscribed() async {
+    if (!_vapidEnabled || _vapidPublicKey.isEmpty) {
+      _setupNote = 'Push is not configured on the server.';
+      return false;
+    }
+    final registration = _registration;
+    if (registration == null) {
+      _setupNote = 'The notification worker has not started yet — try again.';
+      return false;
+    }
+    try {
+      if (web.Notification.permission != 'granted') {
+        _setupNote = 'Notifications are not allowed.';
+        return false;
+      }
+    } catch (_) {
+      return false;
+    }
+    final web.PushManager manager;
+    try {
+      manager = registration.pushManager;
+    } catch (_) {
+      // iOS only exposes PushManager inside a Home Screen web app; in a
+      // Safari tab this is undefined and every reminder stays silent.
+      _setupNote = 'Open MediStore from your Home Screen to receive '
+          'notifications (this browser tab cannot).';
+      return false;
+    }
+    try {
+      final sub = await manager
+          .subscribe(
+            web.PushSubscriptionOptionsInit(
+              userVisibleOnly: true,
+              applicationServerKey: _decodeVapidKey(_vapidPublicKey).toJS,
+            ),
+          )
+          .toDart;
+      return await _registerOnServer(sub);
+    } catch (error) {
+      debugPrint('Push subscribe failed: $error');
+      _setupNote = 'The browser refused to subscribe ($error).';
+      return false;
+    }
+  }
+
   /// The current subscription for our service worker, creating it if needed.
   ///
   /// Returns null when push is not configured on the server or the browser
@@ -117,13 +200,30 @@ class WebReminders implements Reminders {
   /// Screen is the classic case).
   Future<web.PushSubscription?> _subscription() async {
     await initialise();
-    if (!_webPushSupported() || !_vapidEnabled || _vapidPublicKey.isEmpty) {
+    if (!_webPushSupported()) {
+      _setupNote = 'This browser cannot show notifications (no web push API).';
+      return null;
+    }
+    if (!_vapidEnabled || _vapidPublicKey.isEmpty) {
+      _setupNote = 'Push is not configured on the server.';
       return null;
     }
     final registration = _registration;
-    if (registration == null) return null;
+    if (registration == null) {
+      _setupNote = 'The notification worker has not started yet — try again.';
+      return null;
+    }
 
-    final manager = registration.pushManager;
+    final web.PushManager manager;
+    try {
+      manager = registration.pushManager;
+    } catch (_) {
+      // iOS only exposes PushManager inside a Home Screen web app; in a
+      // Safari tab this is undefined and every reminder stays silent.
+      _setupNote = 'Open MediStore from your Home Screen to receive '
+          'notifications (this browser tab cannot).';
+      return null;
+    }
     try {
       var sub = await manager.getSubscription().toDart;
       sub ??= await manager
@@ -137,43 +237,58 @@ class WebReminders implements Reminders {
       return sub;
     } catch (error) {
       debugPrint('Push subscribe failed: $error');
+      _setupNote = 'The browser refused to subscribe ($error).';
       return null;
     }
   }
 
   Future<bool> _registerOnServer(web.PushSubscription sub) async {
     try {
-      final json = sub.toJSON().dartify()! as Map<String, dynamic>;
-      final keys = json['keys'] as Map<String, dynamic>;
+      // dartify() returns the nested keys object as a plain Map; casting it to
+      // Map<String, dynamic> throws a TypeError. Use raw Map access instead.
+      final Object? payload = sub.toJSON().dartify();
+      if (payload is! Map) {
+        throw const FormatException('PushSubscription.toJSON() did not return an object');
+      }
+      final Object? keys = payload['keys'];
+      if (keys is! Map) {
+        throw const FormatException('PushSubscription did not include keys');
+      }
       final timezone = DateTime.now().timeZoneName;
       await _client.post<Map<String, dynamic>>(
         '/api/push/subscribe',
         body: {
-          'endpoint': json['endpoint'],
-          'keys': {
-            'p256dh': keys['p256dh'],
-            'auth': keys['auth'],
-          },
+          'endpoint': payload['endpoint'],
+          'keys': {'p256dh': keys['p256dh'], 'auth': keys['auth']},
           'timezone': timezone,
         },
       );
       return true;
     } catch (error) {
       debugPrint('Push subscribe (server) failed: $error');
+      // The status and server detail go straight into the settings-screen note
+      // so a phone user can read back exactly what the server refused.
+      final detail =
+          error is ApiException ? '${error.statusCode}: ${error.message}' : '$error';
+      _setupNote = 'The server did not accept the subscription ($detail).';
       return false;
     }
   }
 
   @override
   Future<int> schedule(List<DoseSlot> slots) async {
-    if (await status() != ReminderPermission.granted) return 0;
+    if (await status() != ReminderPermission.granted) {
+      _setupNote = 'Notifications are not allowed.';
+      return 0;
+    }
     final sub = await _subscription();
     if (sub == null) return 0;
-    // Delivery is server-side; a working subscription means the server will
-    // push every slot. Re-registering each sync also refreshes the endpoint's
-    // keys and timezone and rescues a subscription the browser silently
-    // dropped.
-    return await _registerOnServer(sub) ? slots.length : 0;
+    if (!await _registerOnServer(sub)) {
+      // _registerOnServer already set _setupNote with the exact failure.
+      return 0;
+    }
+    _setupNote = null;
+    return slots.length;
   }
 
   @override

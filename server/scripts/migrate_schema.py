@@ -12,6 +12,7 @@ It is idempotent: it adds columns only if absent and creates audit_logs only if
 missing, so running it twice is harmless.
 
     Adds:  users.totp_secret, users.totp_enabled
+           users.timezone                    (mobile: the user's own IANA zone)
            medical_reports.storage_key
            medical_files.storage_key, medical_files.content_type
            medicines.deleted_at              (caretaker: soft delete)
@@ -41,6 +42,7 @@ from app.models import models  # noqa: F401
 _ADD_COLUMNS = [
     ("users", "totp_secret", "VARCHAR"),
     ("users", "totp_enabled", "BOOLEAN NOT NULL DEFAULT FALSE"),
+    ("users", "timezone", "VARCHAR"),
     ("medical_reports", "storage_key", "VARCHAR"),
     ("medical_files", "storage_key", "VARCHAR"),
     ("medical_files", "content_type", "VARCHAR"),

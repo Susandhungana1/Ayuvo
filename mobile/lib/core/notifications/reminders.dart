@@ -65,6 +65,21 @@ abstract interface class Reminders {
   /// Prompts if the platform allows it. Returns the state afterwards.
   Future<ReminderPermission> request();
 
+  /// Whether notifications are already permitted, answered without a platform
+  /// probe. Null when the platform cannot know synchronously (a phone).
+  bool? permissionNow();
+
+  /// Makes sure this device is subscribed for reminders. A no-op on a phone,
+  /// where scheduling is local; in a browser it creates the Web Push
+  /// subscription and registers it with the server. Returns whether the
+  /// subscription now exists.
+  Future<bool> ensureSubscribed();
+
+  /// Why reminders could not be armed, in a phrase a user can read back. Null
+  /// when all is well. Only web push sets this — a phone cannot be diagnosed
+  /// from here — but the settings screen shows it wherever it is set.
+  String? get setupNote;
+
   /// Replaces every scheduled reminder with the ones [slots] implies.
   /// Returns how many are now pending.
   Future<int> schedule(List<DoseSlot> slots);
@@ -175,6 +190,15 @@ class LocalReminders implements Reminders {
         ? ReminderPermission.unknown
         : ReminderPermission.unsupported;
   }
+
+  @override
+  bool? permissionNow() => null;
+
+  @override
+  Future<bool> ensureSubscribed() async => true;
+
+  @override
+  String? get setupNote => null;
 
   @override
   Future<ReminderPermission> request() async {
@@ -313,6 +337,25 @@ class NoReminders implements Reminders {
 
   @override
   Future<ReminderPermission> request() async => permission;
+
+  @override
+  bool? permissionNow() =>
+      permission == ReminderPermission.granted ? true : null;
+
+  @override
+  String? get setupNote => null;
+
+  /// How many times `ensureSubscribed` asked for a subscription.
+  int subscribes = 0;
+
+  @override
+  Future<bool> ensureSubscribed() async {
+    if (permission == ReminderPermission.granted) {
+      subscribes++;
+      return true;
+    }
+    return false;
+  }
 
   @override
   Future<int> schedule(List<DoseSlot> slots) async {

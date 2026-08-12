@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/l10n/context_l10n.dart';
 import '../../../core/notifications/reminder_sync.dart';
+import '../../../core/notifications/reminders.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -32,6 +33,12 @@ class AppShell extends ConsumerWidget {
     // are rescheduled whenever the medicine list or the setting changes, and
     // the seven-day window rolls forward every time the app is opened.
     ref.watch(reminderSyncProvider);
+
+    // Pre-warm the reminders backend before the user can reach the toggle: on
+    // web this registers the service worker and fetches the VAPID key, so that
+    // creating the push subscription stays the first awaited call of the
+    // user's tap (iOS revokes the gesture token at any earlier await).
+    ref.read(remindersProvider).initialise();
 
     return Scaffold(
       body: shell,

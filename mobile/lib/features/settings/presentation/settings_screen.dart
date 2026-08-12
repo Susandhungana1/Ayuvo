@@ -159,6 +159,7 @@ class _Reminders extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final enabled = ref.watch(currentSettingsProvider).remindersEnabled;
     final scheduled = ref.watch(reminderSyncProvider);
+    final setupNote = ref.watch(remindersProvider).setupNote;
 
     return _Section(
       title: context.l10n.settingsReminders,
@@ -176,8 +177,66 @@ class _Reminders extends ConsumerWidget {
                   )
                 : null,
           ),
-          if (enabled) const _PermissionNotice(),
+          // When nothing is scheduled and the browser refused to arm push, say
+          // why — the read-back message is how an iPhone reports the actual
+          // blocker (tab vs Home Screen app, permission, worker state).
+          if (enabled && (scheduled.valueOrNull ?? 0) == 0 && setupNote != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                0,
+                AppSpacing.lg,
+                0,
+              ),
+              child: Text(
+                setupNote,
+                style: context.texts.bodySmall?.copyWith(
+                  color: context.status.caution,
+                ),
+              ),
+            ),
+          if (enabled) ...[
+            const _PermissionNotice(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                0,
+                AppSpacing.lg,
+                AppSpacing.lg,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => _sendTest(context, ref),
+                  icon: const Icon(Icons.notifications_active_outlined),
+                  label: Text(context.l10n.settingsRemindersTest),
+                ),
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  /// Schedules a notification ten seconds from now so the user can check
+  /// delivery without waiting for a dose time. Reports success or the reason it
+  /// could not happen in a snackbar.
+  Future<void> _sendTest(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
+    final reminders = ref.read(remindersProvider);
+    // Also the finishing step for iOS: the very first enable has no gesture
+    // left after the permission prompt, so the subscription completes on this
+    // tap instead, and only then does the test push go out.
+    await reminders.ensureSubscribed();
+    final sent = await reminders.sendTest();
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          sent ? l10n.settingsRemindersTestSent : l10n.settingsRemindersTestFailed,
+        ),
       ),
     );
   }
@@ -193,11 +252,24 @@ class _Reminders extends ConsumerWidget {
     }
 
     final reminders = ref.read(remindersProvider);
-    final status = await reminders.status();
-    if (status == ReminderPermission.unknown ||
-        status == ReminderPermission.denied) {
-      await reminders.request();
+
+    // The push subscription has to be created inside this tap. On iOS it only
+    // survives as the first awaited call of the gesture, so when permission is
+    // already granted we must not await anything else first.
+    if (reminders.permissionNow() != true) {
+      final status = await reminders.status();
+      if (status == ReminderPermission.unknown ||
+          status == ReminderPermission.denied) {
+        await reminders.request();
+      }
     }
+
+    // On the very first enable the permission dialog just consumed this tap's
+    // gesture on iOS, so this can still fail; the Send-test button (or the next
+    // tap) retries it, and until then the subtitle honestly reads "0
+    // scheduled".
+    await reminders.ensureSubscribed();
+
     await settings.setRemindersEnabled(true);
     // The graph reacts to the setting, but not to a permission that changed
     // underneath it — so nudge the sync explicitly.

@@ -78,6 +78,13 @@ class Settings(BaseSettings):
     # fan-out collapses to patient-only (i.e. exactly the previous behaviour).
     caretaker_enabled: bool = False
 
+    # --- Appointments ---
+    # When true, a booking with a doctor is created PENDING and the doctor
+    # accepts or rejects it; when false (the default) it is CONFIRMED on the
+    # doctor's behalf, exactly as today. Surfaced on /health so a flag flip on
+    # the running service is one curl away.
+    doctor_confirms_bookings: bool = False
+
     class Config:
         env_file = ".env"
 

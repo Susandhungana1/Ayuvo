@@ -86,16 +86,14 @@ Future<PickedFile?> _fromXFile(XFile file) async {
 }
 
 Future<PickedFile?> _fromFiles() async {
-  final result = await FilePicker.platform.pickFiles(
+  final result = await FilePicker.pickFiles(
     type: FileType.custom,
     allowedExtensions: const ['pdf', 'png', 'jpg', 'jpeg', 'webp'],
-    withData: true,
   );
   final file = result?.files.single;
-  final bytes = file?.bytes;
   final path = file?.path;
-  if (file == null || bytes == null || path == null) return null;
-  return PickedFile(name: file.name, bytes: bytes, path: path);
+  if (file == null || path == null) return null;
+  return PickedFile(name: file.name, bytes: await file.readAsBytes(), path: path);
 }
 
 class _SourceSheet extends StatelessWidget {

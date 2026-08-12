@@ -191,6 +191,17 @@ class AppL10nEn extends AppL10n {
       'Covers the next 7 days. The app refreshes them whenever you open it.';
 
   @override
+  String get settingsRemindersTest => 'Send test reminder';
+
+  @override
+  String get settingsRemindersTestSent =>
+      'Test reminder scheduled — check your lock screen in a few seconds.';
+
+  @override
+  String get settingsRemindersTestFailed =>
+      'Could not schedule a test reminder. Check that notifications are allowed for MediStore.';
+
+  @override
   String get timelineTitle => 'Timeline';
 
   @override

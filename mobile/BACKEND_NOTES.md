@@ -1,17 +1,30 @@
 # Backend notes
 
-**Status.** §1 and §2 were approved and are **shipped locally** (not deployed).
-§3–§15 remain deferred until the app produces evidence. A third fix — a 500 in
-`GET /api/documents` — was found while testing §2 and is described in §0.
+**Status.** §1 and §2 were approved and are **shipped locally** (not deployed),
+along with §0 (a crash found while testing §2). Phase 7 approved §7, §11, §10,
+§15, §9, §12, §14 **and §13 (both checks)** — all implemented locally, tested,
+and committed for review below. §3, §4, §5, §6, §8 remain deferred.
 
-**As of the end of phase 6 the list is complete**: §1–§15 are everything six phases
-of building against this API turned up. Phase 7 is where you approve some subset of
-it. Five are proven against a running server rather than read off the source —
-§11 (two patients given the same slot), §15 (search returns deleted medicines),
-§10 (a booking is confirmed on the doctor's behalf, so `PENDING` is unreachable),
-§7 (a caretaker is shown the wrong medicine at the wrong time on the wrong day),
-and the answer written into §8 (local reminders cover the patient and cannot reach
-a caretaker).
+**Phase 7 — approved, implemented locally (2026-08-10).** Every change is
+additive; `git diff -- server/` walks them below. `python -m pytest -q` →
+**190 passed** (147 before, +43 new). Verified against the running local
+Postgres backend and the local web app (login, medicines, documents all 200).
+
+```
+§7   users.timezone column + PUT /api/users/me + patient_timezone preference
+§11  bounded overlap predicate + row lock in is_slot_available
+§10  DOCTOR_CONFIRMS_BOOKINGS flag, default off, surfaced on /health
+§15  search filters Medicine.deleted_at IS NULL
+§9   /api/timeline slice pushed into SQL (UNION ALL + LIMIT/OFFSET)
+§12  PUT /api/doctors/me resets verified on real edits
+§14  /health reports frontend_url
+§13  availability update runs the overlap check; end-after-start on both
+     schemas; update body carries day_of_week
+```
+
+Only §7 needs a migration (a nullable `users.timezone` column) — applied to
+local Postgres and proven idempotent. The production run is the operator's.
+
 
 **Opening phase 7 closed the two entries that said "measure this first."** §3 asked
 for the payload it saves and now has it — 86% of the list, but only ≈172 KB at 30
@@ -646,21 +659,22 @@ documents branch.
 
 ## Operator steps — for you to run, not me
 
-Nothing here is needed yet; recorded now so the list is complete when something does
-ship.
-
-1. **Schema migration, production, before the reading code deploys:**
+1. **Schema migration, production, before the reading code deploys.** §7 added
+   `users.timezone` (nullable). Run against production **before** the code that
+   reads it ships:
    ```bash
    cd server
    DATABASE_URL='<prod-url>' python -m scripts.migrate_schema --dry-run
    DATABASE_URL='<prod-url>' python -m scripts.migrate_schema
    ```
-   Only §4 and §7 above would need this. No migration is pending today.
-2. **Environment variables:** any new flag must be added **by hand** in
-   Render → medistore-api → Environment. Adding it to `render.yaml` does not create
-   it on the running service — that is how `CARETAKER_ENABLED` read `false` in
+   §4 and §7 were the only entries that need this; §4 is still deferred, so §7
+   is the only pending migration today.
+2. **Environment variables:** `DOCTOR_CONFIRMS_BOOKINGS` (optional — defaults
+   `false`) must be added **by hand** in Render → medistore-api → Environment
+   if it is ever turned on. Adding it to `render.yaml` does not create it on
+   the running service — that is how `CARETAKER_ENABLED` read `false` in
    production for an hour while the blueprint said `"true"`.
-3. **Verify:** `curl -s https://medistore-api-vwyr.onrender.com/health` — every new
-   flag must be surfaced there, the way `caretaker` and `email` already are.
-4. **Deploy** is yours to trigger. New behaviour lands behind a flag defaulting off,
-   so shipping the code and enabling it stay separate acts.
+3. **Verify:** `curl -s https://medistore-api-vwyr.onrender.com/health` —
+   `doctor_confirms_bookings` and `frontend_url` are both surfaced there.
+4. **Deploy** is yours to trigger. New behaviour lands behind a flag defaulting
+   off, so shipping the code and enabling it stay separate acts.

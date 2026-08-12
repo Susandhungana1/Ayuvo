@@ -88,6 +88,11 @@ class User(SQLModel, table=True):
     totp_secret: Optional[str] = None
     totp_enabled: bool = Field(default=False)
 
+    # The user's own IANA timezone (e.g. "Asia/Kathmandu"), set by the mobile app
+    # at sign-in. Weak location data: optional, unset by default, never logged.
+    # When set, dose-time lookup prefers it over the push-subscription inference.
+    timezone: Optional[str] = None
+
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

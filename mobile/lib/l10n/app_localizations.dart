@@ -421,6 +421,24 @@ abstract class AppL10n {
   /// **'Covers the next 7 days. The app refreshes them whenever you open it.'**
   String get settingsRemindersHorizon;
 
+  /// No description provided for @settingsRemindersTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Send test reminder'**
+  String get settingsRemindersTest;
+
+  /// No description provided for @settingsRemindersTestSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Test reminder scheduled — check your lock screen in a few seconds.'**
+  String get settingsRemindersTestSent;
+
+  /// No description provided for @settingsRemindersTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not schedule a test reminder. Check that notifications are allowed for MediStore.'**
+  String get settingsRemindersTestFailed;
+
   /// No description provided for @timelineTitle.
   ///
   /// In en, this message translates to:

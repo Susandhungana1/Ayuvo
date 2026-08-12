@@ -22,7 +22,8 @@ FakeApi backend({
       ..json('GET /api/medicines/interactions', {
         'interactions': interactions,
         'checked_count': checkedCount,
-      });
+      })
+      ..json('GET /api/medicines/intake/log', {'intakes': const []});
 
 Map<String, Object?> interaction({
   String drugA = 'Warfarin',

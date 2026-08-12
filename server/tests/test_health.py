@@ -51,3 +51,26 @@ def test_health_reports_the_caretaker_flag(client):
         assert client.get("/health").json()["caretaker"] is True
     finally:
         settings.caretaker_enabled = False
+
+
+def test_health_reports_doctor_confirms_bookings_flag(client):
+    """Same reasoning as the caretaker flag: the booking default is invisible
+    from outside except through /health."""
+    from app.core.config import settings
+
+    assert client.get("/health").json()["doctor_confirms_bookings"] is False
+
+    settings.doctor_confirms_bookings = True
+    try:
+        assert client.get("/health").json()["doctor_confirms_bookings"] is True
+    finally:
+        settings.doctor_confirms_bookings = False
+
+
+def test_health_reports_frontend_url(client):
+    """The mobile app builds QR codes against a hostname; /health is where the
+    server says which one the deployment serves."""
+    from app.core.config import settings
+
+    assert client.get("/health").json()["frontend_url"] == settings.frontend_url
+    assert client.get("/health").json()["frontend_url"].startswith("http")

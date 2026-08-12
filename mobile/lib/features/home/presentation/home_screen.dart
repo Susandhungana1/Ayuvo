@@ -223,6 +223,19 @@ class _Today extends ConsumerWidget {
 
     final remaining = slots.where((slot) => !slot.isPast(now)).length;
 
+    // Intake log for pre-marking doses already taken today.
+    final intakeLog = ref.watch(intakeLogProvider).valueOrNull ?? const [];
+    final todayKey = MediTime.dateOnly(now);
+    final preTaken = <String>{};
+    for (final intake in intakeLog) {
+      if (intake.status != 'taken') continue;
+      final recorded = intake.recorded;
+      if (recorded == null) continue;
+      final intakeDate = MediTime.dateOnly(recorded);
+      if (intakeDate != todayKey) continue;
+      preTaken.add('${intake.medicineId}-${intake.scheduledTime}');
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -250,7 +263,12 @@ class _Today extends ConsumerWidget {
             child: Column(
               children: [
                 for (final slot in slots)
-                  _DoseRow(key: ValueKey(slot.key), slot: slot, now: now),
+                  _DoseRow(
+                    key: ValueKey(slot.key),
+                    slot: slot,
+                    now: now,
+                    preTaken: preTaken.contains(slot.key),
+                  ),
               ],
             ),
           ),
@@ -266,10 +284,16 @@ class _Today extends ConsumerWidget {
 /// straight away and reports failure rather than pretending. Snooze and skip
 /// belong with the reminder that fires, which is phase 6.
 class _DoseRow extends ConsumerStatefulWidget {
-  const _DoseRow({super.key, required this.slot, required this.now});
+  const _DoseRow({
+    super.key,
+    required this.slot,
+    required this.now,
+    required this.preTaken,
+  });
 
   final DoseSlot slot;
   final DateTime now;
+  final bool preTaken;
 
   @override
   ConsumerState<_DoseRow> createState() => _DoseRowState();
@@ -278,10 +302,11 @@ class _DoseRow extends ConsumerStatefulWidget {
 class _DoseRowState extends ConsumerState<_DoseRow> {
   bool _saving = false;
 
-  /// Local only. The server keeps a log but exposes no "was this dose taken"
-  /// query, so a mark made here survives the screen and not the app — and the
-  /// row says so rather than implying a checkmark is permanent.
-  bool _marked = false;
+  /// Local mark from pressing "Taken" this session.
+  bool _localMarked = false;
+
+  /// Whether the dose was already taken (from intake log).
+  bool get _marked => widget.preTaken || _localMarked;
 
   Future<void> _markTaken() async {
     setState(() => _saving = true);
@@ -294,7 +319,7 @@ class _DoseRowState extends ConsumerState<_DoseRow> {
       if (mounted) {
         setState(() {
           _saving = false;
-          _marked = true;
+          _localMarked = true;
         });
       }
       ref.invalidate(intakeLogProvider);
