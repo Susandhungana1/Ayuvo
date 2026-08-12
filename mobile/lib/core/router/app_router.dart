@@ -29,6 +29,8 @@ import '../../features/reports/presentation/reports_screen.dart';
 import '../../features/search/presentation/search_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/sharing/presentation/share_screen.dart';
+import '../../features/sharing/presentation/shared_record_screen.dart';
+import '../../features/sharing/presentation/shared_report_screen.dart';
 import '../../features/shell/presentation/app_shell.dart';
 import '../../features/shell/presentation/more_screen.dart';
 import '../../features/timeline/presentation/timeline_screen.dart';
@@ -60,6 +62,11 @@ class _SessionRefresh extends ChangeNotifier {
 }
 
 String? _redirect(Ref ref, String location) {
+  // Public share readers first: the token is the credential and there is no
+  // session requirement, so nothing below may send a signed-in or signed-out
+  // visitor elsewhere before the reader loads.
+  if (Routes.public.contains(location)) return null;
+
   final asyncSession = ref.read(sessionControllerProvider);
   final atSplash = location == Routes.splash;
 
@@ -104,6 +111,18 @@ final _routes = <RouteBase>[
   GoRoute(
     path: Routes.resetPassword,
     builder: (context, state) => const ResetPasswordScreen(),
+  ),
+  // Public share readers — a recipient has no account, so these live outside
+  // the shells and bypass the session redirect entirely.
+  GoRoute(
+    path: Routes.shareQrCode,
+    builder: (context, state) =>
+        SharedRecordScreen(token: state.pathParameters['token']!),
+  ),
+  GoRoute(
+    path: Routes.shareSingle,
+    builder: (context, state) =>
+        SharedReportScreen(token: state.pathParameters['token']!),
   ),
   StatefulShellRoute.indexedStack(
     builder: (context, state, shell) =>

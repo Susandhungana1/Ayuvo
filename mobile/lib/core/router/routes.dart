@@ -16,6 +16,14 @@ abstract final class Routes {
   /// Signed out, in the order they appear in the flow.
   static const signedOut = [signIn, register, forgotPassword, resetPassword];
 
+  /// Public share readers, mirroring `front/app/share/*`. A recipient follows
+  /// a link or scans a QR code *without* an account — the token is the
+  /// credential — so these are reachable by anyone, signed in or not, and are
+  /// never gated behind the session redirect.
+  static const shareQrCode = '/share/qr-code/:token';
+  static const shareSingle = '/share/:token';
+  static const public = [shareQrCode, shareSingle];
+
   // Patient shell.
   static const home = '/home';
   static const medicines = '/medicines';

@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/network_providers.dart';
 import '../domain/share_link.dart';
+import '../domain/shared_record.dart';
 
 final shareRepositoryProvider = Provider<ShareRepository>(
   (ref) => ShareRepository(ref.watch(apiClientProvider)),
@@ -62,4 +63,23 @@ class ShareRepository {
   /// `DELETE /api/share/{token}` — revoke. Immediate: the next reader gets a
   /// 404 rather than a cached page.
   Future<void> revoke(String token) => _client.delete<void>('$_base/$token');
+
+  /// `GET /api/share/qr-code/{token}` — read a shared whole record. **No auth:**
+  /// the token is the credential, exactly as the web reader treats it.
+  Future<SharedRecord> fetchSharedRecord(String token) async {
+    final json = await _client.get<Map<String, dynamic>>(
+      '$_base/qr-code/$token',
+      options: unauthenticated,
+    );
+    return SharedRecord.fromJson(json);
+  }
+
+  /// `GET /api/share/{token}` — read one shared report. **No auth.**
+  Future<SharedReportPage> fetchSharedReport(String token) async {
+    final json = await _client.get<Map<String, dynamic>>(
+      '$_base/$token',
+      options: unauthenticated,
+    );
+    return SharedReportPage.fromJson(json);
+  }
 }
