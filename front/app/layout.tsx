@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { Figtree, Noto_Sans } from "next/font/google";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { ChatBot } from "@/components/ChatBot";
@@ -7,6 +8,21 @@ import { HideOnShare } from "@/components/hide-on-share";
 import { PwaRegister } from "@/components/pwa-register";
 import { MedicineAlarm } from "@/components/medicine-alarm";
 import { I18nProvider } from "@/lib/i18n";
+
+// Self-hosted at build time (PWA offline cache — a runtime Google Fonts <link>
+// is forbidden). Figtree is the display face (Latin only); Noto Sans carries
+// the body and full Devanagari for the Nepali locale.
+const figtree = Figtree({
+  subsets: ["latin"],
+  variable: "--font-figtree",
+  display: "swap",
+});
+
+const notoSans = Noto_Sans({
+  subsets: ["latin", "devanagari"],
+  variable: "--font-noto-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "MediStore - Your Personal Digital Health Store",
@@ -33,7 +49,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="antialiased" suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`antialiased ${figtree.variable} ${notoSans.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

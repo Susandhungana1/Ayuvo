@@ -1,38 +1,3 @@
-export const MOCK_REPORTS = [
-  {
-    id: '1',
-    name: 'Blood Test Results - Complete Blood Count',
-    date: '2026-03-20T10:00:00Z',
-    status: 'completed' as const,
-    doctor: 'Sarah Jenkins',
-    summary: 'Your CBC results are mostly within normal ranges. Hemoglobin and hematocrit levels are slightly elevated, but nothing concerning. White blood cell count is normal, indicating no active infections.\n\nRecommendation: Stay hydrated and follow up in 6 months.',
-    extractedText: 'HEMOGLOBIN: 15.2 g/dL (Normal: 13.8-17.2)\nHEMATOCRIT: 45% (Normal: 41-50%)\nWBC: 7.2 k/uL (Normal: 4.5-11.0)\nPLATELETS: 250 k/uL (Normal: 150-400)',
-  },
-  {
-    id: '2',
-    name: 'MRI Scan - Lower Back',
-    date: '2026-03-22T14:30:00Z',
-    status: 'processing' as const,
-    doctor: 'Michael Chen',
-  },
-  {
-    id: '3',
-    name: 'Annual Physical Examination Notes',
-    date: '2026-02-15T09:15:00Z',
-    status: 'completed' as const,
-    doctor: 'Sarah Jenkins',
-    summary: 'Patient is in good overall health. Blood pressure is 120/80. Heart rate 72 bpm. Weight is stable. Recommended continuing current exercise routine and maintaining a balanced diet.',
-    extractedText: 'BP: 120/80 mmHg\nHR: 72 bpm\nTemp: 98.6 F\nResp: 16 bpm\nGeneral: Well-appearing adult in no acute distress.',
-  },
-];
-
-export const MOCK_USERS = [
-  { id: '1', name: 'John Doe', email: 'john@example.com', role: 'patient', status: 'active' },
-  { id: '2', name: 'Dr. Sarah Jenkins', email: 'sarah@hospital.com', role: 'doctor', status: 'active' },
-  { id: '3', name: 'Admin User', email: 'admin@healthportal.com', role: 'admin', status: 'active' },
-  { id: '4', name: 'Jane Smith', email: 'jane@example.com', role: 'patient', status: 'inactive' },
-];
-
 export const MOCK_BLOG_POSTS = [
   {
     id: '1',
@@ -42,6 +7,13 @@ export const MOCK_BLOG_POSTS = [
     date: '2026-03-10',
     readTime: '5 min read',
     imageUrl: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=800&auto=format&fit=crop',
+    content: [
+      'A lab report is a table of numbers, each one accompanied by a reference range. That range is the piece most people skip, and it is the most important one: a value has no meaning until you know the band your laboratory considers normal for your age and sex.',
+      'Start with the complete blood count. Hemoglobin carries oxygen; low values explain fatigue and breathlessness. White blood cells defend against infection; a high count often accompanies an active infection, while a low one can follow chemotherapy. Platelets help blood clot — very low counts raise bleeding risk. Each of these has its own band, and none of them should be judged in isolation.',
+      'The metabolic panel covers glucose and markers of kidney and liver function. Fasting glucose above 126 mg/dL on two occasions suggests diabetes, while 100–125 sits in the prediabetic band. Creatinine reflects how well your kidneys filter; a sudden rise should prompt a repeat test rather than panic, since hydration and the day\u2019s meals shift it.',
+      'MediStore shows every lab value with its reference band drawn underneath it — the marker sits on the track, the band is labelled in plain language, and colour only confirms what the position already says. A flag like \u201cElevated\u201d comes with the number, never instead of it.',
+      'One rule applies to every report: never interpret a single reading alone. Trends matter more than snapshots, and only a clinician can weigh a result against your history, medication and symptoms. Use your report to ask better questions at the next visit — not to answer them yourself.',
+    ],
   },
   {
     id: '2',
@@ -51,6 +23,13 @@ export const MOCK_BLOG_POSTS = [
     date: '2026-03-15',
     readTime: '8 min read',
     imageUrl: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=800&auto=format&fit=crop',
+    content: [
+      'The most common machine in a hospital is still the paper chart. Doctors spend hours each week locating results that exist somewhere in a filing system, and patients leave appointments carrying the only copy of their own history. AI\u2019s first real contribution to healthcare is not diagnosis — it is making the record legible.',
+      'Document intelligence is the quiet workhorse. OCR systems read lab reports, prescriptions and scans that were printed with the express purpose of never being edited again. From that text, models extract structured findings: markers, values, reference ranges, dates, clinician names. None of it is new information — it is the same information, finally searchable and comparable.',
+      'Summaries are where the language models earn their keep. A patient opening a six-page report from a rural lab needs to find the three numbers that matter. A summary built from the extracted text can say \u201cthese values are within range, this one is not, here is what it is compared against\u201d — and, crucially, it must always be presented as assistance, never as a verdict. A machine summarising a report cannot take a history, and it cannot take responsibility.',
+      'That boundary is the one worth defending. AI in healthcare works when it sits between a person and their data — reading, extracting, summarising, flagging — and fails the moment it replaces a clinician\u2019s judgement. The tools that ship first are the ones that respect this: systems that label their output as machine-generated, that show their sources, and that refuse to answer when the question is a clinical one.',
+      'What patients should expect in the next few years: every record they own arrives with the numbers extracted, the bands drawn, and a plain-language summary beside it. What they should demand: the human review that stands behind it, and the right to know exactly what the machine did and did not decide.',
+    ],
   },
   {
     id: '3',
@@ -60,5 +39,13 @@ export const MOCK_BLOG_POSTS = [
     date: '2026-03-18',
     readTime: '4 min read',
     imageUrl: 'https://images.unsplash.com/photo-1512438283307-e89487c0d297?q=80&w=800&auto=format&fit=crop',
+    content: [
+      'Sleep is when the body does its repair work, and the research is unambiguous: chronically short sleep is associated with higher blood pressure, impaired glucose tolerance and slower recovery from illness. The good news is that most sleep problems respond to routine rather than medication.',
+      'Keep the same wake time every day, weekends included. A fixed wake time anchors your circadian rhythm far more reliably than a fixed bedtime, and it is the single most effective adjustment most people can make.',
+      'Use light deliberately. Morning sunlight within an hour of waking tells your body clock that the day has started. In the evening, dim the screens: blue-rich light suppresses melatonin, so a dimmer, warmer room in the last hour before bed helps the transition.',
+      'Treat caffeine as a medication with a half-life. Caffeine persists for five to six hours, so the cut-off for most people is early afternoon — a 4 pm coffee is still working at 10 pm.',
+      'The bed is for sleeping. When you habitually work, scroll or eat in bed, your brain stops associating the bed with sleep. If you cannot fall asleep within about twenty minutes, get up and do something quiet in low light until you feel drowsy again.',
+      'Aim for consistency over perfection. Tracking your sleep tells you how your nights change with your habits; keep a simple log, compare good weeks to bad ones, and let your own pattern — not an arbitrary target — tell you what works.',
+    ],
   },
 ];

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useCallback, useSyncExternalStore } from "react";
 
 export type Lang = "en" | "ne";
 
@@ -32,6 +32,29 @@ interface I18nContextValue {
   t: (key: string) => string;
 }
 
+// Language lives in localStorage; exposed as an external store so changing it
+// in one place (the navbar toggle) updates every consumer without effects.
+function subscribeLang(cb: () => void): () => void {
+  window.addEventListener("storage", cb);
+  window.addEventListener("langchange", cb);
+  return () => {
+    window.removeEventListener("storage", cb);
+    window.removeEventListener("langchange", cb);
+  };
+}
+
+function getLangSnapshot(): Lang {
+  try {
+    return localStorage.getItem("lang") === "ne" ? "ne" : "en";
+  } catch {
+    return "en";
+  }
+}
+
+function getLangServerSnapshot(): Lang {
+  return "en";
+}
+
 const I18nContext = createContext<I18nContextValue>({
   lang: "en",
   setLang: () => {},
@@ -39,24 +62,22 @@ const I18nContext = createContext<I18nContextValue>({
 });
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("en");
+  const lang = useSyncExternalStore(subscribeLang, getLangSnapshot, getLangServerSnapshot);
 
+  // Keep the <html lang> attribute in step with the chosen language. This is
+  // an external-system sync only — no setState, so it belongs in an effect.
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("lang") as Lang | null;
-      if (saved === "en" || saved === "ne") {
-        setLangState(saved);
-        document.documentElement.lang = saved;
-      }
-    } catch {}
-  }, []);
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   const setLang = useCallback((l: Lang) => {
-    setLangState(l);
     try {
       localStorage.setItem("lang", l);
-      document.documentElement.lang = l;
-    } catch {}
+    } catch {
+      /* private mode — apply for this session only */
+    }
+    document.documentElement.lang = l;
+    window.dispatchEvent(new Event("langchange"));
   }, []);
 
   const t = useCallback(

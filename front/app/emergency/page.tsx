@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
-import { Button } from '@/components/button';
-import { Card } from '@/components/card';
-import { Input } from '@/components/input';
+import { Phone } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
@@ -24,6 +26,18 @@ interface EmergencyProfile {
   emergency_contacts: EmergencyContact[];
 }
 
+const SELECT_CLASS =
+  'flex h-11 w-full rounded-sm border border-outline bg-surface-card px-3.5 text-base text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring';
+
+async function fetchProfile(): Promise<EmergencyProfile> {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_URL}/api/emergency/profile`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error(`Could not load your emergency profile (HTTP ${res.status}).`);
+  return await res.json();
+}
+
 export default function Emergency() {
   const router = useRouter();
   const [profile, setProfile] = useState<EmergencyProfile | null>(null);
@@ -37,13 +51,28 @@ export default function Emergency() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) { router.push('/auth/login'); return; }
-    try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      // User IDs contain a leading '#' (e.g. "#hos013"), which is a URL
-      // fragment delimiter — encode it so the link/QR resolve correctly.
-      if (user.id) setPublicUrl(`${window.location.origin}/emergency/id/${encodeURIComponent(user.id)}`);
-    } catch {}
-    fetchProfile();
+    let cancelled = false;
+    (async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        // User IDs contain a leading '#' (e.g. "#hos013"), which is a URL
+        // fragment delimiter — encode it so the link/QR resolve correctly.
+        if (user.id && !cancelled) {
+          setPublicUrl(`${window.location.origin}/emergency/id/${encodeURIComponent(user.id)}`);
+        }
+        const data = await fetchProfile();
+        if (!cancelled) {
+          setProfile(data);
+          setProfileForm({
+            blood_type: data.blood_type || '',
+            allergies: data.allergies || '',
+            medical_conditions: data.medical_conditions || '',
+          });
+        }
+      } catch (err) { console.error(err);
+      } finally { if (!cancelled) setLoading(false); }
+    })();
+    return () => { cancelled = true; };
   }, [router]);
 
   const handleCopyLink = async () => {
@@ -52,25 +81,6 @@ export default function Emergency() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch { /* clipboard unavailable */ }
-  };
-
-  const fetchProfile = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/emergency/profile`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setProfile(data);
-        setProfileForm({
-          blood_type: data.blood_type || '',
-          allergies: data.allergies || '',
-          medical_conditions: data.medical_conditions || '',
-        });
-      }
-    } catch (err) { console.error(err);
-    } finally { setLoading(false); }
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -97,7 +107,9 @@ export default function Emergency() {
         const err = await res.json();
         alert(err.detail || 'Failed to save');
       }
-    } catch (err: any) { alert(err.message); }
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to save');
+    }
   };
 
   const handleAddContact = async (e: React.FormEvent) => {
@@ -113,14 +125,16 @@ export default function Emergency() {
         body: JSON.stringify(contactForm)
       });
       if (res.ok) {
-        fetchProfile();
+        setProfile(await fetchProfile());
         setShowContactForm(false);
         setContactForm({ name: '', relationship: '', phone: '', email: '' });
       } else {
         const err = await res.json();
         alert(err.detail || 'Failed to add contact');
       }
-    } catch (err: any) { alert(err.message); }
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to add contact');
+    }
   };
 
   const handleDeleteContact = async (id: string) => {
@@ -131,29 +145,38 @@ export default function Emergency() {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      fetchProfile();
+      setProfile(await fetchProfile());
     } catch (err) { console.error(err); }
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-subtext">Loading...</p></div>;
+    return (
+      <div className="min-h-screen bg-surface">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Skeleton className="h-9 w-72 mb-lg" />
+          <Skeleton className="h-56 mb-lg" />
+          <Skeleton className="h-40 mb-lg" />
+          <Skeleton className="h-40" />
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-surface">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-text-main">Emergency Medical ID</h1>
+        <div className="mb-lg">
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-on-surface">Emergency Medical ID</h1>
         </div>
 
-        <Card className="p-4 sm:p-6 mb-8">
-          <h2 className="text-lg sm:text-xl font-semibold text-text-main mb-4">Medical Information</h2>
-          <form onSubmit={handleSaveProfile} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="mb-lg">
+          <h2 className="text-lg sm:text-xl font-display font-semibold text-on-surface mb-lg">Medical Information</h2>
+          <form onSubmit={handleSaveProfile} className="space-y-lg">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-lg">
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Blood Type</label>
+                <label className="text-sm font-semibold text-on-surface block mb-xs">Blood Type</label>
                 <select value={profileForm.blood_type} onChange={e => setProfileForm({ ...profileForm, blood_type: e.target.value })}
-                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm">
+                  className={SELECT_CLASS}>
                   <option value="">Select</option>
                   <option value="A+">A+</option>
                   <option value="A-">A-</option>
@@ -176,17 +199,22 @@ export default function Emergency() {
           </form>
         </Card>
 
-        <Card className="p-4 sm:p-6 mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-            <h2 className="text-lg sm:text-xl font-semibold text-text-main">Emergency Contacts</h2>
+        <Card className="mb-lg">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md mb-lg">
+            <h2 className="text-lg sm:text-xl font-display font-semibold text-on-surface">Emergency Contacts</h2>
             <Button onClick={() => setShowContactForm(!showContactForm)} className="w-full sm:w-auto">
-              {showContactForm ? 'Cancel' : '+ Add Contact'}
+              {showContactForm ? 'Cancel' : (
+                <>
+                  <Phone className="w-4 h-4" aria-hidden="true" />
+                  Add Contact
+                </>
+              )}
             </Button>
           </div>
 
           {showContactForm && (
-            <form onSubmit={handleAddContact} className="space-y-4 mb-6 p-4 bg-gray-50 rounded-lg">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleAddContact} className="space-y-lg mb-xl p-lg bg-outline/10 rounded-md">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
                 <Input label="Full Name" name="name" value={contactForm.name}
                   onChange={e => setContactForm({ ...contactForm, name: e.target.value })} required />
                 <Input label="Relationship" name="rel" value={contactForm.relationship}
@@ -202,75 +230,76 @@ export default function Emergency() {
           )}
 
           {(!profile || profile.emergency_contacts.length === 0) ? (
-            <p className="text-subtext text-center py-4">No emergency contacts added yet</p>
+            <p className="text-on-surface-variant text-center py-lg">No emergency contacts added yet</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-md">
               {profile.emergency_contacts.map(c => (
-                <div key={c.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 p-4 bg-gray-50 rounded-lg">
+                <div key={c.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-sm p-lg bg-outline/10 rounded-md">
                   <div className="min-w-0">
-                    <p className="font-medium text-text-main truncate">{c.name}</p>
-                    <p className="text-sm text-subtext truncate">{c.relationship} | {c.phone}</p>
-                    {c.email && <p className="text-sm text-subtext truncate">{c.email}</p>}
+                    <p className="font-medium text-on-surface truncate">{c.name}</p>
+                    <p className="text-sm text-on-surface-variant truncate">{c.relationship} | {c.phone}</p>
+                    {c.email && <p className="text-sm text-on-surface-variant truncate">{c.email}</p>}
                   </div>
-                  <button onClick={() => handleDeleteContact(c.id)} className="text-red-500 text-sm hover:underline self-start sm:self-auto">Remove</button>
+                  <button onClick={() => handleDeleteContact(c.id)} className="text-alert text-sm hover:underline self-start sm:self-auto">Remove</button>
                 </div>
               ))}
             </div>
           )}
         </Card>
 
-        <Card className="p-4 sm:p-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-text-main mb-4">Preview - Emergency ID Card</h2>
+        <Card className="mb-lg">
+          <h2 className="text-lg sm:text-xl font-display font-semibold text-on-surface mb-lg">Preview - Emergency ID Card</h2>
           {/* Emergency ID is a mock printed card: keep it a fixed high-contrast
               light-red card with dark-red text in BOTH light and dark themes.
               Colors are inline so they never depend on inherited theme tokens
               or the global .dark utility overrides. */}
-          <div className="p-4 sm:p-6 rounded-xl max-w-md mx-auto" style={{ backgroundColor: '#fef2f2', border: '2px solid #fca5a5', color: '#7f1d1d' }}>
-            <div className="text-center mb-4">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: '#fee2e2' }}>
+          <div className="p-lg sm:p-xl rounded-md max-w-md mx-auto" style={{ backgroundColor: '#fef2f2', border: '2px solid #fca5a5', color: '#7f1d1d' }}>
+            <div className="text-center mb-lg">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-xs" style={{ backgroundColor: '#fee2e2' }}>
                 <svg className="w-6 h-6" style={{ color: '#dc2626' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-1.964-.833-2.732 0L4.068 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
               <h3 className="text-lg font-bold" style={{ color: '#991b1b' }}>EMERGENCY MEDICAL ID</h3>
             </div>
-            <div className="space-y-2 text-sm" style={{ color: '#7f1d1d' }}>
+            <div className="space-y-sm text-sm" style={{ color: '#7f1d1d' }}>
               <div className="flex justify-between"><span className="font-medium">Blood Type:</span> <span className="font-bold" style={{ color: '#b91c1c' }}>{profileForm.blood_type || 'Not set'}</span></div>
               <div className="flex justify-between"><span className="font-medium">Allergies:</span> <span>{profileForm.allergies || 'None listed'}</span></div>
               <div className="flex justify-between"><span className="font-medium">Conditions:</span> <span>{profileForm.medical_conditions || 'None listed'}</span></div>
             </div>
             {profile && profile.emergency_contacts.length > 0 && (
-              <div className="mt-4 pt-4" style={{ borderTop: '1px solid #fca5a5' }}>
-                <p className="text-xs font-medium mb-2" style={{ color: '#b91c1c' }}>EMERGENCY CONTACTS</p>
+              <div className="mt-lg pt-lg" style={{ borderTop: '1px solid #fca5a5' }}>
+                <p className="text-xs font-medium mb-sm" style={{ color: '#b91c1c' }}>EMERGENCY CONTACTS</p>
                 {profile.emergency_contacts.map(c => (
                   <p key={c.id} className="text-xs" style={{ color: '#7f1d1d' }}>{c.name} ({c.relationship}): {c.phone}</p>
                 ))}
               </div>
             )}
           </div>
-          <p className="text-xs text-subtext text-center mt-4">
+          <p className="text-xs text-on-surface-variant text-center mt-lg">
             This info can be accessed via the public emergency API. Share your user ID with healthcare providers.
           </p>
         </Card>
 
-        <Card className="p-4 sm:p-6 mt-8">
-          <h2 className="text-lg sm:text-xl font-semibold text-text-main mb-1">Emergency QR Code</h2>
-          <p className="text-sm text-subtext mb-4">
+        <Card>
+          <h2 className="text-lg sm:text-xl font-display font-semibold text-on-surface mb-xs">Emergency QR Code</h2>
+          <p className="text-sm text-on-surface-variant mb-lg">
             First responders can scan this to view your medical ID — no login needed. Print it and keep it in your wallet or on your phone case.
           </p>
           {publicUrl ? (
-            <div className="flex flex-col sm:flex-row items-center gap-6">
-              <div className="bg-white p-3 rounded-lg border border-gray-200 shrink-0">
+            <div className="flex flex-col sm:flex-row items-center gap-xl">
+              {/* QR codes need a light quiet zone to scan reliably — keep white in both themes */}
+              <div className="bg-white p-md rounded-md border border-outline shrink-0">
                 <QRCodeSVG value={publicUrl} size={160} level="M" />
               </div>
               <div className="flex-1 w-full min-w-0">
-                <label className="text-xs font-medium text-subtext block mb-1">Public link</label>
-                <div className="flex flex-col sm:flex-row gap-2">
+                <label className="text-xs font-medium text-on-surface-variant block mb-xs">Public link</label>
+                <div className="flex flex-col sm:flex-row gap-sm">
                   <input
                     readOnly
                     value={publicUrl}
                     onFocus={(e) => e.target.select()}
-                    className="flex-1 h-10 rounded-md border border-gray-300 bg-gray-50 px-3 text-sm min-w-0"
+                    className="flex-1 h-11 rounded-sm border border-outline bg-surface-card px-3.5 text-sm text-on-surface min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                   />
                   <Button type="button" onClick={handleCopyLink} className="w-full sm:w-auto">
                     {copied ? 'Copied!' : 'Copy Link'}
@@ -280,14 +309,14 @@ export default function Emergency() {
                   href={publicUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-block mt-3 text-sm text-primary hover:underline"
+                  className="inline-block mt-md text-sm font-semibold text-primary hover:underline"
                 >
                   Open public emergency ID →
                 </a>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-subtext">Sign in again to generate your emergency QR code.</p>
+            <p className="text-sm text-on-surface-variant">Sign in again to generate your emergency QR code.</p>
           )}
         </Card>
       </div>

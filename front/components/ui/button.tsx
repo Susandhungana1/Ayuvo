@@ -1,25 +1,69 @@
-import React from 'react';
+"use client";
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline';
-  children: React.ReactNode;
+import * as React from "react";
+import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive";
+export type ButtonSize = "md" | "sm";
+
+const variantClasses: Record<ButtonVariant, string> = {
+  primary:
+    "bg-primary text-on-primary hover:bg-primary-pressed focus-visible:ring-focus-ring",
+  secondary:
+    "border border-primary text-primary hover:bg-primary/5 focus-visible:ring-focus-ring",
+  ghost: "text-primary hover:bg-primary/5 focus-visible:ring-focus-ring",
+  destructive:
+    "bg-error text-white hover:bg-error/90 focus-visible:ring-focus-ring",
+};
+
+const sizeClasses: Record<ButtonSize, string> = {
+  md: "h-11 px-5 text-sm",
+  sm: "h-9 px-4 text-sm",
+};
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  isLoading?: boolean;
+  fullWidth?: boolean;
 }
 
-export function Button({ variant = 'primary', className = '', children, ...props }: ButtonProps) {
-  const baseStyles = "inline-flex items-center justify-center px-6 py-2.5 rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
-  
-  const variants = {
-    primary: "bg-primary text-white hover:bg-blue-700 hover:shadow-md focus:ring-primary",
-    secondary: "bg-secondary text-white hover:bg-emerald-600 hover:shadow-md focus:ring-secondary",
-    outline: "border-2 border-primary text-primary hover:bg-blue-50 focus:ring-primary"
-  };
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  (
+    {
+      className,
+      variant = "primary",
+      size = "md",
+      isLoading = false,
+      fullWidth = false,
+      disabled,
+      children,
+      ...props
+    },
+    ref,
+  ) => {
+    return (
+      <button
+        ref={ref}
+        className={cn(
+          "inline-flex items-center justify-center gap-sm rounded-sm font-display font-semibold transition-colors duration-fast",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
+          "disabled:opacity-40 disabled:pointer-events-none",
+          variantClasses[variant],
+          sizeClasses[size],
+          fullWidth && "w-full",
+          className,
+        )}
+        disabled={disabled || isLoading}
+        {...props}
+      >
+        {isLoading && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
+        {children}
+      </button>
+    );
+  },
+);
 
-  return (
-    <button 
-      className={`${baseStyles} ${variants[variant]} ${className}`}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-}
+Button.displayName = "Button";

@@ -27,10 +27,12 @@ function haversineKm(a: [number, number], b: [number, number]): number {
   return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
+// Brand palette (WEB_DESIGN.md §2): alert red for hospitals, primary cyan for
+// clinics, ok green for pharmacies.
 const ICON_STYLE: Record<Place["kind"], { color: string; symbol: string }> = {
-  hospital: { color: "#dc2626", symbol: "H" },
-  clinic: { color: "#2563eb", symbol: "C" },
-  pharmacy: { color: "#059669", symbol: "℞" },
+  hospital: { color: "#b91c1c", symbol: "H" },
+  clinic: { color: "#0e7490", symbol: "C" },
+  pharmacy: { color: "#046a4e", symbol: "℞" },
 };
 
 function markerIcon(kind: Place["kind"]) {
@@ -49,16 +51,19 @@ export default function NearbyMap() {
   const layerRef = useRef<L.LayerGroup | null>(null);
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState("Locating you…");
-  const [center, setCenter] = useState<[number, number] | null>(null);
+  const [status, setStatus] = useState(() =>
+    typeof navigator !== "undefined" && navigator.geolocation
+      ? "Locating you…"
+      : "Location unavailable — showing Kathmandu."
+  );
+  const [center, setCenter] = useState<[number, number] | null>(() =>
+    typeof navigator !== "undefined" && navigator.geolocation ? null : KATHMANDU
+  );
 
-  // Get location
+  // Get location — the geolocation callbacks are the subscription here, and
+  // setState only ever happens inside them.
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setStatus("Location unavailable — showing Kathmandu.");
-      setCenter(KATHMANDU);
-      return;
-    }
+    if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setCenter([pos.coords.latitude, pos.coords.longitude]);
@@ -91,7 +96,7 @@ export default function NearbyMap() {
     }
 
     // user marker
-    L.circleMarker(center, { radius: 7, color: "#2563EB", fillColor: "#2563EB", fillOpacity: 1 })
+    L.circleMarker(center, { radius: 7, color: "#0e7490", fillColor: "#0e7490", fillOpacity: 1 })
       .addTo(layerRef.current!)
       .bindPopup("You are here");
 
@@ -148,31 +153,31 @@ export default function NearbyMap() {
   }, [center]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg">
       <div className="lg:col-span-2">
-        <div ref={mapRef} className="w-full rounded-xl border border-gray-200" style={{ height: 480 }} />
-        <p className="text-xs text-subtext mt-2">{status}</p>
+        <div ref={mapRef} className="w-full rounded-md border border-outline" style={{ height: 480 }} />
+        <p className="text-xs text-on-surface-variant mt-sm">{status}</p>
       </div>
       <div className="lg:col-span-1">
-        <div className="flex items-center gap-3 mb-3 text-xs">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full inline-block" style={{ background: "#dc2626" }} />Hospital</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full inline-block" style={{ background: "#2563eb" }} />Clinic</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full inline-block" style={{ background: "#059669" }} />Pharmacy</span>
+        <div className="flex items-center gap-md mb-md text-xs">
+          <span className="flex items-center gap-xs"><span className="w-3 h-3 rounded-full inline-block" style={{ background: ICON_STYLE.hospital.color }} />Hospital</span>
+          <span className="flex items-center gap-xs"><span className="w-3 h-3 rounded-full inline-block" style={{ background: ICON_STYLE.clinic.color }} />Clinic</span>
+          <span className="flex items-center gap-xs"><span className="w-3 h-3 rounded-full inline-block" style={{ background: ICON_STYLE.pharmacy.color }} />Pharmacy</span>
         </div>
-        <div className="space-y-2 max-h-[440px] overflow-auto">
+        <div className="space-y-sm max-h-[440px] overflow-auto">
           {loading ? (
-            <p className="text-subtext text-sm">Loading nearby care…</p>
+            <p className="text-on-surface-variant text-sm">Loading nearby care…</p>
           ) : (
             places.map((p) => (
-              <div key={p.id} className="border border-gray-100 rounded-lg p-3 flex justify-between items-center gap-2">
+              <div key={p.id} className="border border-outline/60 rounded-md p-md flex justify-between items-center gap-sm">
                 <div className="min-w-0">
-                  <p className="font-medium text-text-main text-sm truncate">{p.name}</p>
-                  <p className="text-xs text-subtext capitalize">{p.kind} · {p.distanceKm.toFixed(1)} km away</p>
+                  <p className="font-medium text-on-surface text-sm truncate">{p.name}</p>
+                  <p className="text-xs text-on-surface-variant capitalize">{p.kind} · {p.distanceKm.toFixed(1)} km away</p>
                 </div>
                 <a
                   href={`https://www.openstreetmap.org/directions?to=${p.lat},${p.lon}`}
                   target="_blank" rel="noopener noreferrer"
-                  className="shrink-0 text-xs font-medium text-primary hover:underline"
+                  className="shrink-0 text-xs font-semibold text-primary hover:underline"
                 >
                   Directions
                 </a>

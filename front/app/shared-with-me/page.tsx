@@ -11,8 +11,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card } from '@/components/card';
-import { Button } from '@/components/button';
+import { Inbox, FolderOpen } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { formatServerDateTime } from '@/lib/datetime';
 import {
   ReceivedShare,
@@ -47,12 +49,19 @@ export default function SharedWithMePage() {
       router.push('/auth/login?next=/shared-with-me');
       return;
     }
-    listReceivedShares()
-      .then(setShares)
-      .catch((e) => {
-        setError(e instanceof Error ? e.message : 'Could not load your shared records');
-        setShares([]);
-      });
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await listReceivedShares();
+        if (!cancelled) setShares(rows);
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : 'Could not load your shared records');
+          setShares([]);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
   }, [router]);
 
   const toggle = async (id: string) => {
@@ -88,47 +97,47 @@ export default function SharedWithMePage() {
 
   if (shares === null) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-subtext">Loading…</p>
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <p className="text-on-surface-variant">Loading…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-surface">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-2xl font-bold text-text-main mb-1">Shared with me</h1>
-        <p className="text-subtext mb-6">
+        <h1 className="text-2xl font-display font-bold text-on-surface mb-xs">Shared with me</h1>
+        <p className="text-on-surface-variant mb-xl">
           Records other people shared with you and you chose to keep.
         </p>
 
         {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800">
+          <div className="mb-xl rounded-md border border-alert/40 bg-alert-container px-4 py-2.5 text-sm text-alert">
             {error}
           </div>
         )}
 
         {shares.length === 0 ? (
-          <Card className="p-8 text-center">
-            <p className="font-medium text-text-main mb-1">Nothing here yet</p>
-            <p className="text-subtext text-sm mb-4">
-              When someone shares their records with you, open the link and choose
-              “Save to my account” to keep it after the link expires.
-            </p>
-            <Button onClick={() => router.push('/dashboard')}>Back to dashboard</Button>
+          <Card>
+            <EmptyState
+              icon={Inbox}
+              title="Nothing here yet"
+              description="When someone shares their records with you, open the link and choose “Save to my account” to keep it after the link expires."
+              action={<Button onClick={() => router.push('/dashboard')}>Back to dashboard</Button>}
+            />
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-lg">
             {shares.map((share) => {
               const d = detail[share.id];
               return (
-                <Card key={share.id} className="p-4 sm:p-6">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+                <Card key={share.id}>
+                  <div className="flex flex-wrap items-start justify-between gap-sm">
                     <div>
-                      <h2 className="font-semibold text-text-main">
+                      <h2 className="font-semibold text-on-surface">
                         {share.owner_name}
                       </h2>
-                      <p className="text-sm text-subtext">
+                      <p className="text-sm text-on-surface-variant">
                         {share.kind === 'all' ? 'Full medical record' : 'Single report'}
                         {' · '}
                         {share.report_count} report{share.report_count === 1 ? '' : 's'}
@@ -136,65 +145,65 @@ export default function SharedWithMePage() {
                         {formatServerDateTime(share.claimed_at)}
                       </p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button onClick={() => toggle(share.id)}>
+                    <div className="flex gap-sm">
+                      <Button size="sm" onClick={() => toggle(share.id)}>
                         {openId === share.id ? 'Hide' : 'View'}
                       </Button>
-                      <button
-                        onClick={() => remove(share.id)}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                      >
+                      <Button size="sm" variant="ghost" onClick={() => remove(share.id)}>
                         Remove
-                      </button>
+                      </Button>
                     </div>
                   </div>
 
                   {openId === share.id && (
-                    <div className="mt-4 border-t border-gray-100 pt-4">
-                      {d === 'loading' && <p className="text-subtext text-sm">Loading…</p>}
+                    <div className="mt-lg border-t border-outline/60 pt-lg">
+                      {d === 'loading' && <p className="text-on-surface-variant text-sm">Loading…</p>}
                       {d && d !== 'loading' && (
                         <>
                           {d.withdrawn_count > 0 && (
-                            <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                            <p className="mb-md rounded-md border border-caution/40 bg-caution-container px-3 py-2 text-sm text-caution">
                               {d.withdrawn_count} report
                               {d.withdrawn_count === 1 ? ' was' : 's were'} withdrawn by
                               the sender and can no longer be viewed.
                             </p>
                           )}
                           {d.reports.length === 0 ? (
-                            <p className="text-subtext text-sm">
+                            <p className="text-on-surface-variant text-sm">
                               Nothing left to show — the sender removed these records.
                             </p>
                           ) : (
-                            <ul className="space-y-3">
+                            <ul className="space-y-md">
                               {d.reports.map((r) => (
                                 <li
                                   key={r.id}
-                                  className="rounded-lg border border-gray-100 p-3"
+                                  className="rounded-md border border-outline/60 p-md"
                                 >
-                                  <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <div>
-                                      <p className="font-medium text-text-main">
-                                        {r.report_type.replace(/_/g, ' ')}
-                                      </p>
-                                      <p className="text-xs text-subtext">
-                                        {r.file_name}
-                                        {r.created_at
-                                          ? ` · ${formatServerDateTime(r.created_at)}`
-                                          : ''}
-                                      </p>
+                                  <div className="flex flex-wrap items-center justify-between gap-sm">
+                                    <div className="flex items-start gap-sm min-w-0">
+                                      <FolderOpen className="w-4 h-4 mt-0.5 text-on-surface-variant shrink-0" aria-hidden="true" />
+                                      <div className="min-w-0">
+                                        <p className="font-medium text-on-surface">
+                                          {r.report_type.replace(/_/g, ' ')}
+                                        </p>
+                                        <p className="text-xs text-on-surface-variant">
+                                          {r.file_name}
+                                          {r.created_at
+                                            ? ` · ${formatServerDateTime(r.created_at)}`
+                                            : ''}
+                                        </p>
+                                      </div>
                                     </div>
                                     {r.file_content && (
                                       <button
                                         onClick={() => openReportFile(r)}
-                                        className="text-sm font-medium text-primary underline"
+                                        className="text-sm font-semibold text-primary hover:underline shrink-0"
                                       >
                                         Open file
                                       </button>
                                     )}
                                   </div>
                                   {r.notes && (
-                                    <p className="mt-2 text-sm text-subtext">{r.notes}</p>
+                                    <p className="mt-sm text-sm text-on-surface-variant">{r.notes}</p>
                                   )}
                                 </li>
                               ))}

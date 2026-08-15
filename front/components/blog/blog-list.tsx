@@ -8,9 +8,9 @@ interface BlogListProps {
 export function BlogList({ posts }: BlogListProps) {
   if (!posts || posts.length === 0) {
     return (
-      <div className="text-center py-20 bg-gray-50 rounded-2xl border border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No articles found</h3>
-        <p className="text-gray-500">Check back later for new updates and insights.</p>
+      <div className="text-center py-20 bg-surface-card rounded-lg border border-outline">
+        <h3 className="text-lg font-display font-semibold text-on-surface mb-2">No articles found</h3>
+        <p className="text-on-surface-variant">Check back later for new updates and insights.</p>
       </div>
     );
   }
