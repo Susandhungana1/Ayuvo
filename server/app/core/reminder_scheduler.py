@@ -29,10 +29,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app.core import doses
-from app.core.care import active_links_for_patient
 from app.core.config import engine, settings
 from app.core.webpush import push_available, send_push
-from app.models.models import Medicine, PushSubscription, ReminderDelivery, User
+from app.models.models import CareLink, Medicine, PushSubscription, ReminderDelivery, User
 
 logger = logging.getLogger("medicine_reminders")
 
@@ -67,17 +66,14 @@ def _is_due(scheduled: str, now: datetime) -> bool:
     return 0 <= delta <= GRACE_MINUTES
 
 
-def recipients_for(db: Session, patient_id: str) -> list[Recipient]:
-    """The patient, plus every caretaker who hasn't muted them.
+def recipients_for(patient_id: str, links: list[CareLink]) -> list[Recipient]:
+    """The patient, plus every active caretaker who hasn't muted them.
 
-    With no care links this is just [patient] — byte-for-byte the behaviour
-    before the feature existed.
+    `links` is the patient's pre-loaded active care links. With none it's just
+    [patient] — byte-for-byte the behaviour before the feature existed.
     """
     out = [Recipient(user_id=patient_id, is_self=True)]
-    if not settings.caretaker_enabled:
-        return out
-
-    for link in active_links_for_patient(db, patient_id):
+    for link in links:
         if link.notify:
             out.append(
                 Recipient(
@@ -218,67 +214,6 @@ def _payload(med: Medicine, patient_name: str, slot: str, day: str, recipient: R
     }
 
 
-def _run_tick() -> int:
-    """One synchronous pass over all patients (runs in a worker thread).
-
-    Returns the number of pushes sent — handy for the external-cron endpoint.
-
-    Every query here is batched across the whole patient set on purpose. The
-    per-patient prefix — medicines, the user row, the newest push device — runs
-    for EVERY patient on EVERY tick, before the early return that skips those
-    with nothing due. Issued one patient at a time that was three round trips
-    each (Sentry: PYTHON-FASTAPI-A, 852ms across 12 spans for four patients),
-    growing linearly with signups on a job that fires once a minute. Batched,
-    the tick costs three queries whether there are four patients or four
-    hundred.
-    """
-    if not push_available():
-        return 0
-
-    sent_count = 0
-    # expire_on_commit=False is what makes the batching hold. Every delivery
-    # commits (the ledger row), and the default would expire every instance in
-    # the session — so the next patient's preloaded Medicine and User would be
-    # silently re-fetched one primary key at a time, rebuilding the N+1 this
-    # function exists to remove. Nothing here needs to observe another
-    # transaction's writes mid-tick: the working set is loaded once up front and
-    # *is* the definition of this tick. `_eligible_for` issues its own SELECT
-    # each time, so the dedupe check is unaffected.
-    with Session(engine, expire_on_commit=False) as db:
-        # Patients are those who own medicines. Anyone without medicines has
-        # nothing to fire, caretaker or not — so loading the medicines *is* the
-        # patient lookup, and the per-patient re-query afterwards was buying
-        # rows this already has.
-        meds_by_patient: dict[str, list[Medicine]] = {}
-        for med in db.exec(
-            select(Medicine).where(
-                Medicine.deleted_at.is_(None)  # type: ignore[union-attr]
-            )
-        ).all():
-            meds_by_patient.setdefault(med.user_id, []).append(med)
-
-        patient_ids = list(meds_by_patient)
-        users_by_id = _users_by_id(db, patient_ids)
-        newest_sub = _newest_subscription_by_user(db, patient_ids)
-
-        for patient_id in patient_ids:
-            try:
-                sent_count += _tick_patient(
-                    db,
-                    patient_id,
-                    meds=meds_by_patient[patient_id],
-                    tz=doses.timezone_from(
-                        users_by_id.get(patient_id), newest_sub.get(patient_id)
-                    ),
-                    patient=users_by_id.get(patient_id),
-                )
-            except Exception:
-                logger.exception("reminder tick failed for patient %s", patient_id)
-                db.rollback()
-
-    return sent_count
-
-
 def _users_by_id(db: Session, user_ids: list[str]) -> dict[str, User]:
     if not user_ids:
         return {}
@@ -322,22 +257,134 @@ def _subscriptions_for(
     return subs
 
 
+def _patient_timezone(user: User | None, subs: list[PushSubscription]) -> str:
+    """The patient's IANA zone from already-loaded rows, mirroring
+    `doses.patient_timezone`: the user's column wins, then the newest push
+    device's zone, else UTC. Never queries the database itself."""
+    if user is not None and user.timezone:
+        return user.timezone
+    for sub in sorted(
+        subs, key=lambda s: s.created_at or datetime.min, reverse=True
+    ):
+        if sub.timezone:
+            return sub.timezone
+    return doses.DEFAULT_TZ
+
+
+def _run_tick() -> int:
+    """One synchronous pass over all patients (runs in a worker thread).
+
+    Returns the number of pushes sent — handy for the external-cron endpoint.
+
+    Every query here is batched across the whole patient set on purpose. The
+    per-patient prefix — medicines, the user row, the newest push device — runs
+    for EVERY patient on EVERY tick, before the early return that skips those
+    with nothing due. Issued one patient at a time that was three round trips
+    each (Sentry: PYTHON-FASTAPI-A, 852ms across 12 spans for four patients),
+    growing linearly with signups on a job that fires once a minute. Batched,
+    the tick costs three queries whether there are four patients or four
+    hundred.
+    """
+    if not push_available():
+        return 0
+
+    sent_count = 0
+    # expire_on_commit=False is what makes the batching hold. Every delivery
+    # commits (the ledger row), and the default would expire every instance in
+    # the session — so the next patient's preloaded Medicine and User would be
+    # silently re-fetched one primary key at a time, rebuilding the N+1 this
+    # function exists to remove. Nothing here needs to observe another
+    # transaction's writes mid-tick: the working set is loaded once up front and
+    # *is* the definition of this tick. `_eligible_for` issues its own SELECT
+    # each time, so the dedupe check is unaffected.
+    with Session(engine, expire_on_commit=False) as db:
+        # Patients are those who own medicines. Anyone without medicines has
+        # nothing to fire, caretaker or not — so loading the medicines *is* the
+        # patient lookup, and the per-patient re-query afterwards was buying
+        # rows this already has.
+        meds_by_patient: dict[str, list[Medicine]] = {}
+        for med in db.exec(
+            select(Medicine).where(
+                Medicine.deleted_at.is_(None)  # type: ignore[union-attr]
+            )
+        ).all():
+            meds_by_patient.setdefault(med.user_id, []).append(med)
+
+        patient_ids = list(meds_by_patient)
+        if not patient_ids:
+            return 0
+
+        users_by_id = _users_by_id(db, patient_ids)
+        newest_sub = _newest_subscription_by_user(db, patient_ids)
+
+        # Load caretaker links if enabled
+        care_links = (
+            list(
+                db.exec(
+                    select(CareLink).where(
+                        CareLink.patient_id.in_(patient_ids),  # type: ignore[attr-defined]
+                        CareLink.status == "active",
+                    )
+                ).all()
+            )
+            if settings.caretaker_enabled
+            else []
+        )
+
+        # Recipients span patients and their non-muted caretakers; their push
+        # devices are all needed, so load them in one query too.
+        recipient_ids = set(patient_ids) | {
+            link.caretaker_id for link in care_links if link.notify
+        }
+        subs_by_user: dict[str, list[PushSubscription]] = {}
+        if recipient_ids:
+            for sub in db.exec(
+                select(PushSubscription).where(
+                    PushSubscription.user_id.in_(recipient_ids)  # type: ignore[attr-defined]
+                )
+            ).all():
+                subs_by_user.setdefault(sub.user_id, []).append(sub)
+
+        links_by_patient: dict[str, list[CareLink]] = {}
+        for link in care_links:
+            links_by_patient.setdefault(link.patient_id, []).append(link)
+
+        for patient_id in patient_ids:
+            try:
+                sent_count += _tick_patient(
+                    db,
+                    patient_id,
+                    meds=meds_by_patient[patient_id],
+                    user=users_by_id.get(patient_id),
+                    subs=subs_by_user.get(patient_id, []),
+                    links=links_by_patient.get(patient_id, []),
+                    subs_by_user=subs_by_user,
+                )
+            except Exception:
+                logger.exception("reminder tick failed for patient %s", patient_id)
+                db.rollback()
+
+    return sent_count
+
+
 def _tick_patient(
     db: Session,
     patient_id: str,
     *,
     meds: list[Medicine],
-    tz: str,
-    patient: User | None,
+    user: User | None,
+    subs: list[PushSubscription],
+    links: list[CareLink],
+    subs_by_user: dict[str, list[PushSubscription]],
 ) -> int:
     """Fire this patient's due doses.
 
-    [meds], [tz] and [patient] arrive pre-loaded from the caller's batched
-    queries rather than being fetched here — see _run_tick. Everything below
-    the `if not due` return is on the rare path (a dose actually being due), so
-    it stays lazy.
+    [meds], [user], [subs], [links], [subs_by_user] arrive pre-loaded from the
+    caller's batched queries rather than being fetched here — see _run_tick.
+    Everything below the `if not due` return is on the rare path (a dose
+    actually being due), so it stays lazy.
     """
-    now = doses.local_now(tz)
+    now = doses.local_now(_patient_timezone(user, subs))
     today = now.strftime("%Y-%m-%d")
 
     due: list[tuple[Medicine, str]] = [
@@ -350,13 +397,8 @@ def _tick_patient(
     if not due:
         return 0
 
-    recipients = recipients_for(db, patient_id)
-    patient_name = patient.name if patient else "Your patient"
-    # One query for every recipient, not one per dose slot — the N+1 Sentry
-    # flags on /api/push/run-tick.
-    subs_by_user = _subscriptions_for(
-        db, [r.user_id for r in recipients]
-    )
+    recipients = recipients_for(patient_id, links)
+    patient_name = user.name if user else "Your patient"
 
     sent = 0
     for med, slot in due:
