@@ -297,3 +297,19 @@ body {
 .rounded-md { border-radius: var(--radius-md); }
 .rounded-lg { border-radius: var(--radius-lg); }
 .rounded-xl { border-radius: var(--radius-xl, 24px); }
+
+/* Status color utilities (used by vitals, status-chip, etc.) */
+.bg-ok-container { background-color: var(--color-ok-container); }
+.text-ok { color: var(--color-ok); }
+.bg-caution-container { background-color: var(--color-caution-container); }
+.text-caution { color: var(--color-caution); }
+.bg-alert-container { background-color: var(--color-alert-container); }
+.text-alert { color: var(--color-alert); }
+.border-ok\/40 { border-color: color-mix(in srgb, var(--color-ok) 40%, transparent); }
+.border-caution\/40 { border-color: color-mix(in srgb, var(--color-caution) 40%, transparent); }
+
+/* Divide utility */
+.divide-outline > * + * { border-color: var(--color-outline); }
+
+/* Focus ring utility */
+.ring-focus-ring { --tw-ring-shadow: var(--focus-ring); box-shadow: var(--focus-ring); }

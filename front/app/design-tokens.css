@@ -53,6 +53,18 @@
   --chart-3: #DB2777;
   --chart-4: #2563EB;
 
+  /* ---- Chart Series aliases (used by vitals/recharts) ---- */
+  --color-series-1: #0891B2;
+  --color-series-2: #7C3AED;
+  --color-series-3: #DB2777;
+  --color-series-4: #2563EB;
+
+  /* ---- Semantic aliases used by pages ---- */
+  --color-on-surface: var(--color-ink);
+  --color-on-surface-variant: var(--color-ink-variant);
+  --color-surface-card: var(--color-card);
+  --color-focus-ring: var(--color-primary-focus);
+
   /* ---- Focus Ring ---- */
   --focus-ring: 0 0 0 3px var(--color-primary-focus);
 
@@ -142,6 +154,16 @@
   --chart-2: #9363FF;
   --chart-3: #F60281;
   --chart-4: #4581FE;
+
+  --color-series-1: #0A98BA;
+  --color-series-2: #9363FF;
+  --color-series-3: #F60281;
+  --color-series-4: #4581FE;
+
+  --color-on-surface: var(--color-ink);
+  --color-on-surface-variant: var(--color-ink-variant);
+  --color-surface-card: var(--color-card);
+  --color-focus-ring: var(--color-primary-focus);
 
   --focus-ring: 0 0 0 3px rgba(92, 211, 236, 0.4);
 
