@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/card';
 import { Button } from '@/components/button';
 import { DigitizedReport } from '@/components/DigitizedReport';
-import ShareTargetChooser from '@/components/ShareTargetChooser';
 import ClaimShareButton from '@/components/ClaimShareButton';
 import { formatServerDateTime } from '@/lib/datetime';
 
@@ -168,7 +167,6 @@ export default function ViewSharedReport() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <ShareTargetChooser token={token} kind="report" />
         <ClaimShareButton token={token} />
 
         <div className="mb-6 flex items-start justify-between gap-4">
