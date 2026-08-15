@@ -84,6 +84,7 @@ export default function Home() {
   const [vitalsLoading, setVitalsLoading] = useState(true);
   const [nextDose, setNextDose] = useState<{ name: string; time: string; remaining: string } | null>(null);
   const [chartType, setChartType] = useState('bp');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const syncUser = () => {
@@ -92,6 +93,7 @@ export default function Home() {
       setUser(token && userData ? JSON.parse(userData) : null);
     };
     syncUser();
+    setMounted(true);
     window.addEventListener('localStorageUpdated', syncUser);
     window.addEventListener('storage', syncUser);
     return () => {
@@ -155,7 +157,7 @@ export default function Home() {
     try { return JSON.parse(tt); } catch { return []; }
   };
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = mounted ? new Date().toISOString().slice(0, 10) : '';
   const latestVital = vitals[0];
 
   return (
@@ -177,7 +179,7 @@ export default function Home() {
                 Welcome, {user.name?.split(' ')[0] || 'User'}
               </h1>
               <p className="text-[var(--color-ink-variant)] text-sm mt-1">
-                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                {mounted ? new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : '\u00A0'}
               </p>
             </div>
             <Link href="/dashboard">
@@ -365,7 +367,8 @@ export default function Home() {
                 <div className="space-y-3">
                   {medicines.filter(m => !m.end_date || m.end_date >= today).map(med => {
                     const times = parseTimes(med.taking_times);
-                    const curMin = new Date().getHours() * 60 + new Date().getMinutes();
+                    const now = mounted ? new Date() : null;
+                    const curMin = now ? now.getHours() * 60 + now.getMinutes() : 0;
                     return (
                       <div key={med.id} className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-5 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)]">
                         <div className="flex items-start gap-3">

@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import "./globals.css";
 import { Figtree, Noto_Sans } from "next/font/google";
 import { Navbar } from "@/components/navbar";
@@ -9,6 +8,7 @@ import { HideOnShare } from "@/components/hide-on-share";
 import { PwaRegister } from "@/components/pwa-register";
 import { MedicineAlarm } from "@/components/medicine-alarm";
 import { I18nProvider } from "@/lib/i18n";
+import { ThemeInit } from "@/components/theme-init";
 
 const figtree = Figtree({
   subsets: ["latin"],
@@ -52,23 +52,8 @@ export default function RootLayout({
       className={`antialiased ${figtree.variable} ${notoSans.variable}`}
       suppressHydrationWarning
     >
-      <head>
-        <Script
-          id="theme-init"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');var m=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(!t&&m)){document.documentElement.classList.add('dark');}}catch(e){}})();`,
-          }}
-        />
-        <Script
-          id="sw-cache-clear"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `(function(){if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){try{if(window.caches&&caches.keys){caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k)})})}}catch(e){}}})();`,
-          }}
-        />
-      </head>
       <body className="min-h-screen flex flex-col font-body">
+        <ThemeInit />
         <I18nProvider>
           <HideOnShare><Navbar /></HideOnShare>
           <main className="flex-grow">
