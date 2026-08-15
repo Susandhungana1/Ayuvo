@@ -126,7 +126,10 @@ async def create_all_reports_share_link(
     ).all()
 
     medicines = db.exec(
-        select(Medicine).where(Medicine.user_id == current_user.id)
+        select(Medicine).where(
+            Medicine.user_id == current_user.id,
+            Medicine.deleted_at.is_(None),
+        )
     ).all()
 
     emergency_contacts = db.exec(
@@ -211,7 +214,10 @@ async def access_all_shared_reports(
     
     medicines = db.exec(
         select(Medicine)
-        .where(Medicine.user_id == share_link.user_id)
+        .where(
+            Medicine.user_id == share_link.user_id,
+            Medicine.deleted_at.is_(None),
+        )
         .order_by(Medicine.created_at.desc())
     ).all()
 
