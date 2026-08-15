@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import { Card } from '@/components/card';
+import { Logo } from '@/components/Logo';
 import Link from 'next/link';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
@@ -22,7 +23,6 @@ function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const urlToken = searchParams.get('token') || '';
 
-  // Falls back to a pasted code when the emailed link didn't carry one.
   const [manualToken, setManualToken] = useState('');
   const token = urlToken || extractToken(manualToken);
 
@@ -82,17 +82,15 @@ function ResetPasswordForm() {
   };
 
   return (
-    <div className="bg-background min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="bg-[var(--color-background)] min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
 
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-3xl">+</span>
-            </div>
+            <Logo variant="mark" size="lg" />
           </div>
-          <h2 className="text-3xl font-extrabold text-text-main mb-2">Reset Password</h2>
-          <p className="text-subtext text-sm">
+          <h2 className="text-3xl font-extrabold text-[var(--color-ink)] font-heading mb-2">Reset Password</h2>
+          <p className="text-[var(--color-ink-variant)] text-sm">
             {urlToken
               ? 'Choose a new password for your account'
               : 'Paste the code from your reset email, then choose a new password'}
@@ -102,14 +100,14 @@ function ResetPasswordForm() {
         <Card className="p-8 shadow-sm">
           {success ? (
             <div className="text-center space-y-4">
-              <div className="w-12 h-12 mx-auto bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 text-2xl">✓</span>
+              <div className="w-12 h-12 mx-auto bg-[var(--color-ok-container)] rounded-full flex items-center justify-center">
+                <span className="text-[var(--color-ok)] text-2xl">✓</span>
               </div>
-              <p className="text-text-main font-medium">Password updated</p>
-              <p className="text-subtext text-sm">
+              <p className="text-[var(--color-ink)] font-medium">Password updated</p>
+              <p className="text-[var(--color-ink-variant)] text-sm">
                 Your password has been reset. Redirecting you to sign in...
               </p>
-              <Link href="/auth/login" className="inline-block text-sm font-medium text-primary hover:text-blue-700 transition-colors">
+              <Link href="/auth/login" className="inline-block text-sm font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors">
                 Sign in now
               </Link>
             </div>
@@ -148,18 +146,18 @@ function ResetPasswordForm() {
               />
 
               {error && (
-                <p className="text-red-500 text-sm">{error}</p>
+                <p className="text-[var(--color-alert)] text-sm">{error}</p>
               )}
 
               <Button type="submit" className="w-full py-3" disabled={loading}>
                 {loading ? 'Resetting...' : 'Reset Password'}
               </Button>
 
-              <div className="text-center text-sm text-subtext space-x-4">
-                <Link href="/auth/forgot-password" className="font-medium text-primary hover:text-blue-700 transition-colors">
+              <div className="text-center text-sm text-[var(--color-ink-variant)] space-x-4">
+                <Link href="/auth/forgot-password" className="font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors">
                   Request a new link
                 </Link>
-                <Link href="/auth/login" className="font-medium text-primary hover:text-blue-700 transition-colors">
+                <Link href="/auth/login" className="font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors">
                   Back to sign in
                 </Link>
               </div>

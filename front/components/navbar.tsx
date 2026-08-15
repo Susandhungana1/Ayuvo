@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from './button';
 import { ThemeToggle } from './theme-toggle';
 import { LanguageToggle } from './language-toggle';
+import { Logo } from './Logo';
 import { useI18n } from '@/lib/i18n';
 
 const primaryLinks = [
@@ -114,24 +115,19 @@ export function Navbar() {
   const moreNavLinks = isDoctor ? [] : moreLinks;
 
   return (
-    <nav className="w-full bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
+    <nav className="w-full bg-white dark:bg-[var(--color-card)] border-b border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center gap-2">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">+</span>
-              </div>
-              <span className="font-bold text-xl text-text-main tracking-tight">MediStore</span>
-            </Link>
+            <Logo variant="full" size="md" />
           </div>
 
           {/* Desktop Navigation */}
           {isLoggedIn && (
             <div className="hidden lg:flex items-center gap-6">
               {navLinks.map((link) => (
-                <Link key={link.href} href={link.href} className="text-subtext hover:text-primary transition-colors font-medium text-sm whitespace-nowrap">
+                <Link key={link.href} href={link.href} className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors font-medium text-sm whitespace-nowrap">
                   {t(link.tKey)}
                 </Link>
               ))}
@@ -139,7 +135,7 @@ export function Navbar() {
                 <div className="relative" ref={moreRef}>
                   <button
                     onClick={() => setMoreOpen(!moreOpen)}
-                    className="text-subtext hover:text-primary transition-colors font-medium text-sm flex items-center gap-1"
+                    className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors font-medium text-sm flex items-center gap-1"
                   >
                     {t('nav.more')}
                     <svg className={`w-3 h-3 transition-transform ${moreOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,13 +143,13 @@ export function Navbar() {
                     </svg>
                   </button>
                   {moreOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-2">
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[var(--color-card)] rounded-lg shadow-lg border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] py-2">
                       {moreNavLinks.map((link) => (
                         <Link
                           key={link.href}
                           href={link.href}
                           onClick={() => setMoreOpen(false)}
-                          className="block px-4 py-2 text-sm text-subtext hover:text-primary hover:bg-gray-50 transition-colors"
+                          className="block px-4 py-2 text-sm text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] hover:bg-[var(--color-muted)] transition-colors"
                         >
                           {t(link.tKey)}
                         </Link>
@@ -181,17 +177,17 @@ export function Navbar() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder={t('nav.search')}
-                        className="w-40 lg:w-56 h-9 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-40 lg:w-56 h-9 rounded-[var(--radius-sm)] border border-[var(--color-outline)] bg-white dark:bg-[var(--color-card)] px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-focus)]"
                         onBlur={() => { if (!searchQuery) setSearchOpen(false); }}
                       />
-                      <button type="submit" className="p-1.5 text-gray-400 hover:text-primary" title="Search">
+                      <button type="submit" className="p-1.5 text-[var(--color-ink-muted)] hover:text-[var(--color-primary)]" title="Search">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                       </button>
                     </form>
                   ) : (
-                    <button onClick={() => setSearchOpen(true)} className="p-2 text-gray-400 hover:text-primary" title="Search">
+                    <button onClick={() => setSearchOpen(true)} className="p-2 text-[var(--color-ink-muted)] hover:text-[var(--color-primary)]" title="Search">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
@@ -200,7 +196,7 @@ export function Navbar() {
                 </div>
 
                 {/* Logout - desktop */}
-                <button onClick={handleLogout} className="hidden sm:block text-red-500 hover:text-red-700 font-medium transition-colors text-sm whitespace-nowrap">
+                <button onClick={handleLogout} className="hidden sm:block text-[var(--color-alert)] hover:text-[var(--color-alert-text)] font-medium transition-colors text-sm whitespace-nowrap">
                   {t('nav.logout')}
                 </button>
               </>
@@ -208,7 +204,7 @@ export function Navbar() {
 
             {!isLoggedIn && (
               <>
-                <Link href="/auth/login" className="text-text-main hover:text-primary font-medium transition-colors hidden sm:block text-sm">
+                <Link href="/auth/login" className="text-[var(--color-ink)] hover:text-[var(--color-primary)] font-medium transition-colors hidden sm:block text-sm">
                   {t('nav.login')}
                 </Link>
                 <Link href="/auth/register">
@@ -232,7 +228,7 @@ export function Navbar() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-100 py-4">
+          <div className="lg:hidden border-t border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] py-4">
             {/* Search in mobile */}
             <form onSubmit={handleSearch} className="mb-4 px-2">
               <div className="flex gap-2">
@@ -241,9 +237,9 @@ export function Navbar() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('nav.search')}
-                  className="flex-1 h-10 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="flex-1 h-10 rounded-[var(--radius-sm)] border border-[var(--color-outline)] bg-[var(--color-muted)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-focus)]"
                 />
-                <button type="submit" className="bg-primary text-white px-4 py-2 rounded-md text-sm font-medium">
+                <button type="submit" className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-[var(--radius-sm)] text-sm font-medium">
                   Search
                 </button>
               </div>
@@ -254,20 +250,20 @@ export function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-subtext hover:text-primary hover:bg-gray-50 transition-colors font-medium py-2.5 px-3 rounded-md"
+                  className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] hover:bg-[var(--color-muted)] transition-colors font-medium py-2.5 px-3 rounded-[var(--radius-sm)]"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t(link.tKey)}
                 </Link>
               ))}
-              <div className="pt-3 mt-2 border-t border-gray-100">
+              <div className="pt-3 mt-2 border-t border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)]">
                 {isLoggedIn ? (
-                  <button onClick={handleLogout} className="text-red-500 hover:text-red-700 hover:bg-red-50 font-medium text-left py-2.5 px-3 rounded-md w-full transition-colors">
+                  <button onClick={handleLogout} className="text-[var(--color-alert)] hover:text-[var(--color-alert-text)] hover:bg-[var(--color-alert-container)] font-medium text-left py-2.5 px-3 rounded-[var(--radius-sm)] w-full transition-colors">
                     {t('nav.logout')}
                   </button>
                 ) : (
                   <div className="flex flex-col space-y-2 px-1">
-                    <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)} className="text-center py-2 text-text-main hover:text-primary font-medium">
+                    <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)} className="text-center py-2 text-[var(--color-ink)] hover:text-[var(--color-primary)] font-medium">
                       {t('nav.login')}
                     </Link>
                     <Link href="/auth/register" onClick={() => setMobileMenuOpen(false)}>

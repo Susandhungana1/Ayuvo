@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import { Card } from '@/components/card';
+import { Logo } from '@/components/Logo';
 import Link from 'next/link';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
@@ -46,14 +47,6 @@ export default function Login() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data));
       window.dispatchEvent(new Event('localStorageUpdated'));
-      // Pages that bounce here on an expired session pass the page they were
-      // trying to reach as `?next=`, so signing in resumes where the user was
-      // instead of dumping them on the home page to navigate back by hand.
-      // Read from location rather than useSearchParams(), which would force
-      // this page into a Suspense boundary to build.
-      // Only same-origin paths: `//evil.com` is a valid URL to a foreign host,
-      // so a bare startsWith('/') check would leave an open redirect that
-      // phishes the login form's own users.
       const next = new URLSearchParams(window.location.search).get('next');
       const safeNext = next?.startsWith('/') && !next.startsWith('//') ? next : '/';
       router.push(safeNext);
@@ -65,17 +58,15 @@ export default function Login() {
   };
 
   return (
-    <div className="bg-background min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="bg-[var(--color-background)] min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
         
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-3xl">+</span>
-            </div>
+            <Logo variant="mark" size="lg" />
           </div>
-          <h2 className="text-3xl font-extrabold text-text-main mb-2">Welcome Back</h2>
-          <p className="text-subtext text-sm">
+          <h2 className="text-3xl font-extrabold text-[var(--color-ink)] font-heading mb-2">Welcome Back</h2>
+          <p className="text-[var(--color-ink-variant)] text-sm">
             Sign in to access your digital health vault
           </p>
         </div>
@@ -103,14 +94,14 @@ export default function Login() {
                 required
               />
               <div className="flex justify-end pt-1">
-                <Link href="/auth/forgot-password" className="text-sm font-medium text-primary hover:text-blue-700 transition-colors">
+                <Link href="/auth/forgot-password" className="text-sm font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors">
                   Forgot password?
                 </Link>
               </div>
             </div>
 
             {error && (
-              <p className="text-red-500 text-sm">{error}</p>
+              <p className="text-[var(--color-alert)] text-sm">{error}</p>
             )}
 
             <Button type="submit" className="w-full py-3" disabled={loading}>
@@ -120,16 +111,16 @@ export default function Login() {
 
           <div className="mt-8 relative">
             <div className="absolute inset-0 flex items-center" aria-hidden="true">
-              <div className="w-full border-t border-gray-200"></div>
+              <div className="w-full border-t border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)]"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or</span>
+              <span className="px-2 bg-white dark:bg-[var(--color-card)] text-[var(--color-ink-muted)]">Or</span>
             </div>
           </div>
 
-          <div className="mt-8 text-center text-sm text-subtext">
+          <div className="mt-8 text-center text-sm text-[var(--color-ink-variant)]">
             Don't have an account?{' '}
-            <Link href="/auth/register" className="font-medium text-primary hover:text-blue-700 transition-colors">
+            <Link href="/auth/register" className="font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors">
               Create one now
             </Link>
           </div>

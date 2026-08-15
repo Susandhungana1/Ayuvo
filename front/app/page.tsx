@@ -159,13 +159,13 @@ export default function Home() {
   const latestVital = vitals[0];
 
   return (
-    <div className="bg-background">
+    <div className="bg-[var(--color-background)]">
       {/* HEADER — consistent with other pages */}
       {isDoctor ? (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center max-w-xl mx-auto">
-            <h1 className="text-3xl font-bold text-text-main mb-3">Doctor Dashboard</h1>
-            <p className="text-subtext mb-6">Manage your patient appointments and availability.</p>
+            <h1 className="text-3xl font-bold text-[var(--color-ink)] font-heading mb-3">Doctor Dashboard</h1>
+            <p className="text-[var(--color-ink-variant)] mb-6">Manage your patient appointments and availability.</p>
             <Link href="/dashboard"><Button variant="primary">Go to Dashboard</Button></Link>
           </div>
         </div>
@@ -173,10 +173,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-text-main">
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-ink)] font-heading">
                 Welcome, {user.name?.split(' ')[0] || 'User'}
               </h1>
-              <p className="text-subtext text-sm mt-1">
+              <p className="text-[var(--color-ink-variant)] text-sm mt-1">
                 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
               </p>
             </div>
@@ -189,17 +189,17 @@ export default function Home() {
             {/* Latest Vitals */}
             <div className="lg:col-span-3">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-text-main">Latest Vitals</h2>
-                <Link href="/vitals" className="text-sm text-primary hover:underline">View all</Link>
+                <h2 className="text-xl font-semibold text-[var(--color-ink)] font-heading">Latest Vitals</h2>
+                <Link href="/vitals" className="text-sm text-[var(--color-primary)] hover:underline">View all</Link>
               </div>
 
               {vitalsLoading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {[1,2,3].map(i => (
-                    <div key={i} className="bg-white rounded-xl p-5 border border-gray-100 animate-pulse">
-                      <div className="h-3 bg-gray-100 rounded w-12 mb-2" />
-                      <div className="h-6 bg-gray-100 rounded w-16 mb-1" />
-                      <div className="h-3 bg-gray-100 rounded w-8" />
+                    <div key={i} className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-5 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] animate-pulse">
+                      <div className="h-3 bg-[var(--color-muted)] rounded w-12 mb-2" />
+                      <div className="h-6 bg-[var(--color-muted)] rounded w-16 mb-1" />
+                      <div className="h-3 bg-[var(--color-muted)] rounded w-8" />
                     </div>
                   ))}
                 </div>
@@ -267,11 +267,11 @@ export default function Home() {
 
               {/* Trend Chart */}
               {vitals.length > 1 && (
-                <div className="bg-white rounded-xl p-5 border border-gray-100 mt-6">
+                <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-5 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] mt-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">Trends</h3>
+                    <h3 className="text-sm font-semibold text-[var(--color-ink)] uppercase tracking-wider font-heading">Trends</h3>
                     <select value={chartType} onChange={e => setChartType(e.target.value)}
-                      className="text-xs border rounded-md px-2 py-1 text-gray-600">
+                      className="text-xs border border-[var(--color-outline)] rounded-[var(--radius-sm)] px-2 py-1 text-[var(--color-ink-variant)] bg-white dark:bg-[var(--color-card)]">
                       <option value="bp">Blood Pressure</option>
                       <option value="hr">Heart Rate</option>
                       <option value="sugar">Blood Sugar</option>
@@ -297,13 +297,13 @@ export default function Home() {
                         <Tooltip />
                         {chartType === 'bp' && <>
                           <Line type="monotone" dataKey="systolic" stroke="#ef4444" name="Systolic" strokeWidth={2} dot={false} />
-                          <Line type="monotone" dataKey="diastolic" stroke="#3b82f6" name="Diastolic" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey="diastolic" stroke="var(--chart-1)" name="Diastolic" strokeWidth={2} dot={false} />
                         </>}
-                        {chartType === 'hr' && <Line type="monotone" dataKey="heartRate" stroke="#8b5cf6" name="Heart Rate" strokeWidth={2} dot={false} />}
-                        {chartType === 'sugar' && <Line type="monotone" dataKey="bloodSugar" stroke="#f59e0b" name="Blood Sugar" strokeWidth={2} dot={false} />}
-                        {chartType === 'temp' && <Line type="monotone" dataKey="temperature" stroke="#ec4899" name="Temperature" strokeWidth={2} dot={false} />}
-                        {chartType === 'spo2' && <Line type="monotone" dataKey="oxygenSaturation" stroke="#06b6d4" name="SpO2" strokeWidth={2} dot={false} />}
-                        {chartType === 'weight' && <Line type="monotone" dataKey="weight" stroke="#10b981" name="Weight" strokeWidth={2} dot={false} />}
+                        {chartType === 'hr' && <Line type="monotone" dataKey="heartRate" stroke="var(--chart-2)" name="Heart Rate" strokeWidth={2} dot={false} />}
+                        {chartType === 'sugar' && <Line type="monotone" dataKey="bloodSugar" stroke="var(--chart-3)" name="Blood Sugar" strokeWidth={2} dot={false} />}
+                        {chartType === 'temp' && <Line type="monotone" dataKey="temperature" stroke="var(--chart-4)" name="Temperature" strokeWidth={2} dot={false} />}
+                        {chartType === 'spo2' && <Line type="monotone" dataKey="oxygenSaturation" stroke="var(--chart-1)" name="SpO2" strokeWidth={2} dot={false} />}
+                        {chartType === 'weight' && <Line type="monotone" dataKey="weight" stroke="var(--color-ok)" name="Weight" strokeWidth={2} dot={false} />}
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -313,18 +313,18 @@ export default function Home() {
               {/* Quick links */}
               <div className="grid grid-cols-3 gap-4 mt-6">
                 <Link href="/appointments">
-                  <div className="bg-white rounded-xl p-4 border border-gray-100 hover:border-gray-200 transition-colors text-center">
-                    <p className="text-sm font-medium text-text-main">Appointments</p>
+                  <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-4 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] hover:border-[var(--color-primary)] transition-colors text-center">
+                    <p className="text-sm font-medium text-[var(--color-ink)]">Appointments</p>
                   </div>
                 </Link>
                 <Link href="/reports">
-                  <div className="bg-white rounded-xl p-4 border border-gray-100 hover:border-gray-200 transition-colors text-center">
-                    <p className="text-sm font-medium text-text-main">Reports</p>
+                  <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-4 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] hover:border-[var(--color-primary)] transition-colors text-center">
+                    <p className="text-sm font-medium text-[var(--color-ink)]">Reports</p>
                   </div>
                 </Link>
                 <Link href="/medicines">
-                  <div className="bg-white rounded-xl p-4 border border-gray-100 hover:border-gray-200 transition-colors text-center">
-                    <p className="text-sm font-medium text-text-main">Medicines</p>
+                  <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-4 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] hover:border-[var(--color-primary)] transition-colors text-center">
+                    <p className="text-sm font-medium text-[var(--color-ink)]">Medicines</p>
                   </div>
                 </Link>
               </div>
@@ -333,20 +333,20 @@ export default function Home() {
             {/* Today's Medicines */}
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-text-main">Today's Medicines</h2>
-                <Link href="/medicines" className="text-sm text-primary hover:underline">Manage</Link>
+                <h2 className="text-xl font-semibold text-[var(--color-ink)] font-heading">Today's Medicines</h2>
+                <Link href="/medicines" className="text-sm text-[var(--color-primary)] hover:underline">Manage</Link>
               </div>
 
               {nextDose && (
-                <div className="bg-white rounded-xl p-5 border border-green-200 mb-4">
+                <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-5 border border-[var(--color-ok-container)] dark:border-[var(--color-ok)] mb-4">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center shrink-0">
-                      <span className="text-green-700 text-lg">&#9679;</span>
+                    <div className="w-10 h-10 bg-[var(--color-ok-container)] rounded-[var(--radius-sm)] flex items-center justify-center shrink-0">
+                      <span className="text-[var(--color-ok)] text-lg">&#9679;</span>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-green-700 uppercase tracking-wider">Next dose</p>
-                      <p className="text-sm font-semibold text-text-main mt-0.5">{nextDose.name}</p>
-                      <p className="text-xs text-subtext mt-0.5">{nextDose.time} &mdash; <span className="text-green-700 font-medium">{nextDose.remaining} left</span></p>
+                      <p className="text-xs font-semibold text-[var(--color-ok)] uppercase tracking-wider">Next dose</p>
+                      <p className="text-sm font-semibold text-[var(--color-ink)] mt-0.5">{nextDose.name}</p>
+                      <p className="text-xs text-[var(--color-ink-variant)] mt-0.5">{nextDose.time} &mdash; <span className="text-[var(--color-ok)] font-medium">{nextDose.remaining} left</span></p>
                     </div>
                   </div>
                 </div>
@@ -355,9 +355,9 @@ export default function Home() {
               {medsLoading ? (
                 <div className="space-y-3">
                   {[1,2].map(i => (
-                    <div key={i} className="bg-white rounded-xl p-5 border border-gray-100 animate-pulse">
-                      <div className="h-4 bg-gray-100 rounded w-24 mb-2" />
-                      <div className="h-3 bg-gray-100 rounded w-16" />
+                    <div key={i} className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-5 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] animate-pulse">
+                      <div className="h-4 bg-[var(--color-muted)] rounded w-24 mb-2" />
+                      <div className="h-3 bg-[var(--color-muted)] rounded w-16" />
                     </div>
                   ))}
                 </div>
@@ -367,22 +367,22 @@ export default function Home() {
                     const times = parseTimes(med.taking_times);
                     const curMin = new Date().getHours() * 60 + new Date().getMinutes();
                     return (
-                      <div key={med.id} className="bg-white rounded-xl p-5 border border-gray-100">
+                      <div key={med.id} className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-5 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)]">
                         <div className="flex items-start gap-3">
-                          <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
-                            <span className="text-primary text-sm font-bold">Rx</span>
+                          <div className="w-9 h-9 bg-[var(--color-primary-light)] rounded-[var(--radius-sm)] flex items-center justify-center shrink-0 mt-0.5">
+                            <span className="text-[var(--color-primary)] text-sm font-bold">Rx</span>
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-text-main">{med.name}</p>
-                            <p className="text-xs text-subtext mb-2">{med.dosage}</p>
+                            <p className="text-sm font-semibold text-[var(--color-ink)]">{med.name}</p>
+                            <p className="text-xs text-[var(--color-ink-variant)] mb-2">{med.dosage}</p>
                             {times.length > 0 && (
                               <div className="flex flex-wrap gap-1.5">
                                 {times.map((t, i) => {
                                   const [h, m] = t.split(':').map(Number);
                                   const isPast = h * 60 + m < curMin;
                                   return (
-                                    <span key={i} className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${
-                                      isPast ? 'bg-gray-50 text-gray-300 line-through' : 'bg-blue-50 text-blue-700'
+                                    <span key={i} className={`inline-flex items-center px-2 py-0.5 rounded-[var(--radius-sm)] text-xs font-medium ${
+                                      isPast ? 'bg-[var(--color-muted)] text-[var(--color-ink-muted)] line-through' : 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
                                     }`}>
                                       {t}
                                     </span>
@@ -398,7 +398,7 @@ export default function Home() {
                 </div>
               ) : (
                 <Card className="p-8 text-center">
-                  <p className="text-subtext mb-4">No medicines added yet</p>
+                  <p className="text-[var(--color-ink-variant)] mb-4">No medicines added yet</p>
                   <Link href="/medicines"><Button>Add Medicines</Button></Link>
                 </Card>
               )}
@@ -408,11 +408,11 @@ export default function Home() {
       ) : (
         /* PUBLIC LANDING PAGE — non-logged-in */
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
-          <p className="text-sm text-primary font-medium mb-3">Secure & Private</p>
-          <h1 className="text-4xl md:text-5xl font-bold text-text-main mb-4">
-            Your Personal Digital <span className="text-primary">Health Store</span>
+          <p className="text-sm text-[var(--color-primary)] font-medium mb-3">Secure & Private</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-[var(--color-ink)] font-heading mb-4">
+            Your Personal Digital <span className="text-[var(--color-primary)]">Health Store</span>
           </h1>
-          <p className="text-subtext mb-8 max-w-lg mx-auto">
+          <p className="text-[var(--color-ink-variant)] mb-8 max-w-lg mx-auto">
             Securely store, organize, and manage your medical records in one place.
           </p>
           <div className="flex items-center justify-center gap-3">
@@ -425,33 +425,33 @@ export default function Home() {
       {/* MARKETING SECTIONS — non-logged-in */}
       {!user && (
         <>
-          <section className="py-24 bg-white">
+          <section className="py-24 bg-white dark:bg-[var(--color-card)]">
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-16">
-                <h2 className="text-2xl font-bold text-text-main mb-3">Everything You Need</h2>
-                <p className="text-subtext">Tools to manage your health efficiently and securely.</p>
+                <h2 className="text-2xl font-bold text-[var(--color-ink)] font-heading mb-3">Everything You Need</h2>
+                <p className="text-[var(--color-ink-variant)]">Tools to manage your health efficiently and securely.</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card>
-                  <h3 className="text-lg font-semibold text-text-main mb-2">Upload Records</h3>
-                  <p className="text-sm text-subtext">Upload and organize your lab results, prescriptions, and medical history.</p>
+                  <h3 className="text-lg font-semibold text-[var(--color-ink)] font-heading mb-2">Upload Records</h3>
+                  <p className="text-sm text-[var(--color-ink-variant)]">Upload and organize your lab results, prescriptions, and medical history.</p>
                 </Card>
                 <Card>
-                  <h3 className="text-lg font-semibold text-text-main mb-2">Track Health</h3>
-                  <p className="text-sm text-subtext">Monitor vitals and manage appointments from one place.</p>
+                  <h3 className="text-lg font-semibold text-[var(--color-ink)] font-heading mb-2">Track Health</h3>
+                  <p className="text-sm text-[var(--color-ink-variant)]">Monitor vitals and manage appointments from one place.</p>
                 </Card>
                 <Card>
-                  <h3 className="text-lg font-semibold text-text-main mb-2">Secure Sharing</h3>
-                  <p className="text-sm text-subtext">Share medical records with specialists via encrypted links.</p>
+                  <h3 className="text-lg font-semibold text-[var(--color-ink)] font-heading mb-2">Secure Sharing</h3>
+                  <p className="text-sm text-[var(--color-ink-variant)]">Share medical records with specialists via encrypted links.</p>
                 </Card>
               </div>
             </div>
           </section>
 
-          <section className="py-20 bg-background text-center">
+          <section className="py-20 bg-[var(--color-background)] text-center">
             <div className="max-w-md mx-auto px-4">
-              <h2 className="text-2xl font-bold text-text-main mb-4">Ready to Take Control?</h2>
-              <p className="text-subtext mb-8">Join others who trust MediStore to securely manage their medical information.</p>
+              <h2 className="text-2xl font-bold text-[var(--color-ink)] font-heading mb-4">Ready to Take Control?</h2>
+              <p className="text-[var(--color-ink-variant)] mb-8">Join others who trust MediStore to securely manage their medical information.</p>
               <Link href="/auth/register"><Button variant="primary" className="text-base px-6 py-2.5">Create Free Account</Button></Link>
             </div>
           </section>

@@ -1,0 +1,132 @@
+/* ============================================================
+   MediStore Design Tokens
+   Derived from mobile app: /mobile/lib/core/theme/app_tokens.dart
+   & /mobile/lib/core/theme/app_theme.dart
+   ============================================================ */
+
+:root {
+  /* ---- Brand Cyan ---- */
+  --color-primary: #0E7490;          /* cyan700 — action colour */
+  --color-primary-hover: #155E75;    /* cyan800 — hover state */
+  --color-primary-focus: #0891B2;    /* cyan600 — focus rings only */
+  --color-primary-light: #E0F2FE;    /* light cyan tint */
+  --color-primary-dark: #5CD3EC;     /* cyanDark — dark mode primary */
+  --color-primary-dark-ink: #00323E; /* cyanDarkInk — dark mode onPrimary */
+
+  /* ---- Surface ---- */
+  --color-surface: #FBFCFD;          /* paper */
+  --color-card: #FFFFFF;             /* card */
+  --color-muted: #EEF3F5;           /* muted backgrounds */
+
+  /* ---- Outline / Borders ---- */
+  --color-outline: #C3D4DA;          /* slate */
+  --color-outline-subtle: #E5E7EB;   /* lighter variant */
+
+  /* ---- Text ---- */
+  --color-ink: #0F2B33;              /* ink900 — primary text */
+  --color-ink-variant: #4A6670;      /* ink500 — secondary text */
+  --color-ink-muted: #6B7280;        /* tertiary text */
+
+  /* ---- Status: OK ---- */
+  --color-ok: #046A4E;
+  --color-ok-container: #E3F6EE;
+  --color-ok-text: #046A4E;
+
+  /* ---- Status: Caution ---- */
+  --color-caution: #8A4B08;
+  --color-caution-container: #FDF0DC;
+  --color-caution-text: #8A4B08;
+
+  /* ---- Status: Alert ---- */
+  --color-alert: #B91C1C;
+  --color-alert-container: #FDE7E7;
+  --color-alert-text: #B91C1C;
+
+  /* ---- Semantic (backward-compat aliases) ---- */
+  --color-background: var(--color-surface);
+  --color-text-main: var(--color-ink);
+  --color-subtext: var(--color-ink-variant);
+
+  /* ---- Chart Series (cyan-first) ---- */
+  --chart-1: #0891B2;
+  --chart-2: #7C3AED;
+  --chart-3: #DB2777;
+  --chart-4: #2563EB;
+
+  /* ---- Focus Ring ---- */
+  --focus-ring: 0 0 0 3px var(--color-primary-focus);
+
+  /* ---- Spacing (4pt scale) ---- */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+
+  /* ---- Radius ---- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 999px;
+
+  /* ---- Motion ---- */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 280ms;
+  --duration-exit: 160ms;
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-leave: cubic-bezier(0.4, 0, 1, 1);
+
+  /* ---- Touch Targets ---- */
+  --touch-min: 44px;
+  --touch-standard: 48px;
+}
+
+/* ============================================================
+   Dark Mode
+   ============================================================ */
+.dark {
+  --color-primary: #5CD3EC;
+  --color-primary-hover: #7DE0F0;
+  --color-primary-focus: #5CD3EC;
+  --color-primary-light: #16263f;
+  --color-primary-dark: #5CD3EC;
+  --color-primary-dark-ink: #00323E;
+
+  --color-surface: #0F1417;
+  --color-card: #161D21;
+  --color-muted: #1E272C;
+
+  --color-outline: #32424A;
+  --color-outline-subtle: #2A3840;
+
+  --color-ink: #E6EEF1;
+  --color-ink-variant: #9DB2BA;
+  --color-ink-muted: #64748B;
+
+  --color-ok: #4ADBA4;
+  --color-ok-container: #0C2A20;
+  --color-ok-text: #4ADBA4;
+
+  --color-caution: #F0B252;
+  --color-caution-container: #2E2009;
+  --color-caution-text: #F0B252;
+
+  --color-alert: #FF8A8A;
+  --color-alert-container: #33140F;
+  --color-alert-text: #FF8A8A;
+
+  --color-background: var(--color-surface);
+  --color-text-main: var(--color-ink);
+  --color-subtext: var(--color-ink-variant);
+
+  --chart-1: #0A98BA;
+  --chart-2: #9363FF;
+  --chart-3: #F60281;
+  --chart-4: #4581FE;
+
+  --focus-ring: 0 0 0 3px rgba(92, 211, 236, 0.4);
+}

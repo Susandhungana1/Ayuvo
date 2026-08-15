@@ -1,93 +1,81 @@
 @import "tailwindcss";
+@import "./design-tokens.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-primary: #2563EB;
+  --color-primary: var(--color-primary);
   --color-secondary: #10B981;
-  --color-background: #F9FAFB;
-  --color-card: #FFFFFF;
-  --color-text-main: #111827;
-  --color-subtext: #6B7280;
+  --color-background: var(--color-surface);
+  --color-card: var(--color-card);
+  --color-text-main: var(--color-ink);
+  --color-subtext: var(--color-ink-variant);
 
-  /* Native system font stacks — fully offline, no Google Fonts dependency. */
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  /* Figtree for headings, Noto Sans for body — matches mobile app */
+  --font-sans: 'Noto Sans', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-heading: 'Figtree', 'Noto Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 }
 
 :root {
-  --background: var(--color-background);
-  --foreground: var(--color-text-main);
+  --background: var(--color-surface);
+  --foreground: var(--color-ink);
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
+  font-family: var(--font-sans);
 }
 
 /* ============================================================
    Dark mode
-   Activated by adding `.dark` on <html>. Flips the semantic
-   design tokens, then scope-overrides the neutral utilities
-   (white/gray backgrounds, gray text, gray borders) that are
-   used directly throughout the app. `text-white` is left alone
-   so it stays white on colored buttons.
+   Activated by adding `.dark` on <html>.
    ============================================================ */
 .dark {
   color-scheme: dark;
-  --color-background: #0F172A;
-  --color-card: #1E293B;
-  --color-text-main: #F1F5F9;
-  --color-subtext: #94A3B8;
 }
 
 .dark {
-  --background: var(--color-background);
-  --foreground: var(--color-text-main);
+  --background: var(--color-surface);
+  --foreground: var(--color-ink);
 }
 
 /* Neutral backgrounds */
-.dark .bg-white { background-color: #1E293B; }
-.dark .bg-gray-50 { background-color: #1E293B; }
-.dark .bg-gray-100 { background-color: #334155; }
-.dark .bg-gray-200 { background-color: #334155; }
+.dark .bg-white { background-color: var(--color-card); }
+.dark .bg-gray-50 { background-color: var(--color-card); }
+.dark .bg-gray-100 { background-color: var(--color-muted); }
+.dark .bg-gray-200 { background-color: var(--color-muted); }
 
 /* Neutral text */
-.dark .text-gray-900 { color: #F1F5F9; }
+.dark .text-gray-900 { color: var(--color-ink); }
 .dark .text-gray-800 { color: #E2E8F0; }
 .dark .text-gray-700 { color: #CBD5E1; }
-.dark .text-gray-600 { color: #94A3B8; }
-.dark .text-gray-500 { color: #94A3B8; }
+.dark .text-gray-600 { color: var(--color-ink-variant); }
+.dark .text-gray-500 { color: var(--color-ink-variant); }
 .dark .text-gray-400 { color: #64748B; }
 
 /* Borders */
-.dark .border-gray-100 { border-color: #334155; }
-.dark .border-gray-200 { border-color: #334155; }
+.dark .border-gray-100 { border-color: var(--color-outline); }
+.dark .border-gray-200 { border-color: var(--color-outline); }
 .dark .border-gray-300 { border-color: #475569; }
 
-/* Hover states used across the app */
-.dark .hover\:bg-gray-50:hover { background-color: #334155; }
+/* Hover states */
+.dark .hover\:bg-gray-50:hover { background-color: var(--color-muted); }
 
-/* Form controls that render before Tailwind color utilities apply */
+/* Form controls */
 .dark input,
 .dark textarea,
 .dark select {
-  background-color: #1E293B;
-  border-color: #475569;
-  color: #F1F5F9;
+  background-color: var(--color-card);
+  border-color: var(--color-outline);
+  color: var(--color-ink);
 }
 .dark input::placeholder,
 .dark textarea::placeholder { color: #64748B; }
 
 /* ============================================================
    Colored tint utilities in dark mode
-   Soft tinted callouts/cards (bg-*-50/100/200) keep their LIGHT
-   value in dark mode by default, so any text that inherits the
-   (now light) foreground token becomes invisible on them — e.g.
-   the Emergency ID preview card. Flip the tint backgrounds to a
-   dark, same-hue equivalent; lighten the strong colored text so
-   it reads on dark surfaces; darken faint colored borders.
-   Solid buttons (bg-*-600/700) and text-white are left untouched.
    ============================================================ */
 
 /* Tinted backgrounds -> dark same-hue */
@@ -103,6 +91,7 @@ body {
 .dark .bg-blue-50, .dark .bg-blue-100, .dark .bg-blue-200 { background-color: #16263f; }
 .dark .bg-indigo-50 { background-color: #1e1f43; }
 .dark .bg-purple-50, .dark .bg-purple-100 { background-color: #2c1c3f; }
+.dark .bg-cyan-50, .dark .bg-cyan-100 { background-color: #0c2a2e; }
 
 /* Strong colored text -> lighter, readable on dark */
 .dark .text-red-600, .dark .text-red-700, .dark .text-red-800, .dark .text-red-900 { color: #fca5a5; }
@@ -116,6 +105,7 @@ body {
 .dark .text-sky-700 { color: #7dd3fc; }
 .dark .text-blue-600, .dark .text-blue-700, .dark .text-blue-800 { color: #93c5fd; }
 .dark .text-purple-700 { color: #d8b4fe; }
+.dark .text-cyan-700 { color: #5CD3EC; }
 
 /* Faint colored borders -> darker so they show on dark surfaces */
 .dark .border-red-200, .dark .border-red-300 { border-color: #7f1d1d; }
@@ -126,3 +116,47 @@ body {
 .dark .border-green-200 { border-color: #14532d; }
 .dark .border-blue-100, .dark .border-blue-200 { border-color: #1e3a5f; }
 .dark .border-purple-300 { border-color: #581c87; }
+.dark .border-cyan-200 { border-color: #155E75; }
+
+/* ============================================================
+   Focus ring utility using design token
+   ============================================================ */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* ============================================================
+   Typography utility classes (matches mobile app)
+   ============================================================ */
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+.font-body {
+  font-family: var(--font-sans);
+}
+
+.text-numeric {
+  font-family: var(--font-heading);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* ============================================================
+   Transition utilities matching mobile app motion
+   ============================================================ */
+.transition-fast {
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-enter);
+}
+
+.transition-base {
+  transition-duration: var(--duration-base);
+  transition-timing-function: var(--ease-standard);
+}
+
+.transition-slow {
+  transition-duration: var(--duration-slow);
+  transition-timing-function: var(--ease-standard);
+}

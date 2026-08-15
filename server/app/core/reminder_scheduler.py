@@ -315,7 +315,6 @@ def _run_tick() -> int:
             return 0
 
         users_by_id = _users_by_id(db, patient_ids)
-        newest_sub = _newest_subscription_by_user(db, patient_ids)
 
         # Load caretaker links if enabled
         care_links = (
@@ -332,7 +331,9 @@ def _run_tick() -> int:
         )
 
         # Recipients span patients and their non-muted caretakers; their push
-        # devices are all needed, so load them in one query too.
+        # devices are all needed. Load them in ONE query (not two: one for
+        # timezone + one for delivery). We then derive the newest-per-user
+        # in-memory from this same result.
         recipient_ids = set(patient_ids) | {
             link.caretaker_id for link in care_links if link.notify
         }
@@ -344,6 +345,13 @@ def _run_tick() -> int:
                 )
             ).all():
                 subs_by_user.setdefault(sub.user_id, []).append(sub)
+
+        # newest_sub maps user_id -> their most recent PushSubscription (for tz)
+        newest_sub: dict[str, PushSubscription] = {}
+        for user_id, subs_list in subs_by_user.items():
+            newest_sub[user_id] = max(
+                subs_list, key=lambda s: s.created_at or datetime.min
+            )
 
         links_by_patient: dict[str, list[CareLink]] = {}
         for link in care_links:

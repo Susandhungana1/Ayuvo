@@ -13,7 +13,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-1.5 w-full">
         {label && (
-          <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
+          <label htmlFor={inputId} className="text-sm font-medium text-[var(--color-ink)]">
             {label}
           </label>
         )}
@@ -21,14 +21,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           type={type}
           className={cn(
-            'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:border-transparent disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
-            error && 'border-red-500 focus-visible:ring-red-500',
+            'flex h-10 w-full rounded-[var(--radius-sm)] border border-[var(--color-outline)] bg-white dark:bg-[var(--color-card)] px-3 py-2 text-sm placeholder:text-[var(--color-ink-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-focus)] focus-visible:border-transparent disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
+            error && 'border-[var(--color-alert)] focus-visible:ring-[var(--color-alert)]',
             className
           )}
           ref={ref}
           {...props}
         />
-        {error && <span className="text-xs text-red-500 font-medium">{error}</span>}
+        {error && <span className="text-xs text-[var(--color-alert)] font-medium">{error}</span>}
       </div>
     );
   }
