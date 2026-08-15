@@ -153,18 +153,18 @@ export default function NearbyMap() {
   }, [center]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg">
-      <div className="lg:col-span-2">
-        <div ref={mapRef} className="w-full rounded-md border border-outline" style={{ height: 480 }} />
+    <div className="flex flex-col gap-lg">
+      <div>
+        <div ref={mapRef} className="w-full rounded-md border border-outline relative z-0" style={{ height: 480 }} />
         <p className="text-xs text-on-surface-variant mt-sm">{status}</p>
       </div>
-      <div className="lg:col-span-1">
+      <div className="relative z-10">
         <div className="flex items-center gap-md mb-md text-xs">
           <span className="flex items-center gap-xs"><span className="w-3 h-3 rounded-full inline-block" style={{ background: ICON_STYLE.hospital.color }} />Hospital</span>
           <span className="flex items-center gap-xs"><span className="w-3 h-3 rounded-full inline-block" style={{ background: ICON_STYLE.clinic.color }} />Clinic</span>
           <span className="flex items-center gap-xs"><span className="w-3 h-3 rounded-full inline-block" style={{ background: ICON_STYLE.pharmacy.color }} />Pharmacy</span>
         </div>
-        <div className="space-y-sm max-h-[440px] overflow-auto">
+        <div className="space-y-sm">
           {loading ? (
             <p className="text-on-surface-variant text-sm">Loading nearby care…</p>
           ) : (
