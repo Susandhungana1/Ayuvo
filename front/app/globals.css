@@ -3,126 +3,183 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-primary: #2563EB;
-  --color-secondary: #10B981;
-  --color-background: #F9FAFB;
-  --color-card: #FFFFFF;
-  --color-text-main: #111827;
-  --color-subtext: #6B7280;
+  /* Fonts — assigned by next/font in layout.tsx (self-hosted, PWA-safe) */
+  --font-sans: var(--font-noto-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-display: var(--font-figtree), var(--font-noto-sans), -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-  /* Native system font stacks — fully offline, no Google Fonts dependency. */
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  /* Legacy aliases — kept so existing utilities keep working; values on-brand */
+  --color-primary: #0e7490;
+  --color-secondary: #0e7490;
+  --color-background: #fbfcfd;
+  --color-card: #ffffff;
+  --color-text-main: #0f2b33;
+  --color-subtext: #4a6670;
+
+  /* Semantic tokens (WEB_DESIGN.md §2, §9) */
+  --color-surface: #fbfcfd;
+  --color-surface-card: #ffffff;
+  --color-on-surface: #0f2b33;
+  --color-on-surface-variant: #4a6670;
+  --color-outline: #c3d4da;
+  --color-on-primary: #ffffff;
+  --color-primary-pressed: #155e75;
+  --color-focus-ring: #0891b2;
+
+  /* Status — three states, never colour alone */
+  --color-ok: #046a4e;
+  --color-ok-container: #e3f6ee;
+  --color-caution: #8a4b08;
+  --color-caution-container: #fdf0dc;
+  --color-alert: #b91c1c;
+  --color-alert-container: #fde7e7;
+  --color-error: #b91c1c;
+
+  /* Chart series — fixed order, never cycled; status colours never used */
+  --color-series-1: #0891b2;
+  --color-series-2: #7c3aed;
+  --color-series-3: #db2777;
+  --color-series-4: #2563eb;
+
+  /* Spacing — 4pt */
+  --spacing-xxs: 2px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-xxl: 32px;
+  --spacing-xxxl: 48px;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  /* Elevation — floating things only; cards stay flat with a hairline */
+  --shadow-float: 0 2px 8px rgba(15, 43, 51, 0.12);
+  --shadow-pop: 0 8px 24px rgba(15, 43, 51, 0.16);
+
+  /* Motion — CSS only */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 280ms;
+  --duration-exit: 160ms;
 }
 
 :root {
-  --background: var(--color-background);
-  --foreground: var(--color-text-main);
+  --background: var(--color-surface);
+  --foreground: var(--color-on-surface);
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.anim-fade-in { animation: fade-in var(--duration-base) ease-out; }
+.anim-pop-in { animation: pop-in var(--duration-slow) cubic-bezier(0.16, 1, 0.3, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ============================================================
    Dark mode
-   Activated by adding `.dark` on <html>. Flips the semantic
-   design tokens, then scope-overrides the neutral utilities
-   (white/gray backgrounds, gray text, gray borders) that are
-   used directly throughout the app. `text-white` is left alone
-   so it stays white on colored buttons.
+   Activated by adding `.dark` on <html>. Semantic tokens flip
+   above; the scope-overrides below exist ONLY for the frozen
+   share reader (front/app/share/** and the components it imports),
+   which still renders with raw gray/colour utilities. Non-reader
+   pages use tokens and need none of these. Trimmed 2026-08-14
+   (Phase 6) to exactly the classes the reader uses.
    ============================================================ */
 .dark {
   color-scheme: dark;
-  --color-background: #0F172A;
-  --color-card: #1E293B;
-  --color-text-main: #F1F5F9;
-  --color-subtext: #94A3B8;
+  --color-background: #0f1417;
+  --color-card: #161d21;
+  --color-text-main: #e6eef1;
+  --color-subtext: #9db2ba;
+  --color-primary: #5cd3ec;
+  --color-secondary: #5cd3ec;
+  --color-surface: #0f1417;
+  --color-surface-card: #161d21;
+  --color-on-surface: #e6eef1;
+  --color-on-surface-variant: #9db2ba;
+  --color-outline: #2e3e45;
+  --color-on-primary: #00323e;
+  --color-primary-pressed: #7ddef1;
+  --color-focus-ring: #5cd3ec;
+  --color-ok: #4adba4;
+  --color-ok-container: #0c2a20;
+  --color-caution: #f0b252;
+  --color-caution-container: #2e2009;
+  --color-alert: #ff8a8a;
+  --color-alert-container: #33140f;
+  --color-error: #ff8a8a;
+  --color-series-1: #0a98ba;
+  --color-series-2: #9363ff;
+  --color-series-3: #f60281;
+  --color-series-4: #4581fe;
 }
 
 .dark {
-  --background: var(--color-background);
-  --foreground: var(--color-text-main);
+  --background: var(--color-surface);
+  --foreground: var(--color-on-surface);
 }
 
-/* Neutral backgrounds */
-.dark .bg-white { background-color: #1E293B; }
-.dark .bg-gray-50 { background-color: #1E293B; }
-.dark .bg-gray-100 { background-color: #334155; }
-.dark .bg-gray-200 { background-color: #334155; }
+/* Reader's solid primary button (frozen components/button.tsx) */
+.dark .bg-primary.text-white,
+.dark .bg-primary.text-white:hover { color: #00323e; }
 
-/* Neutral text */
-.dark .text-gray-900 { color: #F1F5F9; }
-.dark .text-gray-800 { color: #E2E8F0; }
-.dark .text-gray-700 { color: #CBD5E1; }
-.dark .text-gray-600 { color: #94A3B8; }
-.dark .text-gray-500 { color: #94A3B8; }
-.dark .text-gray-400 { color: #64748B; }
+/* Reader neutrals */
+.dark .bg-white { background-color: #161d21; }
+.dark .bg-gray-50 { background-color: #161d21; }
+.dark .bg-gray-100 { background-color: #1d262c; }
+.dark .text-gray-900 { color: #e6eef1; }
+.dark .text-gray-800 { color: #e6eef1; }
+.dark .text-gray-700 { color: #c6d5db; }
+.dark .text-gray-600 { color: #9db2ba; }
+.dark .text-gray-500 { color: #9db2ba; }
+.dark .text-gray-400 { color: #7a8f97; }
+.dark .border-gray-100 { border-color: #2e3e45; }
+.dark .border-gray-200 { border-color: #2e3e45; }
+.dark .border-gray-300 { border-color: #3a4b53; }
 
-/* Borders */
-.dark .border-gray-100 { border-color: #334155; }
-.dark .border-gray-200 { border-color: #334155; }
-.dark .border-gray-300 { border-color: #475569; }
-
-/* Hover states used across the app */
-.dark .hover\:bg-gray-50:hover { background-color: #334155; }
-
-/* Form controls that render before Tailwind color utilities apply */
-.dark input,
-.dark textarea,
-.dark select {
-  background-color: #1E293B;
-  border-color: #475569;
-  color: #F1F5F9;
-}
-.dark input::placeholder,
-.dark textarea::placeholder { color: #64748B; }
-
-/* ============================================================
-   Colored tint utilities in dark mode
-   Soft tinted callouts/cards (bg-*-50/100/200) keep their LIGHT
-   value in dark mode by default, so any text that inherits the
-   (now light) foreground token becomes invisible on them — e.g.
-   the Emergency ID preview card. Flip the tint backgrounds to a
-   dark, same-hue equivalent; lighten the strong colored text so
-   it reads on dark surfaces; darken faint colored borders.
-   Solid buttons (bg-*-600/700) and text-white are left untouched.
-   ============================================================ */
-
-/* Tinted backgrounds -> dark same-hue */
-.dark .bg-red-50, .dark .bg-red-100, .dark .bg-red-200 { background-color: #3f1d22; }
-.dark .bg-rose-50, .dark .bg-rose-100 { background-color: #3f1d2b; }
-.dark .bg-orange-50, .dark .bg-orange-100 { background-color: #3a2410; }
-.dark .bg-amber-50, .dark .bg-amber-100 { background-color: #3a2e0f; }
-.dark .bg-yellow-50, .dark .bg-yellow-100 { background-color: #38330f; }
-.dark .bg-green-50, .dark .bg-green-100, .dark .bg-green-300 { background-color: #123320; }
-.dark .bg-emerald-50, .dark .bg-emerald-100 { background-color: #103029; }
-.dark .bg-teal-50, .dark .bg-teal-100 { background-color: #0f2e2e; }
+/* Reader tinted callouts and badges → dark, same-hue equivalents */
+.dark .bg-red-50, .dark .bg-red-100, .dark .bg-red-200 { background-color: #33140f; }
+.dark .bg-amber-100 { background-color: #2e2009; }
+.dark .bg-green-50, .dark .bg-green-100 { background-color: #0c2a20; }
+.dark .bg-emerald-50, .dark .bg-emerald-100 { background-color: #0c2a20; }
+.dark .bg-teal-50, .dark .bg-teal-100 { background-color: #0c2a20; }
 .dark .bg-sky-50, .dark .bg-sky-100 { background-color: #0e2a3a; }
-.dark .bg-blue-50, .dark .bg-blue-100, .dark .bg-blue-200 { background-color: #16263f; }
-.dark .bg-indigo-50 { background-color: #1e1f43; }
-.dark .bg-purple-50, .dark .bg-purple-100 { background-color: #2c1c3f; }
+.dark .bg-blue-50, .dark .bg-blue-100 { background-color: #0e2a3a; }
 
-/* Strong colored text -> lighter, readable on dark */
-.dark .text-red-600, .dark .text-red-700, .dark .text-red-800, .dark .text-red-900 { color: #fca5a5; }
-.dark .text-rose-700, .dark .text-rose-800 { color: #fda4af; }
-.dark .text-orange-700, .dark .text-orange-800 { color: #fdba74; }
-.dark .text-amber-700, .dark .text-amber-800 { color: #fcd34d; }
-.dark .text-yellow-700, .dark .text-yellow-800 { color: #fde68a; }
-.dark .text-green-600, .dark .text-green-700, .dark .text-green-800 { color: #86efac; }
-.dark .text-emerald-700, .dark .text-emerald-800 { color: #6ee7b7; }
+.dark .text-red-600, .dark .text-red-700, .dark .text-red-800 { color: #ff8a8a; }
+.dark .text-amber-800 { color: #f0b252; }
+.dark .text-green-600, .dark .text-green-700, .dark .text-green-800 { color: #4adba4; }
+.dark .text-emerald-700 { color: #6ee7b7; }
 .dark .text-teal-700 { color: #5eead4; }
 .dark .text-sky-700 { color: #7dd3fc; }
-.dark .text-blue-600, .dark .text-blue-700, .dark .text-blue-800 { color: #93c5fd; }
-.dark .text-purple-700 { color: #d8b4fe; }
+.dark .text-blue-700 { color: #93c5fd; }
 
-/* Faint colored borders -> darker so they show on dark surfaces */
-.dark .border-red-200, .dark .border-red-300 { border-color: #7f1d1d; }
-.dark .border-rose-200 { border-color: #881337; }
-.dark .border-orange-200 { border-color: #7c2d12; }
-.dark .border-amber-200, .dark .border-amber-300 { border-color: #78350f; }
-.dark .border-yellow-200 { border-color: #713f12; }
-.dark .border-green-200 { border-color: #14532d; }
-.dark .border-blue-100, .dark .border-blue-200 { border-color: #1e3a5f; }
-.dark .border-purple-300 { border-color: #581c87; }
+.dark .border-red-200 { border-color: #4c2026; }
+.dark .border-green-200 { border-color: #123a28; }

@@ -11,7 +11,10 @@ from app.api.reports import generate_plain_explanation, get_report_bytes
 from app.core.config import get_session
 from app.core.audit import record_access
 from app.core.lab_analysis import analyze_lab_text, summarize_findings
-from app.models.models import User, MedicalReport, Medicine, ShareLink, EmergencyContact
+from app.core.ratelimit import limiter, user_key
+from app.models.models import (
+    User, MedicalReport, Medicine, ShareLink, EmergencyContact, ClaimedShare,
+)
 
 router = APIRouter()
 
@@ -252,6 +255,334 @@ def _get_emergency_info(user: User, db: Session) -> EmergencyShareResponse:
     )
 
 
+# --- Claiming ----------------------------------------------------------------
+#
+# Everything from here to the next banner is authenticated, and every route is
+# declared ABOVE the `/{token}` catch-alls on purpose: FastAPI matches in
+# declaration order, so a literal segment like `/received` registered after
+# `GET /{token}` would be read as a token and never reached.
+
+
+class ClaimSummary(BaseModel):
+    id: str
+    kind: str
+    owner_name: str
+    owner_id: str
+    report_count: int
+    claimed_at: str
+
+
+class ReceivedSharesResponse(BaseModel):
+    shares: List[ClaimSummary]
+
+
+class ReceivedShareDetail(BaseModel):
+    id: str
+    owner_name: str
+    owner_id: str
+    kind: str
+    claimed_at: str
+    reports: List[SharedReportResponse]
+    # Reports present at claim time that the owner has since deleted. Surfaced
+    # rather than silently dropped: a recipient looking at four of five reports
+    # should know the fifth was withdrawn, not assume it never existed.
+    withdrawn_count: int
+
+
+class ClaimAuditEntry(BaseModel):
+    id: str
+    recipient_name: str
+    recipient_id: str
+    kind: str
+    report_count: int
+    claimed_at: str
+    status: str
+
+
+class ClaimAuditResponse(BaseModel):
+    claims: List[ClaimAuditEntry]
+
+
+class MessageResponse(BaseModel):
+    message: str
+
+
+@router.post("/{token}/claim", response_model=ClaimSummary)
+@limiter.limit("30/hour", key_func=user_key)
+async def claim_share(
+    token: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """Keep a share that is currently readable, so it outlives the link.
+
+    Claiming grants the recipient nothing they cannot already see — the link is
+    open in front of them — it only stops the access expiring. The link must
+    still be valid: you may keep what you are being shown, never resurrect a
+    share whose window has closed.
+    """
+    share_link = db.exec(select(ShareLink).where(ShareLink.token == token)).first()
+    if not share_link:
+        raise HTTPException(status_code=404, detail="Share link not found")
+    if share_link.expires_at < datetime.utcnow():
+        raise HTTPException(
+            status_code=410,
+            detail="This link has expired, so it can no longer be saved. Ask the sender for a new one.",
+        )
+
+    if share_link.user_id == current_user.id:
+        raise HTTPException(
+            status_code=400, detail="This is your own record — it's already in your account."
+        )
+
+    owner = db.get(User, share_link.user_id)
+    if not owner:
+        raise HTTPException(status_code=404, detail="Share link not found")
+
+    # Freeze the visible set. For a whole-record link that is every report the
+    # owner has right now; for a single-report link it is just that one.
+    if share_link.all_reports:
+        kind = "all"
+        report_ids = [
+            r.id
+            for r in db.exec(
+                select(MedicalReport)
+                .where(MedicalReport.user_id == share_link.user_id)
+                .order_by(MedicalReport.created_at.desc())
+            ).all()
+        ]
+    else:
+        kind = "report"
+        report_ids = [share_link.report_id] if share_link.report_id else []
+
+    existing = db.exec(
+        select(ClaimedShare)
+        .where(ClaimedShare.recipient_id == current_user.id)
+        .where(ClaimedShare.token == token)
+        .where(ClaimedShare.status == "active")
+    ).first()
+    if existing:
+        # Idempotent: a second "Save" on the same link is a no-op, not an error
+        # and not a duplicate row.
+        return ClaimSummary(
+            id=existing.id,
+            kind=existing.kind,
+            owner_name=existing.owner_name,
+            owner_id=existing.owner_id,
+            report_count=len(existing.report_ids),
+            claimed_at=str(existing.claimed_at),
+        )
+
+    claim = ClaimedShare(
+        token=token,
+        recipient_id=current_user.id,
+        owner_id=share_link.user_id,
+        kind=kind,
+        report_ids=report_ids,
+        owner_name=owner.name,
+    )
+    db.add(claim)
+    db.commit()
+    db.refresh(claim)
+
+    # The one audit line that names a share recipient. Every other share event
+    # can only record an IP, because until now nobody had to identify themselves.
+    record_access(
+        db, "share.claimed",
+        actor_id=current_user.id, subject_id=share_link.user_id,
+        resource_type="ClaimedShare", resource_id=claim.id,
+        request=request, detail=f"kind={kind} reports={len(report_ids)}",
+    )
+
+    return ClaimSummary(
+        id=claim.id,
+        kind=claim.kind,
+        owner_name=claim.owner_name,
+        owner_id=claim.owner_id,
+        report_count=len(claim.report_ids),
+        claimed_at=str(claim.claimed_at),
+    )
+
+
+@router.get("/received", response_model=ReceivedSharesResponse)
+async def list_received_shares(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """Shares this user has kept — the "Shared with me" list."""
+    claims = db.exec(
+        select(ClaimedShare)
+        .where(ClaimedShare.recipient_id == current_user.id)
+        .where(ClaimedShare.status == "active")
+        .order_by(ClaimedShare.claimed_at.desc())
+    ).all()
+
+    return ReceivedSharesResponse(
+        shares=[
+            ClaimSummary(
+                id=c.id,
+                kind=c.kind,
+                owner_name=c.owner_name,
+                owner_id=c.owner_id,
+                report_count=len(c.report_ids),
+                claimed_at=str(c.claimed_at),
+            )
+            for c in claims
+        ]
+    )
+
+
+@router.get("/received/{claim_id}", response_model=ReceivedShareDetail)
+async def read_received_share(
+    claim_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """Read a kept share.
+
+    Resolves the frozen ID list against live rows, so a report the owner has
+    since deleted simply stops appearing. Deliberately does NOT re-check the
+    share token — it has usually expired by now, and surviving that is the
+    whole point of a claim. Also deliberately carries no emergency profile:
+    the reader shows that live, but a permanent copy of someone's blood type,
+    allergies and next-of-kin phone numbers is a different grant from the
+    report they meant to send.
+    """
+    claim = db.get(ClaimedShare, claim_id)
+    if not claim or claim.recipient_id != current_user.id or claim.status != "active":
+        raise HTTPException(status_code=404, detail="Not found")
+
+    reports = []
+    for rid in claim.report_ids:
+        report = db.get(MedicalReport, rid)
+        # Ownership re-checked on every read: if a report somehow changed hands,
+        # the claim must not follow it.
+        if not report or report.user_id != claim.owner_id:
+            continue
+
+        file_content_b64 = ""
+        report_bytes = get_report_bytes(report)
+        if report_bytes:
+            file_content_b64 = base64.b64encode(report_bytes).decode("utf-8")
+
+        reports.append(SharedReportResponse(
+            id=report.id,
+            report_type=report.report_type,
+            file_name=report.file_name,
+            file_content=file_content_b64,
+            notes=report.notes,
+            result_summary=report.result_summary,
+            extracted_text=report.extracted_text,
+            ai_report_text=report.ai_report_text,
+            doctor_name=report.doctor_name,
+            hospital=report.hospital,
+            created_at=str(report.created_at) if report.created_at else None,
+        ))
+
+    record_access(
+        db, "share.received.view",
+        actor_id=current_user.id, subject_id=claim.owner_id,
+        resource_type="ClaimedShare", resource_id=claim.id, request=request,
+    )
+
+    return ReceivedShareDetail(
+        id=claim.id,
+        owner_name=claim.owner_name,
+        owner_id=claim.owner_id,
+        kind=claim.kind,
+        claimed_at=str(claim.claimed_at),
+        reports=reports,
+        withdrawn_count=len(claim.report_ids) - len(reports),
+    )
+
+
+@router.delete("/received/{claim_id}", response_model=MessageResponse)
+async def drop_received_share(
+    claim_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """Recipient removes a share from their own list."""
+    claim = db.get(ClaimedShare, claim_id)
+    if not claim or claim.recipient_id != current_user.id or claim.status != "active":
+        raise HTTPException(status_code=404, detail="Not found")
+
+    claim.status = "revoked"
+    claim.revoked_at = datetime.utcnow()
+    claim.revoked_by = current_user.id
+    db.add(claim)
+    db.commit()
+    return MessageResponse(message="Removed from your shared records")
+
+
+@router.get("/claims", response_model=ClaimAuditResponse)
+async def list_claims_on_my_records(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """Who has kept a copy of this user's records.
+
+    The accountability half of the feature: anonymous link views can only ever
+    be logged as an IP, but a claim has a name attached.
+    """
+    claims = db.exec(
+        select(ClaimedShare)
+        .where(ClaimedShare.owner_id == current_user.id)
+        .where(ClaimedShare.status == "active")
+        .order_by(ClaimedShare.claimed_at.desc())
+    ).all()
+
+    entries = []
+    for c in claims:
+        recipient = db.get(User, c.recipient_id)
+        entries.append(ClaimAuditEntry(
+            id=c.id,
+            recipient_name=recipient.name if recipient else "Deleted account",
+            recipient_id=c.recipient_id,
+            kind=c.kind,
+            report_count=len(c.report_ids),
+            claimed_at=str(c.claimed_at),
+            status=c.status,
+        ))
+
+    return ClaimAuditResponse(claims=entries)
+
+
+@router.delete("/claims/{claim_id}", response_model=MessageResponse)
+async def revoke_claim(
+    claim_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """Owner withdraws a claim on their own records.
+
+    Cannot un-see what was already read, but it does end the ongoing access —
+    the escape hatch for a link that reached the wrong person.
+    """
+    claim = db.get(ClaimedShare, claim_id)
+    if not claim or claim.owner_id != current_user.id or claim.status != "active":
+        raise HTTPException(status_code=404, detail="Not found")
+
+    claim.status = "revoked"
+    claim.revoked_at = datetime.utcnow()
+    claim.revoked_by = current_user.id
+    db.add(claim)
+    db.commit()
+
+    record_access(
+        db, "share.claim.revoked",
+        actor_id=current_user.id, subject_id=claim.recipient_id,
+        resource_type="ClaimedShare", resource_id=claim.id, request=request,
+    )
+    return MessageResponse(message="Access withdrawn")
+
+
+# --- Single-report links -----------------------------------------------------
+
+
 @router.post("/{report_id}", response_model=ShareResponse)
 async def create_share_link(
     report_id: str,
@@ -294,13 +625,28 @@ async def access_shared_report(
     if share_link.expires_at < datetime.utcnow():
         raise HTTPException(status_code=410, detail="Share link expired")
 
+    # A whole-record link carries no report_id, so it cannot be read here. The
+    # mirror of the all_reports check in access_all_shared_reports; without it
+    # the db.get below looks up a None primary key and the endpoint 500s.
+    if share_link.all_reports or not share_link.report_id:
+        raise HTTPException(status_code=404, detail="Invalid share link")
+
     record_access(
         db, "share.view",
         subject_id=share_link.user_id, resource_type="MedicalReport",
         resource_id=share_link.report_id, request=request, detail=f"token={token[:8]}…",
     )
 
+    # The report can be gone — the owner may have deleted it while the link was
+    # still live, and a share link is not a foreign key. Same predicate as
+    # _resolve_shared_report: missing, or no longer the sharer's to share.
     report = db.get(MedicalReport, share_link.report_id)
+    if not report or report.user_id != share_link.user_id:
+        raise HTTPException(
+            status_code=404,
+            detail="This report is no longer available — the sender removed it.",
+        )
+
     user = db.get(User, share_link.user_id)
 
     file_content_b64 = ""

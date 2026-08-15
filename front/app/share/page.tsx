@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { QRCodeSVG } from 'qrcode.react';
+import { KeptByOthers } from '@/components/kept-by-others';
 import { formatServerDateTime, hasExpired } from '@/lib/datetime';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
@@ -270,9 +271,16 @@ export default function Share() {
               <li>4. The link will expire automatically after 24 hours</li>
               <li>5. You can revoke the link at any time</li>
               <li>6. Use QR Code to share all reports at once</li>
+              <li>
+                7. A recipient signed in to MediStore can save the share to keep
+                it after the link expires — you&apos;ll see them listed below
+              </li>
             </ul>
           </Card>
         </div>
+
+        {/* Renders nothing unless someone has kept a copy of these records. */}
+        <KeptByOthers />
       </div>
 
       {qrModalOpen && qrCode && (

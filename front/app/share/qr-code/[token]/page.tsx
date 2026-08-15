@@ -6,6 +6,7 @@ import { Card } from '@/components/card';
 import { Button } from '@/components/button';
 import { DigitizedReport } from '@/components/DigitizedReport';
 import ShareTargetChooser from '@/components/ShareTargetChooser';
+import ClaimShareButton from '@/components/ClaimShareButton';
 import { formatPlainDate, formatServerDateTime } from '@/lib/datetime';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
@@ -179,10 +180,8 @@ export default function ViewAllSharedReports() {
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <ShareTargetChooser token={token} kind="all" />
-        <div className="mb-6">
-          <Button onClick={() => router.push('/auth/login')}>Login to MediStore</Button>
-        </div>
-        
+        <ClaimShareButton token={token} />
+
         <h1 className="text-2xl font-bold text-text-main mb-2">
           Medical Information from {data?.user_name}
         </h1>

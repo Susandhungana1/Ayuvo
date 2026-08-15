@@ -72,6 +72,20 @@ def local_now(tz_name: Optional[str]) -> datetime:
     return datetime.now(tz) if tz else datetime.utcnow()
 
 
+def timezone_from(user: Optional[User], newest_sub: Optional[PushSubscription]) -> str:
+    """The zone-resolution rule itself, over rows the caller already holds.
+
+    Split out from `patient_timezone` so a caller working across many patients
+    can batch the two lookups and still apply exactly this rule — the reminder
+    scheduler does, once per tick instead of twice per patient. Keeping the rule
+    in one place is the point: a scheduler that resolved zones differently from
+    the care API would fire reminders at times the UI never showed.
+    """
+    if user is not None and user.timezone:
+        return user.timezone
+    return newest_sub.timezone if newest_sub and newest_sub.timezone else DEFAULT_TZ
+
+
 def patient_timezone(db: Session, patient_id: str) -> str:
     """The patient's IANA timezone, preferring their own column.
 
@@ -81,6 +95,9 @@ def patient_timezone(db: Session, patient_id: str) -> str:
     never registered one. This is the zone reminders fire in, for every
     recipient — a caretaker abroad is notified at the patient's dose time, not
     their own.
+
+    Costs two queries for one patient. Across a set of patients, batch them and
+    call `timezone_from` instead.
     """
     user = db.get(User, patient_id)
     if user is not None and user.timezone:
@@ -91,7 +108,7 @@ def patient_timezone(db: Session, patient_id: str) -> str:
         .where(PushSubscription.user_id == patient_id)
         .order_by(PushSubscription.created_at.desc())  # type: ignore[union-attr]
     ).first()
-    return (sub.timezone if sub and sub.timezone else DEFAULT_TZ)
+    return timezone_from(user, sub)
 
 
 def is_active_on(med: Medicine, day: str) -> bool:

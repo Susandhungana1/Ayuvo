@@ -57,18 +57,18 @@ export default function CarePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-subtext">Loading…</p>
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <p className="text-on-surface-variant">Loading…</p>
       </div>
     );
   }
 
   if (denied || !link) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-surface">
         <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold text-text-main mb-2">No longer available</h1>
-          <p className="text-subtext mb-6">
+          <h1 className="text-2xl font-display font-bold text-on-surface mb-sm">No longer available</h1>
+          <p className="text-on-surface-variant mb-xl">
             You don&apos;t have access to this person&apos;s medicines.
           </p>
           <Link href="/dashboard" className="text-primary hover:underline">
@@ -80,20 +80,21 @@ export default function CarePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Amber, not the app's blue: a caretaker must never mistake this page
-          for their own medicine list. Sticky directly under the h-16 navbar so
-          it survives scrolling — a list of Remove buttons with no attribution
-          in view is precisely the confusion this banner exists to prevent. */}
-      <div className="bg-amber-100 border-b-2 border-amber-300 sticky top-16 z-40">
+    <div className="min-h-screen bg-surface">
+      {/* Caution amber, not the app's blue: a caretaker must never mistake this
+          page for their own medicine list. Sticky directly under the h-16
+          navbar so it survives scrolling — a list of Remove buttons with no
+          attribution in view is precisely the confusion this banner exists to
+          prevent. */}
+      <div className="bg-caution-container border-b-2 border-caution/40 sticky top-16 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
-          <p className="text-sm font-medium text-amber-900">
+          <p className="text-sm font-medium text-caution">
             You&apos;re managing medicines for{' '}
             <span className="font-bold">{link.name}</span>.
           </p>
           <Link
             href="/dashboard"
-            className="text-sm font-medium text-amber-900 hover:underline shrink-0"
+            className="text-sm font-medium text-caution hover:underline shrink-0"
           >
             Back to my dashboard
           </Link>
@@ -101,7 +102,7 @@ export default function CarePage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-text-main mb-8">
+        <h1 className="text-3xl font-display font-bold text-on-surface mb-lg">
           {link.name}&apos;s medicines
         </h1>
 
