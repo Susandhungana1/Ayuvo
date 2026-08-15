@@ -2,13 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Bell, CheckCircle2, Loader2 } from 'lucide-react';
 import { MedicineManager } from '@/components/medicine-manager';
 import { ensurePushSubscription } from '@/components/medicine-alarm';
 import { API_URL, authHeaders } from '@/lib/care';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Medicines() {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  // Lazy: the token exists or it doesn't; no need to flip this later.
+  const [ready] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return !!localStorage.getItem('token');
+  });
   const [remindersReady, setRemindersReady] = useState(false);
   const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [reminderStatus, setReminderStatus] = useState('');
@@ -27,7 +33,6 @@ export default function Medicines() {
       router.push('/auth/login');
       return;
     }
-    setReady(true);
     (async () => {
       if (!('Notification' in window)) {
         setRemindersEnabled(false);
@@ -63,7 +68,7 @@ export default function Medicines() {
       }
       const data = await res.json();
       if (data.sent > 0) {
-        setReminderStatus(`✅ Test sent to ${data.sent} device(s) — check your lock screen.`);
+        setReminderStatus(`Test sent to ${data.sent} device(s) — check your lock screen.`);
       } else {
         setReminderStatus('No device received the test. Reopen the app from the Home Screen, then try again.');
       }
@@ -106,34 +111,34 @@ export default function Medicines() {
 
   if (!ready) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-subtext">Loading...</p>
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <Skeleton className="h-6 w-40" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-surface">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-text-main">Medicines</h1>
+          <h1 className="text-3xl font-display font-bold text-on-surface">Medicines</h1>
         </div>
 
         <div className="mb-6">
           {!remindersReady ? (
-            <p className="text-sm text-subtext">Checking reminders…</p>
+            <p className="text-sm text-on-surface-variant">Checking reminders…</p>
           ) : remindersEnabled ? (
             <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-green-300 bg-green-50 px-3 py-2 text-sm font-medium text-green-700">
-                ✅ Reminders are on for this device
+              <span className="inline-flex items-center gap-1.5 rounded-sm border border-ok/40 bg-ok-container px-3 py-2 text-sm font-medium text-ok">
+                <CheckCircle2 className="w-4 h-4" /> Reminders are on for this device
               </span>
               <button
                 type="button"
                 onClick={sendTestReminder}
                 disabled={enablingReminders}
-                className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-sm border border-primary/40 bg-primary/5 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-60 transition-colors"
               >
-                🔔 {enablingReminders ? 'Sending…' : 'Send test reminder'}
+                <Bell className="w-4 h-4" /> {enablingReminders ? 'Sending…' : 'Send test reminder'}
               </button>
             </div>
           ) : (
@@ -141,15 +146,16 @@ export default function Medicines() {
               type="button"
               onClick={enableAndTestReminders}
               disabled={enablingReminders}
-              className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 rounded-sm border border-primary/40 bg-primary/5 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-60 transition-colors"
             >
-              🔔 {enablingReminders ? 'Enabling…' : 'Enable & test reminders'}
+              {enablingReminders ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+              {enablingReminders ? 'Enabling…' : 'Enable & test reminders'}
             </button>
           )}
         </div>
 
         {reminderStatus && (
-          <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm text-blue-800">
+          <div className="mb-6 rounded-md border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm text-on-surface">
             {reminderStatus}
           </div>
         )}

@@ -7,8 +7,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/button';
-import { Card } from '@/components/card';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   AuditEntry,
   CareFeatureOff,
@@ -36,7 +36,7 @@ function Countdown({ expiresAt, onExpired }: { expiresAt: string; onExpired: () 
     return () => clearInterval(id);
   }, [expiresAt, onExpired]);
 
-  if (left <= 0) return <span className="text-red-600">expired</span>;
+  if (left <= 0) return <span className="text-alert">expired</span>;
   const mins = Math.floor(left / 60000);
   const secs = Math.floor((left % 60000) / 1000);
   return (
@@ -175,8 +175,69 @@ export default function CaretakersSettings() {
       router.replace(LOGIN_URL);
       return;
     }
-    load();
-  }, [router, load]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const [linkRows, auditRows] = await Promise.all([
+          listLinks('patient'),
+          listAudit().catch(() => [] as AuditEntry[]),
+        ]);
+        if (cancelled) return;
+        setLinks(linkRows);
+        // Only a caretaker's activity is interesting here; the patient's own
+        // edits are already visible on the medicines page.
+        setAudit(auditRows.filter((e) => e.by_caretaker));
+        setBlocked(null);
+
+        // Restore a code issued before the user navigated away. If a caretaker
+        // has appeared since it was issued, it has been redeemed — showing it
+        // would invite the patient to read out a code that no longer works.
+        const stored = readStoredInvite();
+        if (stored) {
+          if (linkRows.length > stored.linkCount) {
+            writeStoredInvite(null);
+            setInvite(null);
+          } else {
+            setInvite({ code: stored.code, expires_at: stored.expires_at });
+          }
+        }
+      } catch (err) {
+        // Name the actual cause. Reporting every failure as "not available on
+        // your account" is misleading when the server is simply unreachable, and
+        // gives no hint of what to do about it.
+        if (cancelled) return;
+        if (err instanceof SessionExpired) {
+          // The token in this browser is dead — held here, the page can only
+          // offer a "Try again" that fails identically every time. care.ts has
+          // already cleared it, so signing in is both the fix and the only
+          // thing to do; go straight there.
+          //
+          // Stay on the spinner until the route changes. `finally` drops
+          // `loading` either way, and without this the empty caretaker list
+          // flashes up for a frame on its way out.
+          setRedirecting(true);
+          router.replace(LOGIN_URL);
+        } else if (err instanceof CareFeatureOff) {
+          setBlocked({
+            title: 'Caretakers is switched off',
+            detail:
+              'This server has the caretaker feature disabled. It needs CARETAKER_ENABLED=true to be set on the API.',
+          });
+        } else {
+          setBlocked({
+            title: "Couldn't load caretakers",
+            detail:
+              err instanceof Error
+                ? `${err.message.replace(/\.?$/, '.')} Check that the API is reachable, then reload.`
+                : 'The API could not be reached. Check your connection and reload.',
+          });
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [router]);
 
   const handleIssue = async () => {
     setIssuing(true);
@@ -222,8 +283,8 @@ export default function CaretakersSettings() {
 
   if (loading || redirecting) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-subtext">
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <p className="text-on-surface-variant">
           {redirecting ? 'Session expired — taking you to sign in…' : 'Loading…'}
         </p>
       </div>
@@ -232,10 +293,10 @@ export default function CaretakersSettings() {
 
   if (blocked) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-surface">
         <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold text-text-main mb-2">{blocked.title}</h1>
-          <p className="text-subtext mb-6">{blocked.detail}</p>
+          <h1 className="text-2xl font-display font-bold text-on-surface mb-sm">{blocked.title}</h1>
+          <p className="text-on-surface-variant mb-xl">{blocked.detail}</p>
           <button
             onClick={() => {
               setLoading(true);
@@ -251,34 +312,34 @@ export default function CaretakersSettings() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-surface">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-text-main mb-2">Caretakers</h1>
-        <p className="text-subtext mb-8">
+        <h1 className="text-3xl font-display font-bold text-on-surface mb-sm">Caretakers</h1>
+        <p className="text-on-surface-variant mb-lg">
           A caretaker can see and manage your medicines, and gets your medicine
           reminders. They cannot see your vitals, documents, reports or anything else.
         </p>
 
         {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800">
+          <div className="mb-xl rounded-md border border-alert/40 bg-alert-container px-4 py-2.5 text-sm text-alert">
             {error}
           </div>
         )}
 
         {/* --- Issue a code --- */}
-        <Card className="p-6 mb-8">
-          <h2 className="text-lg font-semibold text-text-main mb-1">Add a caretaker</h2>
-          <p className="text-sm text-subtext mb-4">
+        <Card className="p-xl mb-lg">
+          <h2 className="text-lg font-display font-semibold text-on-surface mb-xs">Add a caretaker</h2>
+          <p className="text-sm text-on-surface-variant mb-lg">
             Generate a code and read it out to the person with you. It works once,
             and only for the next 15 minutes.
           </p>
 
           {invite ? (
-            <div className="rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 p-6 text-center">
-              <p className="font-mono text-3xl sm:text-4xl font-bold tracking-[0.2em] text-text-main mb-3">
+            <div className="rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-xl text-center">
+              <p className="font-mono text-3xl sm:text-4xl font-bold tracking-[0.2em] text-on-surface mb-md">
                 {invite.code}
               </p>
-              <div className="flex items-center justify-center gap-3 mb-3">
+              <div className="flex items-center justify-center gap-md mb-md">
                 <button
                   type="button"
                   onClick={() => {
@@ -289,18 +350,18 @@ export default function CaretakersSettings() {
                 >
                   {copied ? 'Copied' : 'Copy code'}
                 </button>
-                <span className="text-sm text-subtext">
+                <span className="text-sm text-on-surface-variant">
                   Expires in <Countdown expiresAt={invite.expires_at} onExpired={forgetInvite} />
                 </span>
                 <button
                   type="button"
                   onClick={forgetInvite}
-                  className="text-sm text-subtext hover:text-text-main underline"
+                  className="text-sm text-on-surface-variant hover:text-on-surface underline"
                 >
                   Hide
                 </button>
               </div>
-              <p className="text-xs font-medium text-amber-700">
+              <p className="text-xs font-medium text-caution">
                 This code can&apos;t be shown again once hidden or expired.
                 Generating a new one cancels it.
               </p>
@@ -313,28 +374,28 @@ export default function CaretakersSettings() {
         </Card>
 
         {/* --- Current caretakers --- */}
-        <h2 className="text-lg font-semibold text-text-main mb-3">
+        <h2 className="text-lg font-display font-semibold text-on-surface mb-md">
           Your caretakers {links.length > 0 && `(${links.length})`}
         </h2>
         {links.length === 0 ? (
-          <Card className="p-6 mb-8 text-center">
-            <p className="text-subtext text-sm">
+          <Card className="p-xl mb-lg text-center">
+            <p className="text-on-surface-variant text-sm">
               Nobody is helping manage your medicines yet.
             </p>
           </Card>
         ) : (
-          <div className="space-y-3 mb-8">
+          <div className="space-y-md mb-lg">
             {links.map((link) => (
-              <Card key={link.id} className="p-4 flex items-center justify-between gap-4">
+              <Card key={link.id} className="p-lg flex items-center justify-between gap-lg">
                 <div>
-                  <p className="font-medium text-text-main">{link.name}</p>
-                  <p className="text-xs text-subtext">
+                  <p className="font-medium text-on-surface">{link.name}</p>
+                  <p className="text-xs text-on-surface-variant">
                     Added {new Date(link.created_at).toLocaleDateString()}
                   </p>
                 </div>
                 <button
                   onClick={() => handleRevoke(link)}
-                  className="text-red-500 text-sm hover:underline shrink-0"
+                  className="text-alert text-sm hover:underline shrink-0"
                 >
                   Remove
                 </button>
@@ -344,22 +405,22 @@ export default function CaretakersSettings() {
         )}
 
         {/* --- Caretaker activity --- */}
-        <h2 className="text-lg font-semibold text-text-main mb-3">Recent caretaker activity</h2>
+        <h2 className="text-lg font-display font-semibold text-on-surface mb-md">Recent caretaker activity</h2>
         {audit.length === 0 ? (
-          <Card className="p-6 text-center">
-            <p className="text-subtext text-sm">No changes by a caretaker yet.</p>
+          <Card className="p-xl text-center">
+            <p className="text-on-surface-variant text-sm">No changes by a caretaker yet.</p>
           </Card>
         ) : (
-          <Card className="divide-y divide-gray-100 p-0">
+          <Card className="divide-y divide-outline/40 p-0">
             {audit.map((entry) => (
-              <div key={entry.id} className="flex items-center justify-between gap-4 px-5 py-3">
+              <div key={entry.id} className="flex items-center justify-between gap-lg px-lg py-md">
                 <div>
-                  <p className="text-sm text-text-main">
+                  <p className="text-sm text-on-surface">
                     <span className="font-medium">{entry.actor_name}</span>{' '}
                     {ACTION_LABEL[entry.action]}{' '}
                     <span className="font-medium">{entry.medicine_name || 'a medicine'}</span>
                   </p>
-                  <p className="text-xs text-subtext">
+                  <p className="text-xs text-on-surface-variant">
                     {new Date(entry.created_at).toLocaleString()}
                   </p>
                 </div>

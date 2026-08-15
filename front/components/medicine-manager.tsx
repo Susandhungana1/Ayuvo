@@ -9,11 +9,14 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Button } from '@/components/button';
-import { Card } from '@/components/card';
-import { Input } from '@/components/input';
+import { Pill, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 import { cacheGet, cacheSet } from '@/lib/offlineCache';
-import { API_URL, CareAccessRevoked, authHeaders, scopedUrl } from '@/lib/care';
+import { CareAccessRevoked, authHeaders, scopedUrl } from '@/lib/care';
 import { formatPlainDate } from '@/lib/datetime';
 
 export interface Medicine {
@@ -35,9 +38,9 @@ interface Interaction {
 }
 
 const SEVERITY_STYLES: Record<string, string> = {
-  severe: 'bg-red-100 text-red-800 border-red-300',
-  moderate: 'bg-amber-100 text-amber-800 border-amber-300',
-  minor: 'bg-yellow-50 text-yellow-800 border-yellow-200',
+  severe: 'bg-alert-container text-alert border-alert/40',
+  moderate: 'bg-caution-container text-caution border-caution/40',
+  minor: 'bg-surface-card text-caution border-outline',
 };
 
 const EMPTY_FORM = {
@@ -63,9 +66,8 @@ export function MedicineManager({
   onAccessRevoked,
   onChanged,
 }: MedicineManagerProps) {
-  const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [medicines, setMedicines] = useState<Medicine[] | null>(null);
   const [interactions, setInteractions] = useState<Interaction[]>([]);
-  const [loading, setLoading] = useState(true);
   const [offlineCopy, setOfflineCopy] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
@@ -88,7 +90,7 @@ export function MedicineManager({
     [onAccessRevoked],
   );
 
-  const fetchMedicines = useCallback(async () => {
+  const fetchMedicines = useCallback(async (): Promise<Medicine[] | null> => {
     try {
       const res = await fetch(scopedUrl('/api/medicines', patientId), {
         headers: authHeaders(),
@@ -98,43 +100,49 @@ export function MedicineManager({
 
       const data = await res.json();
       const list: Medicine[] = data.medicines || [];
-      setMedicines(list);
-      setOfflineCopy(false);
       if (isSelf) cacheSet('medicines', list);
+      return list;
     } catch (err) {
-      if (handle(err)) return;
+      if (handle(err)) return null;
       if (!isSelf) {
         setError('Could not load medicines. Check your connection.');
-        return;
+        return null;
       }
       const cached = await cacheGet<Medicine[]>('medicines');
       if (cached && cached.data.length) {
-        setMedicines(cached.data);
         setOfflineCopy(true);
+        return cached.data;
       }
-    } finally {
-      setLoading(false);
+      return null;
     }
   }, [patientId, isSelf, handle]);
 
-  const fetchInteractions = useCallback(async () => {
+  const fetchInteractions = useCallback(async (): Promise<Interaction[]> => {
     try {
       const res = await fetch(scopedUrl('/api/medicines/interactions', patientId), {
         headers: authHeaders(),
       });
       if (res.ok) {
         const data = await res.json();
-        setInteractions(data.interactions || []);
+        return data.interactions || [];
       }
     } catch {
       /* interactions are advisory; a failure here shouldn't block the list */
     }
+    return [];
   }, [patientId]);
 
   useEffect(() => {
-    setLoading(true);
-    fetchMedicines();
-    fetchInteractions();
+    let cancelled = false;
+    (async () => {
+      const list = await fetchMedicines();
+      if (cancelled) return;
+      if (list !== null) setMedicines(list);
+      if (list === null) setMedicines([]);
+      const its = await fetchInteractions();
+      if (!cancelled) setInteractions(its);
+    })();
+    return () => { cancelled = true; };
   }, [fetchMedicines, fetchInteractions]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -159,11 +167,12 @@ export function MedicineManager({
         return;
       }
       const created = await res.json();
-      setMedicines([created, ...medicines]);
+      setMedicines((prev) => [created, ...(prev ?? [])]);
+      setOfflineCopy(false);
       setShowForm(false);
       setFormData(EMPTY_FORM);
       setTakingTimes(['']);
-      fetchInteractions();
+      setInteractions(await fetchInteractions());
       onChanged?.();
     } catch (err) {
       if (handle(err)) return;
@@ -180,8 +189,8 @@ export function MedicineManager({
       });
       if (res.status === 403) throw new CareAccessRevoked();
       if (res.ok) {
-        setMedicines(medicines.filter((m) => m.id !== id));
-        fetchInteractions();
+        setMedicines((prev) => (prev ? prev.filter((m) => m.id !== id) : prev));
+        setInteractions(await fetchInteractions());
         onChanged?.();
       }
     } catch (err) {
@@ -204,36 +213,42 @@ export function MedicineManager({
     }
   };
 
+  const loading = medicines === null;
+
   if (loading) {
-    return <p className="text-subtext py-8">Loading…</p>;
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-44" />)}
+      </div>
+    );
   }
 
   return (
     <>
       {offlineCopy && (
-        <div className="mb-6 rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5">
-          <p className="text-sm text-amber-800">
+        <div className="mb-6 rounded-md bg-caution-container border border-caution/40 px-4 py-2.5">
+          <p className="text-sm text-caution">
             Showing an offline copy — reconnect to load the latest.
           </p>
         </div>
       )}
 
       {error && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800">
+        <div className="mb-6 rounded-md border border-alert/40 bg-alert-container px-4 py-2.5 text-sm text-alert">
           {error}
         </div>
       )}
 
       {interactions.length > 0 && (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
-          <h2 className="font-semibold text-red-800 mb-3">
+        <div className="mb-6 rounded-lg border border-alert/40 bg-alert-container p-lg">
+          <h2 className="font-display font-semibold text-alert mb-3">
             Possible Drug Interactions ({interactions.length})
           </h2>
           <div className="space-y-2">
             {interactions.map((it, i) => (
               <div
                 key={i}
-                className={`rounded-lg border px-3 py-2 ${SEVERITY_STYLES[it.severity]}`}
+                className={`rounded-sm border px-3 py-2 ${SEVERITY_STYLES[it.severity]}`}
               >
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="text-[10px] font-bold uppercase tracking-wide">
@@ -247,7 +262,7 @@ export function MedicineManager({
               </div>
             ))}
           </div>
-          <p className="text-[11px] text-red-700 mt-3">
+          <p className="text-[11px] text-alert/80 mt-3">
             Educational check only — always confirm with your doctor or pharmacist.
           </p>
         </div>
@@ -255,12 +270,16 @@ export function MedicineManager({
 
       <div className="mb-6">
         <Button onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Cancel' : '+ Add Medicine'}
+          {showForm ? 'Cancel' : (
+            <>
+              <Plus className="w-4 h-4" /> Add Medicine
+            </>
+          )}
         </Button>
       </div>
 
       {showForm && (
-        <Card className="p-6 mb-8">
+        <Card className="p-lg mb-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="Medicine Name"
@@ -283,35 +302,37 @@ export function MedicineManager({
               placeholder="e.g., Once daily"
               required
             />
-            <Input
-              label="Start Date"
-              type="date"
-              value={formData.start_date}
-              onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-              required
-            />
-            <Input
-              label="End Date (optional)"
-              type="date"
-              value={formData.end_date}
-              onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Start Date"
+                type="date"
+                value={formData.start_date}
+                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                required
+              />
+              <Input
+                label="End Date (optional)"
+                type="date"
+                value={formData.end_date}
+                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+              />
+            </div>
 
             <div className="flex flex-col gap-1.5 w-full">
-              <label className="text-sm font-medium text-gray-700">Taking Times</label>
+              <label className="text-sm font-semibold text-on-surface">Taking Times</label>
               {takingTimes.map((t, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <input
                     type="time"
                     value={t}
                     onChange={(e) => updateTime(i, e.target.value)}
-                    className="flex h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                    className="flex h-11 rounded-sm border border-outline bg-surface-card px-3.5 py-2 text-base text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                   />
                   {takingTimes.length > 1 && (
                     <button
                       type="button"
                       onClick={() => setTakingTimes(takingTimes.filter((_, x) => x !== i))}
-                      className="text-red-500 text-sm hover:underline"
+                      className="text-alert text-sm hover:underline"
                     >
                       Remove
                     </button>
@@ -333,35 +354,47 @@ export function MedicineManager({
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Additional notes..."
             />
-            <Button type="submit">Add Medicine</Button>
+            <div className="flex gap-2">
+              <Button type="submit">Add Medicine</Button>
+              <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
+            </div>
           </form>
         </Card>
       )}
 
       {medicines.length === 0 ? (
-        <Card className="p-8 text-center">
-          <p className="text-subtext mb-4">No medicines tracked yet</p>
-          <Button onClick={() => setShowForm(true)}>Add the first medicine</Button>
+        <Card className="p-lg">
+          <EmptyState
+            icon={Pill}
+            title="No medicines tracked yet"
+            description="Add your first medicine and get a daily dose plan with reminders."
+            action={<Button onClick={() => setShowForm(true)}>Add the first medicine</Button>}
+          />
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {medicines.map((med) => {
             const times = parseTimes(med.taking_times);
             return (
-              <Card key={med.id} className="p-6">
-                <h3 className="text-lg font-semibold text-text-main mb-2">{med.name}</h3>
-                <p className="text-subtext text-sm mb-1">Dosage: {med.dosage}</p>
-                <p className="text-subtext text-sm mb-1">Frequency: {med.frequency}</p>
+              <Card key={med.id} className="p-lg">
+                <div className="flex items-start gap-sm mb-2">
+                  <div className="w-9 h-9 bg-primary/10 rounded-sm flex items-center justify-center shrink-0">
+                    <Pill className="w-4 h-4 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-display font-semibold text-on-surface">{med.name}</h3>
+                </div>
+                <p className="text-on-surface-variant text-sm mb-1">Dosage: {med.dosage}</p>
+                <p className="text-on-surface-variant text-sm mb-1">Frequency: {med.frequency}</p>
                 {times.length > 0 && (
                   <div className="mb-2">
-                    <p className="text-subtext text-xs font-medium uppercase tracking-wider mb-1">
+                    <p className="text-on-surface-variant text-xs font-medium uppercase tracking-wider mb-1">
                       Taking Times
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {times.map((t, i) => (
                         <span
                           key={i}
-                          className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-xs font-medium"
+                          className="inline-flex items-center px-2 py-0.5 rounded-sm bg-primary/10 text-primary text-xs font-medium tabular-nums"
                         >
                           {t}
                         </span>
@@ -369,18 +402,18 @@ export function MedicineManager({
                     </div>
                   </div>
                 )}
-                <p className="text-subtext text-sm mb-1">
+                <p className="text-on-surface-variant text-sm mb-1">
                   Started: {formatPlainDate(med.start_date)}
                 </p>
                 {med.end_date && (
-                  <p className="text-subtext text-sm mb-1">
+                  <p className="text-on-surface-variant text-sm mb-1">
                     Ends: {formatPlainDate(med.end_date)}
                   </p>
                 )}
-                {med.notes && <p className="text-subtext text-sm mb-4">{med.notes}</p>}
+                {med.notes && <p className="text-on-surface-variant text-sm mb-4">{med.notes}</p>}
                 <button
                   onClick={() => handleDelete(med.id)}
-                  className="text-red-500 text-sm hover:underline"
+                  className="text-alert text-sm hover:underline"
                 >
                   Remove
                 </button>

@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/button';
-import { Input } from '@/components/input';
-import { Card } from '@/components/card';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
@@ -56,32 +56,31 @@ export default function Register() {
       localStorage.setItem('user', JSON.stringify(data));
       window.dispatchEvent(new Event('localStorageUpdated'));
       router.push('/');
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="bg-background min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="bg-surface min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
-        
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-3xl">+</span>
+              <span className="text-on-primary font-bold text-3xl">+</span>
             </div>
           </div>
-          <h2 className="text-3xl font-extrabold text-text-main mb-2">Create an Account</h2>
-          <p className="text-subtext text-sm">
+          <h2 className="text-3xl font-display font-bold text-on-surface mb-2">Create an Account</h2>
+          <p className="text-on-surface-variant text-sm">
             Join MediStore to securely manage your medical records
           </p>
         </div>
 
-        <Card className="p-8 shadow-sm">
+        <Card className="p-xl">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <Input 
+            <Input
               label="Full Name"
               name="name"
               type="text"
@@ -90,8 +89,8 @@ export default function Register() {
               onChange={handleChange}
               required
             />
-            
-            <Input 
+
+            <Input
               label="Email Address"
               name="email"
               type="email"
@@ -100,8 +99,8 @@ export default function Register() {
               onChange={handleChange}
               required
             />
-            
-            <Input 
+
+            <Input
               label="Password"
               name="password"
               type="password"
@@ -111,7 +110,7 @@ export default function Register() {
               required
             />
 
-            <Input 
+            <Input
               label="Confirm Password"
               name="confirmPassword"
               type="password"
@@ -122,25 +121,25 @@ export default function Register() {
             />
 
             {error && (
-              <p className="text-red-500 text-sm">{error}</p>
+              <p className="text-alert text-sm" role="alert">{error}</p>
             )}
 
             <div className="pt-2">
-              <Button type="submit" className="w-full py-3" disabled={loading}>
+              <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Registering...' : 'Register'}
               </Button>
             </div>
-            
-            <p className="text-xs text-subtext text-center mt-4">
+
+            <p className="text-xs text-on-surface-variant text-center mt-4">
               By registering, you agree to our{' '}
               <a href="#" className="text-primary hover:underline">Terms of Service</a> and{' '}
               <a href="#" className="text-primary hover:underline">Privacy Policy</a>.
             </p>
           </form>
 
-          <div className="mt-6 text-center text-sm text-subtext border-t border-gray-100 pt-6">
+          <div className="mt-6 text-center text-sm text-on-surface-variant border-t border-outline pt-6">
             Already have an account?{' '}
-            <Link href="/auth/login" className="font-medium text-primary hover:text-blue-700 transition-colors">
+            <Link href="/auth/login" className="font-medium text-primary hover:underline transition-colors">
               Sign in
             </Link>
           </div>

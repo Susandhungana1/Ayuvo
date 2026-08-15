@@ -92,7 +92,8 @@ let toneStop: ReturnType<typeof setTimeout> | null = null;
 function beep() {
   try {
     if (!audioCtx) {
-      const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+      const Ctx = window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!Ctx) return;
       audioCtx = new Ctx();
     }

@@ -8,7 +8,7 @@ export function LanguageToggle() {
   return (
     <button
       onClick={() => setLang(lang === "en" ? "ne" : "en")}
-      className="px-2 py-1 rounded-md text-xs font-semibold text-subtext hover:text-primary border border-gray-200 transition-colors"
+      className="px-2 py-1 rounded-sm text-xs font-semibold text-on-surface-variant hover:text-primary border border-outline transition-colors"
       title={lang === "en" ? "नेपालीमा बदल्नुहोस्" : "Switch to English"}
       aria-label="Toggle language"
     >

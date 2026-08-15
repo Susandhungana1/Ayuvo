@@ -2,9 +2,10 @@
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Button } from '@/components/button';
-import { Input } from '@/components/input';
-import { Card } from '@/components/card';
+import { CheckCircle2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
 import Link from 'next/link';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
@@ -74,42 +75,41 @@ function ResetPasswordForm() {
 
       setSuccess(true);
       setTimeout(() => router.push('/auth/login'), 2500);
-    } catch (err: any) {
-      setError(err.message || 'Failed to reset password');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to reset password');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="bg-background min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="bg-surface min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
-
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-3xl">+</span>
+              <span className="text-on-primary font-bold text-3xl">+</span>
             </div>
           </div>
-          <h2 className="text-3xl font-extrabold text-text-main mb-2">Reset Password</h2>
-          <p className="text-subtext text-sm">
+          <h2 className="text-3xl font-display font-bold text-on-surface mb-2">Reset Password</h2>
+          <p className="text-on-surface-variant text-sm">
             {urlToken
               ? 'Choose a new password for your account'
               : 'Paste the code from your reset email, then choose a new password'}
           </p>
         </div>
 
-        <Card className="p-8 shadow-sm">
+        <Card className="p-xl">
           {success ? (
             <div className="text-center space-y-4">
-              <div className="w-12 h-12 mx-auto bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 text-2xl">✓</span>
+              <div className="w-12 h-12 mx-auto bg-ok-container rounded-full flex items-center justify-center">
+                <CheckCircle2 className="text-ok w-6 h-6" />
               </div>
-              <p className="text-text-main font-medium">Password updated</p>
-              <p className="text-subtext text-sm">
+              <p className="text-on-surface font-medium">Password updated</p>
+              <p className="text-on-surface-variant text-sm">
                 Your password has been reset. Redirecting you to sign in...
               </p>
-              <Link href="/auth/login" className="inline-block text-sm font-medium text-primary hover:text-blue-700 transition-colors">
+              <Link href="/auth/login" className="inline-block text-sm font-medium text-primary hover:underline transition-colors">
                 Sign in now
               </Link>
             </div>
@@ -148,18 +148,18 @@ function ResetPasswordForm() {
               />
 
               {error && (
-                <p className="text-red-500 text-sm">{error}</p>
+                <p className="text-alert text-sm" role="alert">{error}</p>
               )}
 
-              <Button type="submit" className="w-full py-3" disabled={loading}>
+              <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Resetting...' : 'Reset Password'}
               </Button>
 
-              <div className="text-center text-sm text-subtext space-x-4">
-                <Link href="/auth/forgot-password" className="font-medium text-primary hover:text-blue-700 transition-colors">
+              <div className="text-center text-sm text-on-surface-variant space-x-4">
+                <Link href="/auth/forgot-password" className="font-medium text-primary hover:underline transition-colors">
                   Request a new link
                 </Link>
-                <Link href="/auth/login" className="font-medium text-primary hover:text-blue-700 transition-colors">
+                <Link href="/auth/login" className="font-medium text-primary hover:underline transition-colors">
                   Back to sign in
                 </Link>
               </div>

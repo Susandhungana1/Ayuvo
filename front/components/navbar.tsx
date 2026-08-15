@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from './button';
+import { ChevronDown, LogOut, Menu, Search, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './theme-toggle';
 import { LanguageToggle } from './language-toggle';
 import { useI18n } from '@/lib/i18n';
+import { getSessionServerSnapshot, getSessionSnapshot, subscribeSession } from '@/lib/session';
 
 const primaryLinks = [
   { href: '/', tKey: 'nav.home' },
@@ -39,41 +41,18 @@ export function Navbar() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isDoctor, setIsDoctor] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    setIsLoggedIn(!!token);
-    if (userData) {
-      try {
-        const user = JSON.parse(userData);
-        setIsDoctor(user.role === 'DOCTOR');
-      } catch {}
-    }
-
-    const handleStorageChange = () => {
-      const t = localStorage.getItem('token');
-      const u = localStorage.getItem('user');
-      setIsLoggedIn(!!t);
-      if (u) {
-        try {
-          const user = JSON.parse(u);
-          setIsDoctor(user.role === 'DOCTOR');
-        } catch {}
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('localStorageUpdated', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('localStorageUpdated', handleStorageChange);
-    };
-  }, []);
+  // Session read from localStorage (token + user), kept in sync across tabs
+  // and with the auth pages via the `localStorageUpdated` event.
+  const session = useSyncExternalStore(
+    subscribeSession,
+    getSessionSnapshot,
+    getSessionServerSnapshot,
+  );
+  const isLoggedIn = !!session.token;
+  const isDoctor = session.isDoctor;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -94,7 +73,6 @@ export function Navbar() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    setIsLoggedIn(false);
     window.dispatchEvent(new Event('localStorageUpdated'));
     router.push('/');
     setMobileMenuOpen(false);
@@ -114,16 +92,16 @@ export function Navbar() {
   const moreNavLinks = isDoctor ? [] : moreLinks;
 
   return (
-    <nav className="w-full bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
+    <nav className="w-full bg-surface-card border-b border-outline sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center gap-2">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">+</span>
+              <div className="w-8 h-8 bg-primary rounded-sm flex items-center justify-center">
+                <span className="text-on-primary font-bold text-xl">+</span>
               </div>
-              <span className="font-bold text-xl text-text-main tracking-tight">MediStore</span>
+              <span className="font-bold text-xl font-display text-on-surface tracking-tight">MediStore</span>
             </Link>
           </div>
 
@@ -131,7 +109,7 @@ export function Navbar() {
           {isLoggedIn && (
             <div className="hidden lg:flex items-center gap-6">
               {navLinks.map((link) => (
-                <Link key={link.href} href={link.href} className="text-subtext hover:text-primary transition-colors font-medium text-sm whitespace-nowrap">
+                <Link key={link.href} href={link.href} className="text-on-surface-variant hover:text-primary transition-colors font-medium text-sm whitespace-nowrap">
                   {t(link.tKey)}
                 </Link>
               ))}
@@ -139,21 +117,19 @@ export function Navbar() {
                 <div className="relative" ref={moreRef}>
                   <button
                     onClick={() => setMoreOpen(!moreOpen)}
-                    className="text-subtext hover:text-primary transition-colors font-medium text-sm flex items-center gap-1"
+                    className="text-on-surface-variant hover:text-primary transition-colors font-medium text-sm flex items-center gap-1"
                   >
                     {t('nav.more')}
-                    <svg className={`w-3 h-3 transition-transform ${moreOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                    <ChevronDown className={`w-3 h-3 transition-transform duration-fast ${moreOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {moreOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-2">
+                    <div className="absolute right-0 mt-2 w-48 bg-surface-card rounded-md shadow-pop border border-outline py-xs anim-pop-in">
                       {moreNavLinks.map((link) => (
                         <Link
                           key={link.href}
                           href={link.href}
                           onClick={() => setMoreOpen(false)}
-                          className="block px-4 py-2 text-sm text-subtext hover:text-primary hover:bg-gray-50 transition-colors"
+                          className="block px-lg py-sm text-sm text-on-surface-variant hover:text-primary hover:bg-primary/5 transition-colors"
                         >
                           {t(link.tKey)}
                         </Link>
@@ -181,26 +157,23 @@ export function Navbar() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder={t('nav.search')}
-                        className="w-40 lg:w-56 h-9 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-40 lg:w-56 h-9 rounded-sm border border-outline bg-surface-card px-3 py-1.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-focus-ring"
                         onBlur={() => { if (!searchQuery) setSearchOpen(false); }}
                       />
-                      <button type="submit" className="p-1.5 text-gray-400 hover:text-primary" title="Search">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
+                      <button type="submit" className="p-1.5 text-on-surface-variant hover:text-primary transition-colors" title="Search" aria-label="Search">
+                        <Search className="w-5 h-5" />
                       </button>
                     </form>
                   ) : (
-                    <button onClick={() => setSearchOpen(true)} className="p-2 text-gray-400 hover:text-primary" title="Search">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
+                    <button onClick={() => setSearchOpen(true)} className="p-2 text-on-surface-variant hover:text-primary transition-colors" title="Search" aria-label="Search">
+                      <Search className="w-5 h-5" />
                     </button>
                   )}
                 </div>
 
                 {/* Logout - desktop */}
-                <button onClick={handleLogout} className="hidden sm:block text-red-500 hover:text-red-700 font-medium transition-colors text-sm whitespace-nowrap">
+                <button onClick={handleLogout} className="hidden sm:flex items-center gap-1.5 text-alert hover:text-error font-medium transition-colors text-sm whitespace-nowrap">
+                  <LogOut className="w-4 h-4" />
                   {t('nav.logout')}
                 </button>
               </>
@@ -208,44 +181,36 @@ export function Navbar() {
 
             {!isLoggedIn && (
               <>
-                <Link href="/auth/login" className="text-text-main hover:text-primary font-medium transition-colors hidden sm:block text-sm">
+                <Link href="/auth/login" className="text-on-surface hover:text-primary font-medium transition-colors hidden sm:block text-sm">
                   {t('nav.login')}
                 </Link>
                 <Link href="/auth/register">
-                  <Button variant="primary" className="text-sm">{t('nav.getStarted')}</Button>
+                  <Button size="sm">{t('nav.getStarted')}</Button>
                 </Link>
               </>
             )}
 
             {/* Mobile Menu Button */}
-            <button className="lg:hidden p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle menu">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {mobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
+            <button className="lg:hidden p-2 text-on-surface-variant hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle menu">
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-100 py-4">
+          <div className="lg:hidden border-t border-outline py-lg">
             {/* Search in mobile */}
-            <form onSubmit={handleSearch} className="mb-4 px-2">
+            <form onSubmit={handleSearch} className="mb-lg px-sm">
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('nav.search')}
-                  className="flex-1 h-10 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="flex-1 h-10 rounded-sm border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-focus-ring"
                 />
-                <button type="submit" className="bg-primary text-white px-4 py-2 rounded-md text-sm font-medium">
-                  Search
-                </button>
+                <Button type="submit" size="sm">Search</Button>
               </div>
             </form>
 
@@ -254,24 +219,25 @@ export function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-subtext hover:text-primary hover:bg-gray-50 transition-colors font-medium py-2.5 px-3 rounded-md"
+                  className="text-on-surface-variant hover:text-primary hover:bg-primary/5 transition-colors font-medium py-2.5 px-3 rounded-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t(link.tKey)}
                 </Link>
               ))}
-              <div className="pt-3 mt-2 border-t border-gray-100">
+              <div className="pt-3 mt-2 border-t border-outline">
                 {isLoggedIn ? (
-                  <button onClick={handleLogout} className="text-red-500 hover:text-red-700 hover:bg-red-50 font-medium text-left py-2.5 px-3 rounded-md w-full transition-colors">
+                  <button onClick={handleLogout} className="flex items-center gap-2 text-alert hover:text-error hover:bg-primary/5 font-medium text-left py-2.5 px-3 rounded-sm w-full transition-colors">
+                    <LogOut className="w-4 h-4" />
                     {t('nav.logout')}
                   </button>
                 ) : (
                   <div className="flex flex-col space-y-2 px-1">
-                    <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)} className="text-center py-2 text-text-main hover:text-primary font-medium">
+                    <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)} className="text-center py-2 text-on-surface hover:text-primary font-medium">
                       {t('nav.login')}
                     </Link>
                     <Link href="/auth/register" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="primary" className="w-full">{t('nav.getStarted')}</Button>
+                      <Button fullWidth>{t('nav.getStarted')}</Button>
                     </Link>
                   </div>
                 )}

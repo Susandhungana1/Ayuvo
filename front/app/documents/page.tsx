@@ -1,10 +1,14 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/button';
-import { Card } from '@/components/card';
-import { Input } from '@/components/input';
+import { FolderOpen, Plus, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Dialog } from '@/components/ui/dialog';
 import { formatPlainDate } from '@/lib/datetime';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
@@ -26,18 +30,19 @@ interface FileInfo {
   file_type: string;
 }
 
+const INPUT_CLASS = "flex w-full h-11 rounded-sm border border-outline bg-surface-card px-3.5 text-base text-on-surface placeholder:text-on-surface-variant/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring transition-colors";
+
 export default function Documents() {
   const router = useRouter();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
   const [docFiles, setDocFiles] = useState<Record<string, FileInfo[]>>({});
   const [viewingFile, setViewingFile] = useState<{url: string; name: string} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [formData, setFormData] = useState({
     hospital: '',
     location: '',
@@ -48,40 +53,47 @@ export default function Documents() {
   });
   const [error, setError] = useState('');
 
+  const fetchDocuments = useCallback(async (): Promise<Document[]> => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/auth/login');
+      return [];
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/documents`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        return data.documents || [];
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+    }
+    return [];
+  }, [router]);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
       router.push('/auth/login');
       return;
     }
-    fetchDocuments();
-  }, [router]);
-
-  const fetchDocuments = async () => {
-    setLoading(true);
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/auth/login');
-      return;
-    }
-    
-try {
-      const res = await fetch(`${API_URL}/api/documents`, {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setDocuments(data.documents || []);
-      }
-    } catch (err) {
-      console.error('Fetch error:', err);
-    }
-    setLoading(false);
-  };
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await fetchDocuments();
+        if (!cancelled) setDocuments(list);
+      } catch (err) { console.error(err); }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [router, fetchDocuments]);
 
   const fetchDocumentFiles = async (docId: string) => {
     try {
@@ -166,11 +178,11 @@ try {
       }
 
       const newDoc = await res.json();
-      
+
       if (selectedFile) {
         const formDataFile = new FormData();
         formDataFile.append('file', selectedFile);
-        
+
         await fetch(`${API_URL}/api/documents/${newDoc.id}/files`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
@@ -179,7 +191,8 @@ try {
       }
 
       setShowForm(false);
-      fetchDocuments();
+      const list = await fetchDocuments();
+      setDocuments(list);
       setFormData({
         hospital: '',
         location: '',
@@ -190,8 +203,8 @@ try {
       });
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to create document');
     }
   };
 
@@ -213,116 +226,134 @@ try {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-subtext">Loading...</p>
+      <div className="min-h-screen bg-surface">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Skeleton className="h-8 w-48 mb-8" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-44" />)}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-surface">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-text-main">Medical Records</h1>
+          <h1 className="text-3xl font-display font-bold text-on-surface">Medical Records</h1>
         </div>
 
         <div className="mb-6">
           <Button onClick={() => setShowForm(!showForm)}>
-            {showForm ? 'Cancel' : '+ Add Document'}
+            {showForm ? 'Cancel' : (
+              <>
+                <Plus className="w-4 h-4" /> Add Document
+              </>
+            )}
           </Button>
         </div>
 
         {error && !showForm && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800">
+          <div className="mb-6 rounded-md border border-alert/40 bg-alert-container px-4 py-2.5 text-sm text-alert">
             {error}
           </div>
         )}
 
         {showForm && (
-          <Card className="p-6 mb-8">
+          <Card className="p-lg mb-8">
             <form onSubmit={handleSubmit} className="space-y-4">
-              <Input
-                label="Hospital Name"
-                name="hospital"
-                value={formData.hospital}
-                onChange={(e) => setFormData({ ...formData, hospital: e.target.value })}
-                placeholder="Enter hospital name"
-                required
-              />
-              <Input
-                label="Location"
-                name="location"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="City or address"
-              />
-              <Input
-                label="Doctor Name"
-                name="doctor_name"
-                value={formData.doctor_name}
-                onChange={(e) => setFormData({ ...formData, doctor_name: e.target.value })}
-                placeholder="Doctor's name"
-              />
-              <Input
-                label="Department"
-                name="department"
-                value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                placeholder="Department"
-              />
-              <Input
-                label="Checkup Date"
-                name="checkup_date"
-                type="date"
-                value={formData.checkup_date}
-                onChange={(e) => setFormData({ ...formData, checkup_date: e.target.value })}
-                required
-              />
-              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Hospital Name"
+                  name="hospital"
+                  value={formData.hospital}
+                  onChange={(e) => setFormData({ ...formData, hospital: e.target.value })}
+                  placeholder="Enter hospital name"
+                  required
+                />
+                <Input
+                  label="Location"
+                  name="location"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="City or address"
+                />
+                <Input
+                  label="Doctor Name"
+                  name="doctor_name"
+                  value={formData.doctor_name}
+                  onChange={(e) => setFormData({ ...formData, doctor_name: e.target.value })}
+                  placeholder="Doctor's name"
+                />
+                <Input
+                  label="Department"
+                  name="department"
+                  value={formData.department}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  placeholder="Department"
+                />
+                <Input
+                  label="Checkup Date"
+                  name="checkup_date"
+                  type="date"
+                  value={formData.checkup_date}
+                  onChange={(e) => setFormData({ ...formData, checkup_date: e.target.value })}
+                  required
+                />
+              </div>
+
               <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-sm font-medium text-gray-700">Upload Photo (Optional)</label>
+                <label className="text-sm font-semibold text-on-surface">Upload Photo (Optional)</label>
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*,.pdf"
                   onChange={handleFileSelect}
-                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-white hover:file:bg-blue-700"
+                  className={`${INPUT_CLASS} file:mr-4 file:border-0 file:rounded-sm file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-primary hover:file:bg-primary-pressed`}
                 />
                 {selectedFile && (
-                  <p className="text-sm text-subtext">Selected: {selectedFile.name}</p>
+                  <p className="text-sm text-on-surface-variant">Selected: {selectedFile.name}</p>
                 )}
               </div>
 
               <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-sm font-medium text-gray-700">Description</label>
+                <label className="text-sm font-semibold text-on-surface">Description</label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Add any notes..."
-                  className="flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                  className={`${INPUT_CLASS} min-h-[72px] resize-y py-2.5`}
                   rows={3}
                 />
               </div>
-              {error && <p className="text-red-500 text-sm">{error}</p>}
-              <Button type="submit" disabled={uploading}>
-                {uploading ? 'Saving...' : 'Save Document'}
-              </Button>
+              {error && <p className="text-alert text-sm" role="alert">{error}</p>}
+              <div className="flex gap-2">
+                <Button type="submit">
+                  Save Document
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
+              </div>
             </form>
           </Card>
         )}
 
         {documents.length === 0 ? (
-          <Card className="p-8 text-center">
-            <p className="text-subtext mb-4">No medical records yet</p>
-            <Button onClick={() => setShowForm(true)}>Add Your First Document</Button>
+          <Card className="p-lg">
+            <EmptyState
+              icon={FolderOpen}
+              title="No medical records yet"
+              description="Add a record of a hospital visit and attach the photo of your papers to it."
+              action={<Button onClick={() => setShowForm(true)}>Add Your First Document</Button>}
+            />
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {documents.map((doc) => (
-              <Card key={doc.id} className="p-6">
+              <Card key={doc.id} className="p-lg">
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-lg font-semibold text-text-main">{doc.hospital}</h3>
+                  <h3 className="text-lg font-display font-semibold text-on-surface">{doc.hospital}</h3>
                   <button
                     onClick={() => toggleDocExpand(doc.id)}
                     className="text-primary text-sm hover:underline"
@@ -331,30 +362,30 @@ try {
                   </button>
                 </div>
                 {doc.doctor_name && (
-                  <p className="text-subtext text-sm mb-1">Dr. {doc.doctor_name}</p>
+                  <p className="text-on-surface-variant text-sm mb-1">Dr. {doc.doctor_name}</p>
                 )}
                 {doc.department && (
-                  <p className="text-subtext text-sm mb-1">{doc.department}</p>
+                  <p className="text-on-surface-variant text-sm mb-1">{doc.department}</p>
                 )}
                 {doc.location && (
-                  <p className="text-subtext text-sm mb-1">{doc.location}</p>
+                  <p className="text-on-surface-variant text-sm mb-1">{doc.location}</p>
                 )}
                 {doc.checkup_date && (
-                  <p className="text-subtext text-sm mb-2">
+                  <p className="text-on-surface-variant text-sm mb-2">
                     Date: {formatPlainDate(doc.checkup_date)}
                   </p>
                 )}
                 {doc.description && (
-                  <p className="text-subtext text-sm mb-4">{doc.description}</p>
+                  <p className="text-on-surface-variant text-sm mb-4">{doc.description}</p>
                 )}
-                
+
                 {expandedDoc === doc.id && docFiles[doc.id] && docFiles[doc.id].length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <p className="text-sm font-medium text-text-main mb-2">Uploaded Files:</p>
+                  <div className="mt-4 pt-4 border-t border-outline">
+                    <p className="text-sm font-medium text-on-surface mb-2">Uploaded Files:</p>
                     <div className="space-y-2">
                       {docFiles[doc.id].map((file) => (
                         <div key={file.id} className="flex items-center justify-between text-sm">
-                          <span className="text-subtext truncate max-w-[150px]">{file.name}</span>
+                          <span className="text-on-surface-variant truncate max-w-[150px]">{file.name}</span>
                           <button
                             onClick={() => handleViewFile(doc.id, file.id, file.name)}
                             className="text-primary hover:underline"
@@ -366,11 +397,11 @@ try {
                     </div>
                   </div>
                 )}
-                
+
                 <div className="flex gap-2 mt-4">
                   <button
                     onClick={() => handleDelete(doc.id)}
-                    className="text-red-500 text-sm hover:underline"
+                    className="text-alert text-sm hover:underline"
                   >
                     Delete
                   </button>
@@ -381,33 +412,24 @@ try {
         )}
       </div>
 
-      {viewingFile && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
-            <div className="p-4 border-b flex justify-between items-center">
-              <h3 className="font-medium">{viewingFile.name}</h3>
-              <button onClick={closeViewer} className="text-gray-500 hover:text-gray-700">
-                ✕
+      <Dialog open={viewingFile !== null} onClose={closeViewer} className="max-w-4xl">
+        {viewingFile && (
+          <>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-display font-semibold text-on-surface">{viewingFile.name}</h3>
+              <button onClick={closeViewer} className="text-on-surface-variant hover:text-on-surface transition-colors" aria-label="Close">
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-4">
-              {viewingFile.name.toLowerCase().endsWith('.pdf') ? (
-                <iframe
-                  src={viewingFile.url}
-                  className="w-full h-[70vh]"
-                  title={viewingFile.name}
-                />
-              ) : (
-                <img
-                  src={viewingFile.url}
-                  alt={viewingFile.name}
-                  className="max-w-full h-auto"
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+            {viewingFile.name.toLowerCase().endsWith('.pdf') ? (
+              <iframe src={viewingFile.url} className="w-full h-[70vh] rounded-sm border border-outline" title={viewingFile.name} />
+            ) : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={viewingFile.url} alt={viewingFile.name} className="max-w-full h-auto rounded-sm border border-outline" />
+            )}
+          </>
+        )}
+      </Dialog>
     </div>
   );
 }

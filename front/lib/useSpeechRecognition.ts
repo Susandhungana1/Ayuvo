@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useSyncExternalStore } from "react";
 
 // Minimal typings for the Web Speech API (not in default TS lib DOM).
 interface SpeechRecognitionResultLike {
@@ -37,15 +37,28 @@ function getRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
  */
 export function useSpeechRecognition(onResult: (text: string) => void, lang = "en-US") {
   const [listening, setListening] = useState(false);
-  const [supported, setSupported] = useState(false);
   const recRef = useRef<SpeechRecognitionLike | null>(null);
   const onResultRef = useRef(onResult);
-  onResultRef.current = onResult;
+
+  // Support is a property of the browser, not of a render — expose it as an
+  // external store (server snapshot: unsupported) instead of setting state in
+  // an effect.
+  const supported = useSyncExternalStore(
+    () => () => {},
+    () => !!getRecognitionCtor(),
+    () => false,
+  );
+
+  // The recognition instance is created once (per language) and calls back
+  // through this ref, so the latest `onResult` is always used without
+  // recreating the engine. Writing the ref in an effect (not during render).
+  useEffect(() => {
+    onResultRef.current = onResult;
+  });
 
   useEffect(() => {
     const Ctor = getRecognitionCtor();
     if (!Ctor) return;
-    setSupported(true);
     const rec = new Ctor();
     rec.lang = lang;
     rec.continuous = false;

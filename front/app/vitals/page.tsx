@@ -2,11 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/button';
-import { Card } from '@/components/card';
-import { Input } from '@/components/input';
+import { Activity, Mic, X, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { StatusChip } from '@/components/ui/status-chip';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  analyzeBP, analyzeHR, analyzeSugar, analyzeTemp, analyzeSpO2,
+  type VitalBand,
+} from '@/lib/status';
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, Legend, ReferenceArea, ResponsiveContainer,
 } from 'recharts';
 import { useSpeechRecognition } from '@/lib/useSpeechRecognition';
 import { formatServerDate, formatServerDateTime } from '@/lib/datetime';
@@ -26,131 +34,52 @@ interface VitalSign {
   measured_at: string;
 }
 
-type VitalReading = {
+type Reading = {
   label: string;
   value: string;
   unit: string;
-  color: string;
-  bg: string;
-  status: string;
-  range: string;
+  band: VitalBand;
 };
 
-function analyzeBP(systolic: number, diastolic: number): VitalReading {
-  const label = 'BP';
-  const value = `${systolic}/${diastolic}`;
-  const unit = 'mmHg';
-  let color: string, bg: string, status: string;
-  if (systolic < 90 || diastolic < 60) {
-    color = 'text-rose-800'; bg = 'bg-rose-100'; status = 'Low';
-  } else if (systolic <= 120 && diastolic <= 80) {
-    color = 'text-green-800'; bg = 'bg-green-100'; status = 'Normal';
-  } else if (systolic <= 129 && diastolic <= 80) {
-    color = 'text-yellow-800'; bg = 'bg-yellow-100'; status = 'Elevated';
-  } else if (systolic <= 139 || diastolic <= 89) {
-    color = 'text-orange-800'; bg = 'bg-orange-100'; status = 'Stage 1 High';
-  } else if (systolic <= 179 || diastolic <= 119) {
-    color = 'text-red-800'; bg = 'bg-red-100'; status = 'Stage 2 High';
-  } else {
-    color = 'text-red-900'; bg = 'bg-red-200'; status = 'Crisis';
-  }
-  return { label, value, unit, color, bg, status, range: '\u2264120/80' };
-}
-
-function analyzeHR(hr: number): VitalReading {
-  const label = 'HR';
-  const value = String(hr);
-  const unit = 'bpm';
-  let color: string, bg: string, status: string;
-  if (hr < 60) {
-    color = 'text-rose-800'; bg = 'bg-rose-100'; status = 'Low';
-  } else if (hr <= 100) {
-    color = 'text-green-800'; bg = 'bg-green-100'; status = 'Normal';
-  } else if (hr <= 120) {
-    color = 'text-orange-800'; bg = 'bg-orange-100'; status = 'Mild High';
-  } else {
-    color = 'text-red-800'; bg = 'bg-red-100'; status = 'High';
-  }
-  return { label, value, unit, color, bg, status, range: '60-100' };
-}
-
-function analyzeSugar(sugar: number): VitalReading {
-  const label = 'BS';
-  const value = String(Math.round(sugar));
-  const unit = 'mg/dL';
-  let color: string, bg: string, status: string;
-  if (sugar < 70) {
-    color = 'text-rose-800'; bg = 'bg-rose-100'; status = 'Low';
-  } else if (sugar <= 100) {
-    color = 'text-green-800'; bg = 'bg-green-100'; status = 'Normal';
-  } else if (sugar <= 125) {
-    color = 'text-orange-800'; bg = 'bg-orange-100'; status = 'Prediabetic';
-  } else if (sugar <= 180) {
-    color = 'text-red-800'; bg = 'bg-red-100'; status = 'High';
-  } else {
-    color = 'text-red-900'; bg = 'bg-red-200'; status = 'Very High';
-  }
-  return { label, value, unit, color, bg, status, range: '70-100' };
-}
-
-function analyzeTemp(temp: number): VitalReading {
-  const label = 'Temp';
-  const value = temp.toFixed(1);
-  const unit = '°C';
-  let color: string, bg: string, status: string;
-  if (temp < 35.0) {
-    color = 'text-red-800'; bg = 'bg-red-100'; status = 'Hypothermia';
-  } else if (temp < 36.0) {
-    color = 'text-rose-800'; bg = 'bg-rose-100'; status = 'Low';
-  } else if (temp <= 37.2) {
-    color = 'text-green-800'; bg = 'bg-green-100'; status = 'Normal';
-  } else if (temp <= 38.0) {
-    color = 'text-orange-800'; bg = 'bg-orange-100'; status = 'Mild Fever';
-  } else if (temp <= 39.0) {
-    color = 'text-red-800'; bg = 'bg-red-100'; status = 'Fever';
-  } else {
-    color = 'text-red-900'; bg = 'bg-red-200'; status = 'High Fever';
-  }
-  return { label, value, unit, color, bg, status, range: '36.1-37.2' };
-}
-
-function analyzeSpO2(spo2: number): VitalReading {
-  const label = 'SpO2';
-  const value = String(spo2);
-  const unit = '%';
-  let color: string, bg: string, status: string;
-  if (spo2 >= 95) {
-    color = 'text-green-800'; bg = 'bg-green-100'; status = 'Normal';
-  } else if (spo2 >= 90) {
-    color = 'text-orange-800'; bg = 'bg-orange-100'; status = 'Mild Low';
-  } else if (spo2 >= 80) {
-    color = 'text-red-800'; bg = 'bg-red-100'; status = 'Low';
-  } else {
-    color = 'text-red-900'; bg = 'bg-red-200'; status = 'Critical';
-  }
-  return { label, value, unit, color, bg, status, range: '95-100' };
-}
-
-function analyzeWeight(w: number): VitalReading {
-  return { label: 'Weight', value: w.toFixed(1), unit: 'kg', color: 'text-blue-800', bg: 'bg-blue-100', status: 'Recorded', range: '-' };
-}
-
-function getReadings(v: VitalSign): VitalReading[] {
-  const readings: VitalReading[] = [];
+function getReadings(v: VitalSign): Reading[] {
+  const readings: Reading[] = [];
   if (v.blood_pressure_systolic && v.blood_pressure_diastolic)
-    readings.push(analyzeBP(v.blood_pressure_systolic, v.blood_pressure_diastolic));
-  if (v.heart_rate) readings.push(analyzeHR(v.heart_rate));
-  if (v.weight) readings.push(analyzeWeight(v.weight));
-  if (v.blood_sugar) readings.push(analyzeSugar(v.blood_sugar));
-  if (v.temperature) readings.push(analyzeTemp(v.temperature));
-  if (v.oxygen_saturation) readings.push(analyzeSpO2(v.oxygen_saturation));
+    readings.push({
+      label: 'BP',
+      value: `${v.blood_pressure_systolic}/${v.blood_pressure_diastolic}`,
+      unit: 'mmHg',
+      band: analyzeBP(v.blood_pressure_systolic, v.blood_pressure_diastolic),
+    });
+  if (v.heart_rate)
+    readings.push({ label: 'HR', value: String(v.heart_rate), unit: 'bpm', band: analyzeHR(v.heart_rate) });
+  if (v.weight)
+    readings.push({
+      label: 'Weight',
+      value: v.weight.toFixed(1),
+      unit: 'kg',
+      band: { level: 'ok', label: 'Recorded', band: { low: 45, high: 90 }, scale: { min: 30, max: 150 } },
+    });
+  if (v.blood_sugar)
+    readings.push({ label: 'BS', value: String(Math.round(v.blood_sugar)), unit: 'mg/dL', band: analyzeSugar(v.blood_sugar) });
+  if (v.temperature)
+    readings.push({ label: 'Temp', value: v.temperature.toFixed(1), unit: '°C', band: analyzeTemp(v.temperature) });
+  if (v.oxygen_saturation)
+    readings.push({ label: 'SpO2', value: String(v.oxygen_saturation), unit: '%', band: analyzeSpO2(v.oxygen_saturation) });
   return readings;
 }
 
+const CHART_BANDS: Record<string, { low: number; high: number; label: string }> = {
+  bp: { low: 90, high: 120, label: '90–120 mmHg' },
+  hr: { low: 60, high: 100, label: '60–100 bpm' },
+  weight: { low: 45, high: 90, label: '45–90 kg' },
+  sugar: { low: 70, high: 100, label: '70–100 mg/dL' },
+  temp: { low: 36, high: 37.2, label: '36–37.2 °C' },
+  spo2: { low: 95, high: 100, label: '95–100%' },
+};
+
 export default function Vitals() {
   const router = useRouter();
-  const [vitals, setVitals] = useState<VitalSign[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [vitals, setVitals] = useState<VitalSign[] | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     blood_pressure_systolic: '', blood_pressure_diastolic: '', heart_rate: '',
@@ -161,31 +90,36 @@ export default function Vitals() {
     (text) => setFormData((prev) => ({ ...prev, notes: (prev.notes ? prev.notes + ' ' : '') + text }))
   );
 
+  const fetchVitals = async (): Promise<VitalSign[]> => {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_URL}/api/vitals?limit=100`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.vitals || [];
+    }
+    return [];
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) { router.push('/auth/login'); return; }
-    fetchVitals();
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await fetchVitals();
+        if (!cancelled) setVitals(list);
+      } catch (err) { console.error(err); }
+    })();
+    return () => { cancelled = true; };
   }, [router]);
-
-  const fetchVitals = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/vitals?limit=100`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setVitals(data.vitals || []);
-      }
-    } catch (err) { console.error(err);
-    } finally { setLoading(false); }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const body: Record<string, any> = {};
+      const body: Record<string, number | string> = {};
       if (formData.blood_pressure_systolic) body.blood_pressure_systolic = parseInt(formData.blood_pressure_systolic);
       if (formData.blood_pressure_diastolic) body.blood_pressure_diastolic = parseInt(formData.blood_pressure_diastolic);
       if (formData.heart_rate) body.heart_rate = parseInt(formData.heart_rate);
@@ -204,14 +138,17 @@ export default function Vitals() {
         body: JSON.stringify(body)
       });
       if (res.ok) {
-        fetchVitals();
+        const list = await fetchVitals();
+        setVitals(list);
         setShowForm(false);
         setFormData({ blood_pressure_systolic: '', blood_pressure_diastolic: '', heart_rate: '', weight: '', blood_sugar: '', temperature: '', oxygen_saturation: '', notes: '' });
       } else {
         const err = await res.json();
         alert(err.detail || 'Failed to add');
       }
-    } catch (err: any) { alert(err.message); }
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to add');
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -222,11 +159,11 @@ export default function Vitals() {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      setVitals(vitals.filter(v => v.id !== id));
+      setVitals((prev) => (prev ? prev.filter(v => v.id !== id) : prev));
     } catch (err) { console.error(err); }
   };
 
-  const chartData = [...vitals].reverse().map((v, i) => ({
+  const chartData = [...(vitals ?? [])].reverse().map((v, i) => ({
     name: `#${i + 1}`,
     date: formatServerDate(v.measured_at),
     systolic: v.blood_pressure_systolic,
@@ -238,29 +175,62 @@ export default function Vitals() {
     oxygenSaturation: v.oxygen_saturation,
   }));
 
+  const loading = vitals === null;
+  const band = CHART_BANDS[chartType];
+
   if (loading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-subtext">Loading...</p></div>;
+    return (
+      <div className="min-h-screen bg-surface">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Skeleton className="h-8 w-48 mb-8" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-12" />)}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-40" />)}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-surface">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-text-main">Vital Signs</h1>
-          <Button onClick={() => setShowForm(!showForm)} className="w-full sm:w-auto">{showForm ? 'Cancel' : '+ Add Reading'}</Button>
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-on-surface">Vital Signs</h1>
+          <Button onClick={() => setShowForm(!showForm)} className="w-full sm:w-auto">
+            {showForm ? 'Cancel' : (
+              <>
+                <Plus className="w-4 h-4" /> Add Reading
+              </>
+            )}
+          </Button>
         </div>
 
+        {/* Reference bands at a glance */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-6">
-          <div className="text-center p-2 rounded bg-green-50 border border-green-200"><span className="text-xs font-semibold text-green-800">BP</span><span className="block text-[10px] text-green-700">Normal &lt;120/80</span></div>
-          <div className="text-center p-2 rounded bg-green-50 border border-green-200"><span className="text-xs font-semibold text-green-800">HR</span><span className="block text-[10px] text-green-700">Normal 60-100</span></div>
-          <div className="text-center p-2 rounded bg-green-50 border border-green-200"><span className="text-xs font-semibold text-green-800">Sugar</span><span className="block text-[10px] text-green-700">Normal 3.9-5.6</span></div>
-          <div className="text-center p-2 rounded bg-green-50 border border-green-200"><span className="text-xs font-semibold text-green-800">Temp</span><span className="block text-[10px] text-green-700">Normal 36.1-37.2</span></div>
-          <div className="text-center p-2 rounded bg-green-50 border border-green-200"><span className="text-xs font-semibold text-green-800">SpO2</span><span className="block text-[10px] text-green-700">Normal ≥95%</span></div>
-          <div className="text-center p-2 rounded bg-blue-50 border border-blue-200"><span className="text-xs font-semibold text-blue-800">Weight</span><span className="block text-[10px] text-blue-700">Track changes</span></div>
+          {[
+            { label: 'BP', band: 'Normal <120/80', level: 'ok' as const },
+            { label: 'HR', band: 'Normal 60–100', level: 'ok' as const },
+            { label: 'Sugar', band: 'Normal 70–100', level: 'ok' as const },
+            { label: 'Temp', band: 'Normal 36–37.2', level: 'ok' as const },
+            { label: 'SpO2', band: 'Normal ≥95%', level: 'ok' as const },
+            { label: 'Weight', band: 'Track changes', level: 'caution' as const },
+          ].map((chip) => (
+            <div key={chip.label} className={`text-center p-2 rounded-sm border ${
+              chip.level === 'ok'
+                ? 'bg-ok-container border-ok/40'
+                : 'bg-caution-container border-caution/40'
+            }`}>
+              <span className={`text-xs font-semibold ${chip.level === 'ok' ? 'text-ok' : 'text-caution'}`}>{chip.label}</span>
+              <span className={`block text-[10px] ${chip.level === 'ok' ? 'text-ok' : 'text-caution'}`}>{chip.band}</span>
+            </div>
+          ))}
         </div>
 
         {showForm && (
-          <Card className="p-6 mb-8">
+          <Card className="p-lg mb-8">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Input label="Systolic BP (mmHg)" name="systolic" type="number" value={formData.blood_pressure_systolic}
@@ -279,35 +249,46 @@ export default function Vitals() {
                   onChange={e => setFormData({ ...formData, oxygen_saturation: e.target.value })} />
               </div>
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-sm font-medium text-gray-700">Notes</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-sm font-semibold text-on-surface">Notes</label>
                   {supported && (
-                    <button type="button" onClick={toggle}
+                    <button
+                      type="button"
+                      onClick={toggle}
                       title={listening ? 'Stop voice input' : 'Dictate notes'}
-                      className={`flex items-center gap-1 text-xs rounded px-2 py-1 transition-colors ${listening ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-14 0m7 7v3m-3 0h6M12 1a3 3 0 00-3 3v7a3 3 0 006 0V4a3 3 0 00-3-3z" />
-                      </svg>
+                      className={`flex items-center gap-1.5 text-xs font-medium rounded-sm px-2 py-1.5 transition-colors ${
+                        listening
+                          ? 'bg-alert-container text-alert animate-pulse'
+                          : 'bg-surface-card text-on-surface-variant border border-outline hover:text-on-surface'
+                      }`}
+                    >
+                      <Mic className="w-3.5 h-3.5" />
                       {listening ? 'Listening…' : 'Speak'}
                     </button>
                   )}
                 </div>
-                <textarea value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                <textarea
+                  value={formData.notes}
+                  onChange={e => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Feeling dizzy, after exercise, etc."
-                  className="flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-                  rows={2} />
+                  className="flex w-full min-h-[60px] rounded-sm border border-outline bg-surface-card px-3.5 py-2.5 text-base text-on-surface placeholder:text-on-surface-variant/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  rows={2}
+                />
               </div>
-              <Button type="submit">Save Reading</Button>
+              <div className="flex gap-2">
+                <Button type="submit">Save Reading</Button>
+                <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
+              </div>
             </form>
           </Card>
         )}
 
         {vitals.length > 0 && (
-          <Card className="p-6 mb-8">
+          <Card className="p-lg mb-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
-              <h2 className="text-lg sm:text-xl font-semibold text-text-main">Trends</h2>
+              <h2 className="text-lg sm:text-xl font-display font-semibold text-on-surface">Trends</h2>
               <select value={chartType} onChange={e => setChartType(e.target.value)}
-                className="w-full sm:w-auto border rounded-md px-3 py-1.5 text-sm">
+                className="w-full sm:w-auto rounded-sm border border-outline bg-surface-card px-3 py-1.5 text-sm text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring">
                 <option value="bp">Blood Pressure</option>
                 <option value="hr">Heart Rate</option>
                 <option value="weight">Weight</option>
@@ -315,125 +296,91 @@ export default function Vitals() {
                 <option value="temp">Temperature</option>
                 <option value="spo2">Oxygen Saturation</option>
               </select>
-              <span className="text-xs text-green-700 bg-green-50 px-2 py-1 rounded border border-green-200">
-                {chartType === 'bp' && 'Normal: <120/80 mmHg'}
-                {chartType === 'hr' && 'Normal: 60-100 bpm'}
-                {chartType === 'weight' && 'Track your weight trend'}
-                {chartType === 'sugar' && 'Normal: 70-100 mg/dL'}
-                {chartType === 'temp' && 'Normal: 36.1-37.2°C'}
-                {chartType === 'spo2' && 'Normal: ≥95%'}
+              <span className="inline-flex items-center rounded-full bg-ok-container text-ok px-3 py-1 text-xs font-semibold">
+                Normal: {band.label}
               </span>
             </div>
             <div className="w-full" style={{ height: 250, minHeight: 250 }}>
-              {chartType === 'bp' ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="systolic" stroke="#ef4444" name="Systolic" />
-                    <Line type="monotone" dataKey="diastolic" stroke="#3b82f6" name="Diastolic" />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : chartType === 'hr' ? (
-                <ResponsiveContainer>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="heartRate" stroke="#8b5cf6" name="Heart Rate (bpm)" />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : chartType === 'weight' ? (
-                <ResponsiveContainer>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="weight" stroke="#10b981" name="Weight (kg)" />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : chartType === 'sugar' ? (
-                <ResponsiveContainer>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="bloodSugar" stroke="#f59e0b" name="Blood Sugar" />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : chartType === 'temp' ? (
-                <ResponsiveContainer>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                    <YAxis domain={[35, 42]} />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="temperature" stroke="#ec4899" name="Temperature (°C)" />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <ResponsiveContainer>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                    <YAxis domain={[80, 100]} />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="oxygenSaturation" stroke="#06b6d4" name="SpO2 (%)" />
-                  </LineChart>
-                </ResponsiveContainer>
-              )}
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--color-on-surface-variant)' }} tickLine={false} axisLine={{ stroke: 'var(--color-outline)' }} />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: 'var(--color-on-surface-variant)' }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={40}
+                    domain={chartType === 'temp' ? [35, 42] : chartType === 'spo2' ? [80, 100] : ['auto', 'auto']}
+                  />
+                  <Tooltip contentStyle={{ background: 'var(--color-surface-card)', border: '1px solid var(--color-outline)', borderRadius: 8, fontSize: 12 }} labelStyle={{ color: 'var(--color-on-surface-variant)' }} />
+                  <ReferenceArea y1={band.low} y2={band.high} fill="var(--color-primary)" fillOpacity={0.08} />
+                  {chartType === 'bp' && (
+                    <>
+                      <Legend wrapperStyle={{ fontSize: 12, color: 'var(--color-on-surface-variant)' }} />
+                      <Line type="monotone" dataKey="systolic" stroke="var(--color-series-1)" name="Systolic" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="diastolic" stroke="var(--color-series-2)" name="Diastolic" strokeWidth={2} dot={false} />
+                    </>
+                  )}
+                  {chartType === 'hr' && <Line type="monotone" dataKey="heartRate" stroke="var(--color-series-1)" name="Heart Rate (bpm)" strokeWidth={2} dot={false} />}
+                  {chartType === 'weight' && <Line type="monotone" dataKey="weight" stroke="var(--color-series-1)" name="Weight (kg)" strokeWidth={2} dot={false} />}
+                  {chartType === 'sugar' && <Line type="monotone" dataKey="bloodSugar" stroke="var(--color-series-1)" name="Blood Sugar" strokeWidth={2} dot={false} />}
+                  {chartType === 'temp' && <Line type="monotone" dataKey="temperature" stroke="var(--color-series-1)" name="Temperature (°C)" strokeWidth={2} dot={false} />}
+                  {chartType === 'spo2' && <Line type="monotone" dataKey="oxygenSaturation" stroke="var(--color-series-1)" name="SpO2 (%)" strokeWidth={2} dot={false} />}
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </Card>
         )}
 
         {vitals.length === 0 ? (
-          <Card className="p-8 text-center">
-            <p className="text-subtext mb-4">No vital sign readings yet</p>
-            <Button onClick={() => setShowForm(true)}>Add Your First Reading</Button>
+          <Card className="p-lg">
+            <EmptyState
+              icon={Activity}
+              title="No vital sign readings yet"
+              description="Record your first reading and it will get a range bar, a band name and a trend to follow."
+              action={<Button onClick={() => setShowForm(true)}>Add Your First Reading</Button>}
+            />
           </Card>
         ) : (
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <h2 className="text-xl font-semibold text-text-main">History</h2>
-              <span className="text-xs text-subtext">(color-coded by normal range)</span>
+              <h2 className="text-xl font-display font-semibold text-on-surface">History</h2>
+              <span className="text-xs text-on-surface-variant">(each reading judged against its band)</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {vitals.map(v => {
                 const readings = getReadings(v);
                 return (
-                <Card key={v.id} className="p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <p className="text-xs text-subtext">{formatServerDateTime(v.measured_at)}</p>
-                    <button onClick={() => handleDelete(v.id)} className="text-red-400 text-xs hover:text-red-600">&times;</button>
-                  </div>
-                  <div className="space-y-2">
-                    {readings.map((r, i) => (
-                      <div key={i} className={`flex items-center justify-between px-2.5 py-1.5 rounded-md ${r.bg}`}>
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="text-xs font-medium text-gray-600">{r.label}</span>
-                          <span className={`text-xs ${r.color}`}>{r.range}</span>
+                  <Card key={v.id} className="p-lg">
+                    <div className="flex justify-between items-start mb-3">
+                      <p className="text-xs text-on-surface-variant tabular-nums">{formatServerDateTime(v.measured_at)}</p>
+                      <button
+                        onClick={() => handleDelete(v.id)}
+                        className="text-alert/60 hover:text-alert transition-colors"
+                        aria-label="Delete this reading"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="divide-y divide-outline">
+                      {readings.map((r, i) => (
+                        <div key={i} className="flex items-center justify-between gap-2 py-2">
+                          <div className="min-w-0">
+                            <span className="text-xs font-medium text-on-surface-variant">{r.label}</span>
+                            <span className="block text-[11px] text-on-surface-variant/70 tabular-nums">
+                              {r.band.band.low}–{r.band.band.high} {r.unit}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="font-display font-semibold text-on-surface tabular-nums">
+                              {r.value} <span className="text-xs font-normal text-on-surface-variant">{r.unit}</span>
+                            </span>
+                            <StatusChip level={r.band.level} label={r.band.label} trend={r.band.trend} />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`font-semibold text-sm ${r.color}`}>{r.value}</span>
-                          <span className="text-xs text-gray-500">{r.unit}</span>
-                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${r.bg} ${r.color}`}>{r.status}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {v.notes && <p className="text-xs text-subtext mt-2 italic">{v.notes}</p>}
-                </Card>
+                      ))}
+                    </div>
+                    {v.notes && <p className="text-xs text-on-surface-variant mt-2 italic">{v.notes}</p>}
+                  </Card>
                 );
               })}
             </div>

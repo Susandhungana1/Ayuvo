@@ -2,9 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/button';
-import { Card } from '@/components/card';
-import { Input } from '@/components/input';
+import { CalendarDays, Plus, CalendarPlus, CheckCircle2, Download, XCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { StatusChip } from '@/components/ui/status-chip';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Dialog } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 import { downloadIcs } from '@/lib/ics';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
@@ -30,22 +35,60 @@ interface Doctor {
   specialty: string;
 }
 
+const SELECT_CLASS =
+  'flex h-11 w-full rounded-sm border border-outline bg-surface-card px-3.5 text-base text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring';
+
+function statusChip(status: string) {
+  switch (status) {
+    case 'CONFIRMED': return { level: 'ok' as const, label: 'Confirmed' };
+    case 'PENDING': return { level: 'caution' as const, label: 'Pending' };
+    case 'COMPLETED': return { level: 'ok' as const, label: 'Completed' };
+    default: return { level: 'alert' as const, label: status.replace(/_/g, ' ').toLowerCase() };
+  }
+}
+
+async function fetchAppointments(): Promise<Appointment[]> {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_URL}/api/appointments`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (res.ok) {
+    const data = await res.json();
+    return data.appointments || [];
+  }
+  return [];
+}
+
+async function fetchDoctors(): Promise<Doctor[]> {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_URL}/api/doctors/doctors`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (res.ok) {
+    const data = await res.json();
+    return data.doctors || data || [];
+  }
+  return [];
+}
+
+const EMPTY_FORM = {
+  title: '',
+  description: '',
+  doctor_id: '',
+  doctor_name: '',
+  hospital: '',
+  appointment_date: '',
+  duration_minutes: '30',
+  reason: ''
+};
+
 export default function Appointments() {
   const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    doctor_id: '',
-    doctor_name: '',
-    hospital: '',
-    appointment_date: '',
-    duration_minutes: '30',
-    reason: ''
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [successAppointment, setSuccessAppointment] = useState<Appointment | null>(null);
@@ -56,36 +99,22 @@ export default function Appointments() {
       router.push('/auth/login');
       return;
     }
-    fetchData();
+    let cancelled = false;
+    (async () => {
+      try {
+        const [appList, docList] = await Promise.all([fetchAppointments(), fetchDoctors()]);
+        if (!cancelled) {
+          setAppointments(appList);
+          setDoctors(docList);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [router]);
-
-  const fetchData = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const [appRes, docRes] = await Promise.all([
-        fetch(`${API_URL}/api/appointments`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${API_URL}/api/doctors/doctors`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-      ]);
-
-      if (appRes.ok) {
-        const data = await appRes.json();
-        setAppointments(data.appointments || []);
-      }
-
-      if (docRes.ok) {
-        const data = await docRes.json();
-        setDoctors(data.doctors || data || []);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,19 +155,10 @@ export default function Appointments() {
       setSuccessAppointment(data);
       setShowSuccess(true);
       setShowForm(false);
-      fetchData();
-      setFormData({
-        title: '',
-        description: '',
-        doctor_id: '',
-        doctor_name: '',
-        hospital: '',
-        appointment_date: '',
-        duration_minutes: '30',
-        reason: ''
-      });
-    } catch (err: any) {
-      setError(err.message);
+      setAppointments(await fetchAppointments());
+      setFormData(EMPTY_FORM);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to create appointment');
     }
   };
 
@@ -177,28 +197,41 @@ export default function Appointments() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-subtext">Loading...</p>
+      <div className="min-h-screen bg-surface">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Skeleton className="h-9 w-56 mb-lg" />
+          <Skeleton className="h-10 w-44 mb-lg" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-xl">
+            {[0, 1, 2].map(i => (
+              <Skeleton key={i} className="h-48" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-surface">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-text-main">Appointments</h1>
+        <div className="flex justify-between items-center mb-lg">
+          <h1 className="text-3xl font-display font-bold text-on-surface">Appointments</h1>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-lg">
           <Button onClick={() => setShowForm(!showForm)}>
-            {showForm ? 'Cancel' : '+ Book Appointment'}
+            {showForm ? 'Cancel' : (
+              <>
+                <Plus className="w-4 h-4" aria-hidden="true" />
+                Book Appointment
+              </>
+            )}
           </Button>
         </div>
 
         {showForm && (
-          <Card className="p-6 mb-8">
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <Card className="mb-lg">
+            <form onSubmit={handleSubmit} className="space-y-lg">
               <Input
                 label="Title"
                 name="title"
@@ -207,12 +240,12 @@ export default function Appointments() {
                 placeholder="e.g., Annual Checkup"
                 required
               />
-              <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-sm font-medium text-gray-700">Select Doctor</label>
+              <div className="flex flex-col gap-sm w-full">
+                <label className="text-sm font-semibold text-on-surface">Select Doctor</label>
                 <select
                   value={formData.doctor_id}
                   onChange={(e) => setFormData({ ...formData, doctor_id: e.target.value })}
-                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                  className={SELECT_CLASS}
                 >
                   <option value="">Select a doctor (optional)</option>
                   {doctors.map((doc) => (
@@ -244,100 +277,116 @@ export default function Appointments() {
                 value={formData.duration_minutes}
                 onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })}
               />
-              <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-sm font-medium text-gray-700">Reason</label>
+              <div className="flex flex-col gap-sm w-full">
+                <label className="text-sm font-semibold text-on-surface">Reason</label>
                 <textarea
                   value={formData.reason}
                   onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                   placeholder="Reason for visit..."
-                  className="flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                  className="flex w-full rounded-sm border border-outline bg-surface-card px-3.5 py-2 text-base text-on-surface placeholder:text-on-surface-variant/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                   rows={3}
                 />
               </div>
-              {error && <p className="text-red-500 text-sm">{error}</p>}
+              {error && <p className="text-alert text-sm" role="alert">{error}</p>}
               <Button type="submit">Book Appointment</Button>
             </form>
           </Card>
         )}
 
         {appointments.length === 0 ? (
-          <Card className="p-8 text-center">
-            <p className="text-subtext mb-4">No appointments scheduled</p>
-            <Button onClick={() => setShowForm(true)}>Book Your First Appointment</Button>
+          <Card>
+            <EmptyState
+              icon={CalendarDays}
+              title="No appointments scheduled"
+              description="Book a checkup or consultation with a doctor to see it here."
+              action={<Button onClick={() => setShowForm(true)}>Book Your First Appointment</Button>}
+            />
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {appointments.map((apt) => (
-              <Card key={apt.id} className="p-6">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-lg font-semibold text-text-main">{apt.title}</h3>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    apt.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
-                    apt.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-gray-100 text-gray-700'
-                  }`}>
-                    {apt.status}
-                  </span>
-                </div>
-                {apt.doctor_name && (
-                  <p className="text-subtext text-sm mb-1">Dr. {apt.doctor_name}</p>
-                )}
-                {apt.hospital && (
-                  <p className="text-subtext text-sm mb-1">{apt.hospital}</p>
-                )}
-                <p className="text-subtext text-sm mb-2">
-                  {new Date(apt.appointment_date).toLocaleString()}
-                </p>
-                {apt.reason && (
-                  <p className="text-subtext text-sm mb-4">{apt.reason}</p>
-                )}
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => handleAddToCalendar(apt)}
-                    className="text-primary text-sm font-medium hover:underline"
-                  >
-                    Add to Calendar
-                  </button>
-                  <button
-                    onClick={() => handleCancel(apt.id)}
-                    className="text-red-500 text-sm hover:underline"
-                  >
-                    Cancel Appointment
-                  </button>
-                </div>
-              </Card>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-xl">
+            {appointments.map((apt) => {
+              const chip = statusChip(apt.status);
+              return (
+                <Card key={apt.id} className="flex flex-col">
+                  <div className="flex justify-between items-start gap-sm mb-md">
+                    <h3 className="text-lg font-display font-semibold text-on-surface">{apt.title}</h3>
+                    <StatusChip level={chip.level} label={chip.label} className="shrink-0" />
+                  </div>
+                  {apt.doctor_name && (
+                    <p className="text-on-surface-variant text-sm mb-xs">Dr. {apt.doctor_name}</p>
+                  )}
+                  {apt.hospital && (
+                    <p className="text-on-surface-variant text-sm mb-xs">{apt.hospital}</p>
+                  )}
+                  <p className="text-on-surface-variant text-sm mb-md">
+                    {new Date(apt.appointment_date).toLocaleString()}
+                  </p>
+                  {apt.reason && (
+                    <p className="text-on-surface-variant text-sm mb-lg">{apt.reason}</p>
+                  )}
+                  <div className="flex items-center gap-lg mt-auto pt-md">
+                    <button
+                      onClick={() => handleAddToCalendar(apt)}
+                      className="inline-flex items-center gap-xs text-primary text-sm font-semibold hover:underline"
+                    >
+                      <Download className="w-4 h-4" aria-hidden="true" />
+                      Add to Calendar
+                    </button>
+                    <button
+                      onClick={() => handleCancel(apt.id)}
+                      className="inline-flex items-center gap-xs text-alert text-sm font-medium hover:underline"
+                    >
+                      <XCircle className="w-4 h-4" aria-hidden="true" />
+                      Cancel
+                    </button>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {showSuccess && successAppointment && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+      <Dialog
+        open={showSuccess && !!successAppointment}
+        onClose={() => setShowSuccess(false)}
+        title="Appointment Booked!"
+        footer={
+          <div className="grid grid-cols-2 gap-sm w-full">
+            <Button variant="secondary" onClick={() => successAppointment && handleAddToCalendar(successAppointment)}>
+              Add to Calendar
+            </Button>
+            <Button onClick={() => setShowSuccess(false)}>Done</Button>
+          </div>
+        }
+      >
+        {successAppointment && (
+          <div>
+            <div className="flex items-start gap-md mb-lg">
+              <div className="w-10 h-10 bg-ok-container text-ok rounded-full flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
+              </div>
+              <p className="text-on-surface-variant">
+                Your appointment has been successfully scheduled.
+              </p>
             </div>
-            <h2 className="text-2xl font-bold text-text-main mb-2">Appointment Booked!</h2>
-            <p className="text-subtext mb-4">Your appointment has been successfully scheduled.</p>
-            <div className="bg-gray-50 rounded-lg p-4 text-left mb-6">
-              <p className="font-medium text-text-main">{successAppointment.title}</p>
+            <div className="bg-outline/10 rounded-md p-lg mb-lg">
+              <p className="font-semibold text-on-surface">{successAppointment.title}</p>
               {successAppointment.doctor_name && (
-                <p className="text-sm text-subtext">Dr. {successAppointment.doctor_name}</p>
+                <p className="text-sm text-on-surface-variant">Dr. {successAppointment.doctor_name}</p>
               )}
-              <p className="text-sm text-subtext">
+              <p className="text-sm text-on-surface-variant">
                 {new Date(successAppointment.appointment_date).toLocaleString()}
               </p>
-              <p className="text-xs text-gray-500 mt-2">ID: {successAppointment.id}</p>
+              <p className="text-xs text-on-surface-variant mt-sm">ID: {successAppointment.id}</p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              <Button variant="secondary" onClick={() => handleAddToCalendar(successAppointment)}>Add to Calendar</Button>
-              <Button onClick={() => setShowSuccess(false)}>Done</Button>
-            </div>
+            <p className="text-xs text-on-surface-variant">
+              <CalendarPlus className="inline w-3.5 h-3.5 mr-xs" aria-hidden="true" />
+              Save it to your calendar so you get a reminder.
+            </p>
           </div>
-        </div>
-      )}
+        )}
+      </Dialog>
     </div>
   );
 }
