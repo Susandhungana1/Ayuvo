@@ -213,15 +213,73 @@ export function MedicineManager({
     }
   };
 
-  const loading = medicines === null;
+  const today = new Date().toISOString().slice(0, 10);
 
-  if (loading) {
+  if (medicines === null) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[1, 2, 3].map((i) => <Skeleton key={i} className="h-44" />)}
       </div>
     );
   }
+
+  const activeMeds = medicines.filter((m) => !m.end_date || m.end_date >= today);
+  const endedMeds = medicines.filter((m) => m.end_date && m.end_date < today);
+
+  const renderMedicineCard = (med: Medicine, isEnded: boolean) => {
+    const times = parseTimes(med.taking_times);
+    return (
+      <Card key={med.id} className={`p-lg ${isEnded ? 'opacity-60' : ''}`}>
+        <div className="flex items-start gap-sm mb-2">
+          <div className={`w-9 h-9 rounded-sm flex items-center justify-center shrink-0 ${isEnded ? 'bg-on-surface-variant/10' : 'bg-primary/10'}`}>
+            <Pill className={`w-4 h-4 ${isEnded ? 'text-on-surface-variant' : 'text-primary'}`} />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-lg font-display font-semibold text-on-surface">{med.name}</h3>
+            {isEnded && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-sm bg-on-surface-variant/10 text-on-surface-variant text-xs font-medium">
+                Ended
+              </span>
+            )}
+          </div>
+        </div>
+        <p className="text-on-surface-variant text-sm mb-1">Dosage: {med.dosage}</p>
+        <p className="text-on-surface-variant text-sm mb-1">Frequency: {med.frequency}</p>
+        {times.length > 0 && (
+          <div className="mb-2">
+            <p className="text-on-surface-variant text-xs font-medium uppercase tracking-wider mb-1">
+              Taking Times
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {times.map((t, i) => (
+                <span
+                  key={i}
+                  className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium tabular-nums ${isEnded ? 'bg-on-surface-variant/10 text-on-surface-variant' : 'bg-primary/10 text-primary'}`}
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        <p className="text-on-surface-variant text-sm mb-1">
+          Started: {formatPlainDate(med.start_date)}
+        </p>
+        {med.end_date && (
+          <p className="text-on-surface-variant text-sm mb-1">
+            Ended: {formatPlainDate(med.end_date)}
+          </p>
+        )}
+        {med.notes && <p className="text-on-surface-variant text-sm mb-4">{med.notes}</p>}
+        <button
+          onClick={() => handleDelete(med.id)}
+          className="text-alert text-sm hover:underline"
+        >
+          Remove
+        </button>
+      </Card>
+    );
+  };
 
   return (
     <>
@@ -372,55 +430,28 @@ export function MedicineManager({
           />
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {medicines.map((med) => {
-            const times = parseTimes(med.taking_times);
-            return (
-              <Card key={med.id} className="p-lg">
-                <div className="flex items-start gap-sm mb-2">
-                  <div className="w-9 h-9 bg-primary/10 rounded-sm flex items-center justify-center shrink-0">
-                    <Pill className="w-4 h-4 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-display font-semibold text-on-surface">{med.name}</h3>
-                </div>
-                <p className="text-on-surface-variant text-sm mb-1">Dosage: {med.dosage}</p>
-                <p className="text-on-surface-variant text-sm mb-1">Frequency: {med.frequency}</p>
-                {times.length > 0 && (
-                  <div className="mb-2">
-                    <p className="text-on-surface-variant text-xs font-medium uppercase tracking-wider mb-1">
-                      Taking Times
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {times.map((t, i) => (
-                        <span
-                          key={i}
-                          className="inline-flex items-center px-2 py-0.5 rounded-sm bg-primary/10 text-primary text-xs font-medium tabular-nums"
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <p className="text-on-surface-variant text-sm mb-1">
-                  Started: {formatPlainDate(med.start_date)}
-                </p>
-                {med.end_date && (
-                  <p className="text-on-surface-variant text-sm mb-1">
-                    Ends: {formatPlainDate(med.end_date)}
-                  </p>
-                )}
-                {med.notes && <p className="text-on-surface-variant text-sm mb-4">{med.notes}</p>}
-                <button
-                  onClick={() => handleDelete(med.id)}
-                  className="text-alert text-sm hover:underline"
-                >
-                  Remove
-                </button>
-              </Card>
-            );
-          })}
-        </div>
+        <>
+          {activeMeds.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-lg font-display font-semibold text-on-surface mb-4">
+                Active ({activeMeds.length})
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {activeMeds.map((med) => renderMedicineCard(med, false))}
+              </div>
+            </div>
+          )}
+          {endedMeds.length > 0 && (
+            <div>
+              <h2 className="text-lg font-display font-semibold text-on-surface-variant mb-4">
+                Ended ({endedMeds.length})
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {endedMeds.map((med) => renderMedicineCard(med, true))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </>
   );
