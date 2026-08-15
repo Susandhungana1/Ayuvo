@@ -160,3 +160,61 @@ body {
   transition-duration: var(--duration-slow);
   transition-timing-function: var(--ease-standard);
 }
+
+/* ============================================================
+   Glassmorphism utility (frosted glass effect)
+   ============================================================ */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+}
+
+/* ============================================================
+   Interactive card hover glow
+   ============================================================ */
+.card-glow {
+  position: relative;
+}
+.card-glow::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(14, 116, 144, 0.1), rgba(14, 116, 144, 0));
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-standard);
+  pointer-events: none;
+  z-index: 0;
+}
+.card-glow:hover::before {
+  opacity: 1;
+}
+
+/* ============================================================
+   Pressed state feedback for interactive elements
+   ============================================================ */
+.pressed {
+  transition: transform var(--duration-fast) var(--ease-enter);
+}
+.pressed:active {
+  transform: scale(0.97);
+}
+
+/* ============================================================
+   Smooth scrollbar
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-outline);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-muted);
+}

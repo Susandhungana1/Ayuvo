@@ -9,11 +9,11 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type = 'text', error, label, id, ...props }, ref) => {
     const inputId = id || React.useId();
-    
+
     return (
-      <div className="flex flex-col gap-1.5 w-full">
+      <div className="flex flex-col gap-2 w-full">
         {label && (
-          <label htmlFor={inputId} className="text-sm font-medium text-[var(--color-ink)]">
+          <label htmlFor={inputId} className="text-sm font-semibold text-[var(--color-ink)] tracking-tight">
             {label}
           </label>
         )}
@@ -21,14 +21,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           type={type}
           className={cn(
-            'flex h-10 w-full rounded-[var(--radius-sm)] border border-[var(--color-outline)] bg-white dark:bg-[var(--color-card)] px-3 py-2 text-sm placeholder:text-[var(--color-ink-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-focus)] focus-visible:border-transparent disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
-            error && 'border-[var(--color-alert)] focus-visible:ring-[var(--color-alert)]',
+            'flex h-12 w-full rounded-[var(--radius-md)] border border-[var(--color-outline)] bg-white dark:bg-[var(--color-card)] px-4 py-3 text-sm placeholder:text-[var(--color-ink-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-focus)] focus-visible:border-[var(--color-primary)] focus-visible:shadow-[var(--shadow-sm)] disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-[var(--duration-base)] shadow-[var(--shadow-xs)]',
+            error && 'border-[var(--color-alert)] focus-visible:ring-[var(--color-alert)] focus-visible:border-[var(--color-alert)]',
             className
           )}
           ref={ref}
           {...props}
         />
-        {error && <span className="text-xs text-[var(--color-alert)] font-medium">{error}</span>}
+        {error && <span className="text-xs text-[var(--color-alert)] font-medium mt-0.5">{error}</span>}
       </div>
     );
   }
