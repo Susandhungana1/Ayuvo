@@ -7,15 +7,14 @@ import { cn } from "@/lib/utils";
 export type StatusLevel = "ok" | "caution" | "alert";
 
 const levelClasses: Record<StatusLevel, string> = {
-  ok: "bg-ok-container text-ok",
-  caution: "bg-caution-container text-caution",
-  alert: "bg-alert-container text-alert",
+  ok: "bg-[var(--color-ok-container)] text-[var(--color-ok)]",
+  caution: "bg-[var(--color-caution-container)] text-[var(--color-caution)]",
+  alert: "bg-[var(--color-alert-container)] text-[var(--color-alert)]",
 };
 
 export interface StatusChipProps extends React.HTMLAttributes<HTMLSpanElement> {
   level: StatusLevel;
   label: string;
-  /** Direction of the band the value moved into — never shown without the label. */
   trend?: "up" | "down";
 }
 
@@ -23,7 +22,7 @@ export function StatusChip({ level, label, trend, className, ...props }: StatusC
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold",
+        "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold",
         levelClasses[level],
         className,
       )}

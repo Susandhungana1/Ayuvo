@@ -9,17 +9,17 @@ export type ButtonSize = "md" | "sm";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-primary text-on-primary hover:bg-primary-pressed focus-visible:ring-focus-ring",
+    "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] hover:shadow-[var(--shadow-primary-hover)] focus-visible:ring-[var(--color-primary-focus)] shadow-[var(--shadow-primary)] hover:-translate-y-[1px] active:scale-[0.97]",
   secondary:
-    "border border-primary text-primary hover:bg-primary/5 focus-visible:ring-focus-ring",
-  ghost: "text-primary hover:bg-primary/5 focus-visible:ring-focus-ring",
+    "border-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] focus-visible:ring-[var(--color-primary-focus)] hover:-translate-y-[1px]",
+  ghost: "text-[var(--color-ink-variant)] hover:bg-[var(--color-muted)] hover:text-[var(--color-ink)] focus-visible:ring-[var(--color-primary-focus)]",
   destructive:
-    "bg-error text-white hover:bg-error/90 focus-visible:ring-focus-ring",
+    "bg-[var(--color-alert)] text-white hover:bg-[var(--color-alert-text)] hover:shadow-md focus-visible:ring-[var(--color-alert)] shadow-sm hover:-translate-y-[1px] active:scale-[0.97]",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  md: "h-11 px-5 text-sm",
-  sm: "h-9 px-4 text-sm",
+  md: "h-12 px-7 text-sm min-h-[var(--touch-standard)] gap-2 rounded-[var(--radius-sm)]",
+  sm: "h-10 px-5 text-sm min-h-[var(--touch-min)] gap-1.5 rounded-[var(--radius-sm)]",
 };
 
 export interface ButtonProps
@@ -48,8 +48,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center gap-sm rounded-sm font-display font-semibold transition-colors duration-fast",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
+          "inline-flex items-center justify-center font-semibold transition-all duration-[var(--duration-base)] ease-[var(--ease-standard)] cursor-pointer select-none",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
           "disabled:opacity-40 disabled:pointer-events-none",
           variantClasses[variant],
           sizeClasses[size],

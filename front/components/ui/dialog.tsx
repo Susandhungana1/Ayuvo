@@ -12,10 +12,6 @@ export interface DialogProps {
   className?: string;
 }
 
-/**
- * Modal dialog: overlay, `lg` radius panel, elevation token, Escape to close,
- * body scroll locked while open. Used for destructive confirmations.
- */
 export function Dialog({ open, onClose, title, children, footer, className }: DialogProps) {
   const panelRef = React.useRef<HTMLDivElement>(null);
 
@@ -36,27 +32,28 @@ export function Dialog({ open, onClose, title, children, footer, className }: Di
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-lg"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-7"
       role="dialog"
       aria-modal="true"
       aria-label={title}
     >
       <div
-        className="absolute inset-0 bg-black/50 anim-fade-in"
+        className="absolute inset-0 bg-black/50 animate-[fadeIn_200ms_ease-out]"
         onClick={onClose}
         aria-hidden="true"
       />
       <div
         ref={panelRef}
         className={cn(
-          "relative w-full max-w-md bg-surface-card rounded-lg shadow-pop p-lg anim-pop-in",
+          "relative w-full max-w-md bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-lg)] shadow-[var(--shadow-xl)] p-7",
           "max-h-[calc(100vh-4rem)] overflow-y-auto",
+          "animate-[popIn_250ms_cubic-bezier(0.34,1.56,0.64,1)]",
           className,
         )}
       >
-        {title && <h2 className="text-xl font-display font-semibold text-on-surface mb-lg">{title}</h2>}
-        <div className="text-on-surface">{children}</div>
-        {footer && <div className="mt-xl flex justify-end gap-sm">{footer}</div>}
+        {title && <h2 className="text-xl font-semibold text-[var(--color-ink)] mb-5">{title}</h2>}
+        <div className="text-[var(--color-ink)]">{children}</div>
+        {footer && <div className="mt-6 flex justify-end gap-3">{footer}</div>}
       </div>
     </div>
   );

@@ -11,24 +11,23 @@ export interface ListRowProps {
   className?: string;
 }
 
-/** Data-dense list row: title + meta left, status chip / numeric value right. */
 export function ListRow({ title, meta, trailing, href, onClick, className }: ListRowProps) {
   const inner = (
     <>
-      <div className="flex items-center justify-between gap-md min-w-0">
+      <div className="flex items-center justify-between gap-3 min-w-0">
         <div className="min-w-0">
-          <div className="text-sm font-display font-semibold text-on-surface truncate">{title}</div>
-          {meta && <div className="text-sm text-on-surface-variant">{meta}</div>}
+          <div className="text-sm font-semibold text-[var(--color-ink)] truncate">{title}</div>
+          {meta && <div className="text-sm text-[var(--color-ink-variant)]">{meta}</div>}
         </div>
-        {trailing && <div className="shrink-0 flex items-center gap-sm">{trailing}</div>}
+        {trailing && <div className="shrink-0 flex items-center gap-2">{trailing}</div>}
       </div>
     </>
   );
 
   const classes = cn(
-    "w-full px-lg py-md border-b border-outline last:border-b-0",
-    "transition-colors duration-fast",
-    href || onClick ? "hover:bg-primary/5 cursor-pointer" : "",
+    "w-full px-7 py-3.5 border-b border-[var(--color-outline-subtle)] last:border-b-0",
+    "transition-colors duration-[var(--duration-fast)]",
+    href || onClick ? "hover:bg-[var(--color-primary-light)] cursor-pointer" : "",
     className,
   );
 
