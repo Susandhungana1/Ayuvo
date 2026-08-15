@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { Figtree, Noto_Sans } from "next/font/google";
 import { Navbar } from "@/components/navbar";
@@ -9,9 +10,6 @@ import { PwaRegister } from "@/components/pwa-register";
 import { MedicineAlarm } from "@/components/medicine-alarm";
 import { I18nProvider } from "@/lib/i18n";
 
-// Self-hosted at build time (PWA offline cache — a runtime Google Fonts <link>
-// is forbidden). Figtree is the display face (Latin only); Noto Sans carries
-// the body and full Devanagari for the Nepali locale.
 const figtree = Figtree({
   subsets: ["latin"],
   variable: "--font-figtree",
@@ -55,25 +53,17 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap"
-          rel="stylesheet"
-        />
-        <script
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('theme');var m=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(!t&&m)){document.documentElement.classList.add('dark');}}catch(e){}})();`,
           }}
         />
-        <script
+        <Script
+          id="sw-cache-clear"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
-            // Local dev keeps its service worker — do NOT unregister it here.
-            // Unregistering deletes the registration's Web Push subscriptions,
-            // so a reload on localhost silently killed every medicine reminder
-            // the user had enabled. The stale-cache problem this once solved is
-            // handled by the versioned cache name in sw.js, so only caches are
-            // cleared (harmless) while the registration survives.
             __html: `(function(){if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){try{if(window.caches&&caches.keys){caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k)})})}}catch(e){}}})();`,
           }}
         />
