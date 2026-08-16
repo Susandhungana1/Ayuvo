@@ -95,6 +95,39 @@ class MoreScreen extends ConsumerWidget {
         ),
       ];
 
+  static List<_Destination> _legal(AppL10n l10n) => [
+        _Destination(
+          route: Routes.about,
+          icon: Icons.business_outlined,
+          title: 'About Us',
+          subtitle: 'Quorlyn and the team behind MediStore',
+        ),
+        _Destination(
+          route: Routes.contact,
+          icon: Icons.mail_outline,
+          title: 'Contact',
+          subtitle: 'Get help with your account',
+        ),
+        _Destination(
+          route: Routes.faq,
+          icon: Icons.help_outline,
+          title: 'FAQ',
+          subtitle: 'Answers to common questions',
+        ),
+        _Destination(
+          route: Routes.privacy,
+          icon: Icons.privacy_tip_outlined,
+          title: 'Privacy Policy',
+          subtitle: 'How we handle your data',
+        ),
+        _Destination(
+          route: Routes.terms,
+          icon: Icons.description_outlined,
+          title: 'Terms of Service',
+          subtitle: 'Rules for using MediStore',
+        ),
+      ];
+
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
@@ -163,22 +196,7 @@ class MoreScreen extends ConsumerWidget {
           if (isDoctor) ...[
             _Group(destinations: _doctorDestinations(l10n)),
             const SizedBox(height: AppSpacing.lg),
-            _Group(
-              destinations: [
-                _Destination(
-                  route: Routes.privacy,
-                  icon: Icons.privacy_tip_outlined,
-                  title: 'Privacy Policy',
-                  subtitle: 'How we handle your data',
-                ),
-                _Destination(
-                  route: Routes.terms,
-                  icon: Icons.description_outlined,
-                  title: 'Terms of Service',
-                  subtitle: 'Rules for using MediStore',
-                ),
-              ],
-            ),
+            _Group(destinations: _legal(l10n)),
           ] else ...[
             _Group(destinations: _record(l10n)),
             const SizedBox(height: AppSpacing.lg),
@@ -202,22 +220,7 @@ class MoreScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.lg),
-            _Group(
-              destinations: [
-                _Destination(
-                  route: Routes.privacy,
-                  icon: Icons.privacy_tip_outlined,
-                  title: 'Privacy Policy',
-                  subtitle: 'How we handle your data',
-                ),
-                _Destination(
-                  route: Routes.terms,
-                  icon: Icons.description_outlined,
-                  title: 'Terms of Service',
-                  subtitle: 'Rules for using MediStore',
-                ),
-              ],
-            ),
+            _Group(destinations: _legal(l10n)),
           ],
           const SizedBox(height: AppSpacing.xl),
           OutlinedButton.icon(

@@ -50,6 +50,9 @@ abstract final class Routes {
   static const settings = '/more/settings';
   static const privacy = '/more/privacy';
   static const terms = '/more/terms';
+  static const about = '/more/about';
+  static const contact = '/more/contact';
+  static const faq = '/more/faq';
 
   // Doctor shell.
   static const doctorAppointments = '/doctor/appointments';

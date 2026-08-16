@@ -31,6 +31,9 @@ import '../../features/search/presentation/search_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/legal/presentation/privacy_screen.dart';
 import '../../features/legal/presentation/terms_screen.dart';
+import '../../features/legal/presentation/about_screen.dart';
+import '../../features/legal/presentation/contact_screen.dart';
+import '../../features/legal/presentation/faq_screen.dart';
 import '../../features/sharing/presentation/share_screen.dart';
 import '../../features/sharing/presentation/shared_record_screen.dart';
 import '../../features/sharing/presentation/shared_report_screen.dart';
@@ -228,6 +231,18 @@ final _routes = <RouteBase>[
                 path: 'terms',
                 builder: (context, state) => const TermsScreen(),
               ),
+              GoRoute(
+                path: 'about',
+                builder: (context, state) => const AboutScreen(),
+              ),
+              GoRoute(
+                path: 'contact',
+                builder: (context, state) => const ContactScreen(),
+              ),
+              GoRoute(
+                path: 'faq',
+                builder: (context, state) => const FaqScreen(),
+              ),
             ],
           ),
         ],
@@ -275,6 +290,18 @@ final _routes = <RouteBase>[
               GoRoute(
                 path: 'terms',
                 builder: (context, state) => const TermsScreen(),
+              ),
+              GoRoute(
+                path: 'about',
+                builder: (context, state) => const AboutScreen(),
+              ),
+              GoRoute(
+                path: 'contact',
+                builder: (context, state) => const ContactScreen(),
+              ),
+              GoRoute(
+                path: 'faq',
+                builder: (context, state) => const FaqScreen(),
               ),
             ],
           ),

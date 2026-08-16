@@ -86,11 +86,13 @@ Future<PickedFile?> _fromXFile(XFile file) async {
 }
 
 Future<PickedFile?> _fromFiles() async {
-  final result = await FilePicker.pickFiles(
+  // file_picker 12 returns the list directly (empty when the user cancels) —
+  // the FilePickerResult wrapper no longer exists.
+  final files = await FilePicker.pickFiles(
     type: FileType.custom,
     allowedExtensions: const ['pdf', 'png', 'jpg', 'jpeg', 'webp'],
   );
-  final file = result?.files.single;
+  final file = files.isEmpty ? null : files.single;
   final path = file?.path;
   if (file == null || path == null) return null;
   return PickedFile(name: file.name, bytes: await file.readAsBytes(), path: path);
