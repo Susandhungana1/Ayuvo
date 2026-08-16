@@ -51,8 +51,8 @@ export function Footer() {
           <div>
             <h3 className="font-semibold text-[var(--color-ink)] mb-4 tracking-wide uppercase text-sm font-heading">Legal</h3>
             <ul className="space-y-3">
-              <li><Link href="#" className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors">Privacy Policy</Link></li>
-              <li><Link href="#" className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors">Terms of Service</Link></li>
+              <li><Link href="/privacy" className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors">Terms of Service</Link></li>
             </ul>
           </div>
         </div>

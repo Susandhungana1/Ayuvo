@@ -160,9 +160,26 @@ class MoreScreen extends ConsumerWidget {
               ),
             ),
           const SizedBox(height: AppSpacing.xl),
-          if (isDoctor)
-            _Group(destinations: _doctorDestinations(l10n))
-          else ...[
+          if (isDoctor) ...[
+            _Group(destinations: _doctorDestinations(l10n)),
+            const SizedBox(height: AppSpacing.lg),
+            _Group(
+              destinations: [
+                _Destination(
+                  route: Routes.privacy,
+                  icon: Icons.privacy_tip_outlined,
+                  title: 'Privacy Policy',
+                  subtitle: 'How we handle your data',
+                ),
+                _Destination(
+                  route: Routes.terms,
+                  icon: Icons.description_outlined,
+                  title: 'Terms of Service',
+                  subtitle: 'Rules for using MediStore',
+                ),
+              ],
+            ),
+          ] else ...[
             _Group(destinations: _record(l10n)),
             const SizedBox(height: AppSpacing.lg),
             _Group(destinations: _help(l10n)),
@@ -181,6 +198,23 @@ class MoreScreen extends ConsumerWidget {
                   icon: Icons.tune,
                   title: l10n.navSettings,
                   subtitle: l10n.moreSettingsBlurb,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            _Group(
+              destinations: [
+                _Destination(
+                  route: Routes.privacy,
+                  icon: Icons.privacy_tip_outlined,
+                  title: 'Privacy Policy',
+                  subtitle: 'How we handle your data',
+                ),
+                _Destination(
+                  route: Routes.terms,
+                  icon: Icons.description_outlined,
+                  title: 'Terms of Service',
+                  subtitle: 'Rules for using MediStore',
                 ),
               ],
             ),

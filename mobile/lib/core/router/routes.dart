@@ -48,6 +48,8 @@ abstract final class Routes {
   static const nearby = '/more/nearby';
   static const caretakers = '/more/caretakers';
   static const settings = '/more/settings';
+  static const privacy = '/more/privacy';
+  static const terms = '/more/terms';
 
   // Doctor shell.
   static const doctorAppointments = '/doctor/appointments';

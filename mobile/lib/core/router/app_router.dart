@@ -28,6 +28,8 @@ import '../../features/nearby/presentation/nearby_screen.dart';
 import '../../features/reports/presentation/reports_screen.dart';
 import '../../features/search/presentation/search_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
+import '../../features/legal/presentation/privacy_screen.dart';
+import '../../features/legal/presentation/terms_screen.dart';
 import '../../features/sharing/presentation/share_screen.dart';
 import '../../features/sharing/presentation/shared_record_screen.dart';
 import '../../features/sharing/presentation/shared_report_screen.dart';
@@ -216,6 +218,14 @@ final _routes = <RouteBase>[
                 path: 'settings',
                 builder: (context, state) => const SettingsScreen(),
               ),
+              GoRoute(
+                path: 'privacy',
+                builder: (context, state) => const PrivacyScreen(),
+              ),
+              GoRoute(
+                path: 'terms',
+                builder: (context, state) => const TermsScreen(),
+              ),
             ],
           ),
         ],
@@ -255,6 +265,14 @@ final _routes = <RouteBase>[
               GoRoute(
                 path: 'settings',
                 builder: (context, state) => const SettingsScreen(),
+              ),
+              GoRoute(
+                path: 'privacy',
+                builder: (context, state) => const PrivacyScreen(),
+              ),
+              GoRoute(
+                path: 'terms',
+                builder: (context, state) => const TermsScreen(),
               ),
             ],
           ),
