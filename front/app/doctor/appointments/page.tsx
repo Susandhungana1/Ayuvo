@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { CalendarClock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -34,7 +35,7 @@ function statusChip(status: string) {
 
 async function fetchAppointments(): Promise<Appointment[]> {
   const token = localStorage.getItem('token');
-  const res = await fetch(`${API_URL}/api/appointments/doctor/my-appointments`, {
+  const res = await apiFetch(`${API_URL}/api/appointments/doctor/my-appointments`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   if (res.ok) {

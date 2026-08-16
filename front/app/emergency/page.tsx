@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import { Phone } from 'lucide-react';
@@ -31,7 +32,7 @@ const SELECT_CLASS =
 
 async function fetchProfile(): Promise<EmergencyProfile> {
   const token = localStorage.getItem('token');
-  const res = await fetch(`${API_URL}/api/emergency/profile`, {
+  const res = await apiFetch(`${API_URL}/api/emergency/profile`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   if (!res.ok) throw new Error(`Could not load your emergency profile (HTTP ${res.status}).`);
@@ -87,7 +88,7 @@ export default function Emergency() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/emergency/profile`, {
+      const res = await apiFetch(`${API_URL}/api/emergency/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -116,7 +117,7 @@ export default function Emergency() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/emergency/contacts`, {
+      const res = await apiFetch(`${API_URL}/api/emergency/contacts`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -141,7 +142,7 @@ export default function Emergency() {
     if (!confirm('Remove this emergency contact?')) return;
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${API_URL}/api/emergency/contacts/${id}`, {
+      await apiFetch(`${API_URL}/api/emergency/contacts/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

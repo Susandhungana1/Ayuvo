@@ -9,7 +9,9 @@
  * `scopedUrl`, never build these URLs by hand.
  */
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
+export { API_URL, authHeaders } from './api';
+export { apiFetch } from './api';
+import { apiFetch, API_URL, authHeaders } from './api';
 
 export interface CareLink {
   id: string;
@@ -60,11 +62,6 @@ export class SessionExpired extends Error {
   }
 }
 
-export function authHeaders(): Record<string, string> {
-  const token = typeof window === 'undefined' ? null : localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 /** Build `path`, appending a correctly-encoded patient_id when scoping. */
 export function scopedUrl(path: string, patientId?: string | null): string {
   const url = `${API_URL}${path}`;
@@ -74,10 +71,9 @@ export function scopedUrl(path: string, patientId?: string | null): string {
 }
 
 async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     ...init,
     headers: {
-      ...authHeaders(),
       ...(init.body ? { 'Content-Type': 'application/json' } : {}),
       ...(init.headers || {}),
     },

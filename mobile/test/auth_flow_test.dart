@@ -174,14 +174,17 @@ void main() {
         [null, '000000', '123456']);
   });
 
-  testWidgets('an expired session explains itself on the sign-in screen',
+  testWidgets('a legacy session with no refresh token explains itself',
       (tester) async {
     await pumpApp(
       tester,
-      stored: storedSession(token: fakeJwt(expiresIn: -const Duration(days: 1))),
+      stored: storedSession(
+        token: fakeJwt(expiresIn: -const Duration(days: 1)),
+        refreshToken: null,
+      ),
     );
 
-    expect(find.textContaining('ran out after seven days'), findsOneWidget);
+    expect(find.textContaining('ran out'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Sign in'), findsOneWidget);
   });
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useSyncExternalStore } from 'react';
+import { apiFetch } from '@/lib/api';
 import { Lock, MessageCircle, Mic, MicOff, Send, X } from 'lucide-react';
 import { useSpeechRecognition } from '@/lib/useSpeechRecognition';
 import { getSessionServerSnapshot, getSessionSnapshot, subscribeSession } from '@/lib/session';
@@ -58,7 +59,7 @@ export function ChatBot() {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/chatbot`, {
+      const res = await apiFetch(`${API_URL}/api/chatbot`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

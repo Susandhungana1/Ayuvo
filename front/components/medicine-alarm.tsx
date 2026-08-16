@@ -16,6 +16,7 @@
  */
 
 import { useCallback, useEffect, useRef } from "react";
+import { apiFetch } from '@/lib/api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3001";
 
@@ -172,7 +173,7 @@ async function recordIntake(medId: string, time: string, status: "taken" | "snoo
   try {
     const token = localStorage.getItem("token");
     if (!token) return;
-    await fetch(`${API_URL}/api/medicines/${medId}/intake`, {
+    await apiFetch(`${API_URL}/api/medicines/${medId}/intake`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ scheduled_time: time, status }),
@@ -243,7 +244,7 @@ export async function ensurePushSubscription(): Promise<boolean> {
 
     const json = sub.toJSON();
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-    const res = await fetch(`${API_URL}/api/push/subscribe`, {
+    const res = await apiFetch(`${API_URL}/api/push/subscribe`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -270,7 +271,7 @@ export function MedicineAlarm() {
       return;
     }
     try {
-      const res = await fetch(`${API_URL}/api/medicines`, {
+      const res = await apiFetch(`${API_URL}/api/medicines`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {

@@ -34,8 +34,17 @@ String fakeJwt({Duration expiresIn = const Duration(days: 7)}) {
       '.not-a-real-signature';
 }
 
-String storedSession({AuthUser user = testUser, String? token}) => jsonEncode(
-      AuthSession(user: user, token: token ?? fakeJwt()).toJson(),
+String storedSession({
+  AuthUser user = testUser,
+  String? token,
+  String? refreshToken = 'fake-refresh-token',
+}) =>
+    jsonEncode(
+      AuthSession(
+        user: user,
+        token: token ?? fakeJwt(),
+        refreshToken: refreshToken,
+      ).toJson(),
     );
 
 /// A scripted [AuthRepository]. Every method answers from a field, so a test
@@ -107,6 +116,35 @@ class FakeAuthRepository implements AuthRepository {
 
   @override
   Future<AuthUser> me() async => user;
+
+  /// What the refresh endpoint returns. A test can point these at new values
+  /// and a call will hand them back, so the client's rotation path is scripted
+  /// like any other server behaviour.
+  ({String token, String refreshToken})? refreshResult;
+  int refreshCalls = 0;
+  bool refreshFails = false;
+
+  @override
+  Future<({String token, String refreshToken})> refreshTokens(
+    String refreshToken,
+  ) async {
+    refreshCalls++;
+    if (refreshFails) {
+      throw const ApiException(
+        ApiErrorKind.unauthorized,
+        'Invalid refresh token',
+        statusCode: 401,
+      );
+    }
+    return refreshResult ?? (token: token ?? fakeJwt(), refreshToken: refreshToken);
+  }
+
+  int logoutCalls = 0;
+
+  @override
+  Future<void> logout(String? refreshToken) async {
+    logoutCalls++;
+  }
 
   @override
   Future<String> forgotPassword(String email) async =>

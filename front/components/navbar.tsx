@@ -8,6 +8,7 @@ import { ThemeToggle } from './theme-toggle';
 import { LanguageToggle } from './language-toggle';
 import { Logo } from './Logo';
 import { useI18n } from '@/lib/i18n';
+import { clearSession } from '@/lib/api';
 
 const primaryLinks = [
   { href: '/', tKey: 'nav.home' },
@@ -93,10 +94,24 @@ export function Navbar() {
   }, [searchOpen]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    // Best-effort: revoke the refresh token server-side so a stolen pair
+    // dies; if the access token already expired the call 401s, and logout
+    // still proceeds locally.
+    const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refresh_token');
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
+    if (token && refreshToken) {
+      fetch(`${apiUrl}/api/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      }).catch(() => {});
+    }
+    clearSession();
     setIsLoggedIn(false);
-    window.dispatchEvent(new Event('localStorageUpdated'));
     router.push('/');
     setMobileMenuOpen(false);
   };

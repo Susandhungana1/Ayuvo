@@ -104,6 +104,87 @@ def test_2fa_setup_verify_and_enforced_login(client):
     assert ok.status_code == 200, ok.text
     assert ok.json()["token"]
 
+# --- Refresh tokens ---
+
+def _login(client, email, password="supersecret1"):
+    resp = client.post(
+        "/api/auth/login", data={"username": email, "password": password}
+    )
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+def test_register_and_login_issue_refresh_token(client):
+    email, reg = _register(client)
+    assert reg.json()["refresh_token"]
+
+    body = _login(client, email)
+    assert body["refresh_token"]
+
+
+def test_refresh_rotates_and_old_token_dies(client):
+    email, _ = _register(client)
+    body = _login(client, email)
+    refresh = body["refresh_token"]
+
+    resp = client.post("/api/auth/refresh", json={"refresh_token": refresh})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["token"]
+    new_refresh = resp.json()["refresh_token"]
+    assert new_refresh != refresh
+
+    # The access token works.
+    me = client.get(
+        "/api/auth/me", headers={"Authorization": f"Bearer {resp.json()['token']}"}
+    )
+    assert me.status_code == 200
+    assert me.json()["email"] == email
+
+    # The successor still works.
+    ok = client.post("/api/auth/refresh", json={"refresh_token": new_refresh})
+    assert ok.status_code == 200, ok.text
+
+
+def test_refresh_replay_revokes_family(client):
+    email, _ = _register(client)
+    body = _login(client, email)
+    first = body["refresh_token"]
+
+    resp = client.post("/api/auth/refresh", json={"refresh_token": first})
+    second = resp.json()["refresh_token"]
+
+    # Present the already-consumed first token: whole family must die.
+    replay = client.post("/api/auth/refresh", json={"refresh_token": first})
+    assert replay.status_code == 401
+
+    dead = client.post("/api/auth/refresh", json={"refresh_token": second})
+    assert dead.status_code == 401
+
+
+def test_refresh_rejects_junk_and_garbage(client):
+    assert client.post("/api/auth/refresh", json={"refresh_token": "bogus"}).status_code == 401
+    assert client.post("/api/auth/refresh", json={"refresh_token": ""}).status_code == 401
+
+
+def test_logout_revokes_refresh_token(client):
+    email, _ = _register(client)
+    body = _login(client, email)
+
+    out = client.post(
+        "/api/auth/logout",
+        json={"refresh_token": body["refresh_token"]},
+        headers={"Authorization": f"Bearer {body['token']}"},
+    )
+    assert out.status_code == 200
+
+    dead = client.post("/api/auth/refresh", json={"refresh_token": body["refresh_token"]})
+    assert dead.status_code == 401
+
+
+def test_logout_requires_auth(client):
+    resp = client.post("/api/auth/logout", json={"refresh_token": "x"})
+    assert resp.status_code == 401
+
 # --- Password reset ---
 
 def _request_reset(client, monkeypatch, email):

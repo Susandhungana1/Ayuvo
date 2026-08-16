@@ -110,6 +110,26 @@ class PasswordResetToken(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class RefreshToken(SQLModel, table=True):
+    """Long-lived session token, stored hashed so a DB leak doesn't hand out
+    working sessions. Access tokens are stateless JWTs (short expiry); this
+    row is the state that makes revocation and rotation possible.
+
+    Rotation: every successful refresh revokes the presented token and writes a
+    successor. Presenting an already-revoked token is the signature of a stolen
+    token replay, so that revokes the whole chain (family) for the user.
+    """
+    __tablename__ = "refresh_tokens"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
+    token_hash: str = Field(unique=True, index=True)
+    expires_at: datetime
+    revoked_at: Optional[datetime] = None
+    replaced_by: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class Doctor(SQLModel, table=True):
     __tablename__ = "doctors"
 

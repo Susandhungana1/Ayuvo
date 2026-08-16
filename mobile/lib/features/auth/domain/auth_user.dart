@@ -38,16 +38,23 @@ abstract class AuthSession with _$AuthSession {
   const factory AuthSession({
     required AuthUser user,
     required String token,
+
+    /// Long-lived credential for `/api/auth/refresh`. Null only for sessions
+    /// stored before refresh tokens existed; those are signed out on launch
+    /// because they can never be renewed.
+    String? refreshToken,
   }) = _AuthSession;
 
   factory AuthSession.fromJson(Map<String, dynamic> json) =>
       _$AuthSessionFromJson(json);
 
   /// The login and register responses are flat — `{id, name, email, role,
-  /// token}` — so the user and the token come out of the same map.
+  /// token, refresh_token}` — so the user and the tokens come out of the same
+  /// map.
   factory AuthSession.fromTokenResponse(Map<String, dynamic> json) =>
       AuthSession(
         user: AuthUser.fromJson(json),
         token: json['token'] as String,
+        refreshToken: json['refresh_token'] as String?,
       );
 }

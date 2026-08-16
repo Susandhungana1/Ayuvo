@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
@@ -46,8 +47,8 @@ export default function Share() {
       const token = localStorage.getItem('token');
       
       const [reportsRes, linksRes] = await Promise.all([
-        fetch(`${API_URL}/api/reports`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/share`, { headers: { 'Authorization': `Bearer ${token}` } })
+        apiFetch(`${API_URL}/api/reports`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        apiFetch(`${API_URL}/api/share`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       if (reportsRes.ok) {
@@ -69,7 +70,7 @@ export default function Share() {
   const handleShare = async (reportId: string) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/share/${reportId}`, {
+      const res = await apiFetch(`${API_URL}/api/share/${reportId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -89,7 +90,7 @@ export default function Share() {
     if (!confirm('Are you sure you want to revoke this share link?')) return;
     try {
       const tokenAuth = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/share/${token}`, {
+      const res = await apiFetch(`${API_URL}/api/share/${token}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${tokenAuth}` }
       });
@@ -108,7 +109,7 @@ export default function Share() {
   const handleGenerateQRCode = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/share/qr-code`, {
+      const res = await apiFetch(`${API_URL}/api/share/qr-code`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -129,7 +130,7 @@ export default function Share() {
   const handleReportQR = async (reportId: string, reportName: string) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/share/${reportId}`, {
+      const res = await apiFetch(`${API_URL}/api/share/${reportId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });

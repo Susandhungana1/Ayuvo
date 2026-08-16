@@ -13,7 +13,7 @@ from app.core.config import settings, get_session
 from app.core.email import send_email
 from app.core.ratelimit import limiter
 from app.core.audit import record_access
-from app.models.models import User, PasswordResetToken
+from app.models.models import User, PasswordResetToken, RefreshToken
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -55,6 +55,16 @@ class TokenResponse(BaseModel):
     email: str
     role: str
     token: str
+    refresh_token: str
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class RefreshResponse(BaseModel):
+    token: str
+    refresh_token: str
 
 
 class LoginChallengeResponse(BaseModel):
@@ -99,9 +109,47 @@ class MessageResponse(BaseModel):
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(days=7))
+    expire = datetime.utcnow() + (expires_delta or ACCESS_TOKEN_TTL)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.jwt_secret, algorithm="HS256")
+
+
+# Access tokens are short-lived stateless JWTs; refresh tokens are long-lived
+# opaque strings stored hashed in the DB so they can be revoked and rotated.
+ACCESS_TOKEN_TTL = timedelta(minutes=60)
+REFRESH_TOKEN_TTL = timedelta(days=30)
+
+
+def _issue_refresh_token(db: Session, user_id: str, replaced: Optional[RefreshToken] = None) -> str:
+    """Create a refresh-token row and return the raw token. When `replaced` is
+    given (rotation), the old row is revoked and linked to its successor."""
+    raw = secrets.token_urlsafe(48)
+    row = RefreshToken(
+        user_id=user_id,
+        token_hash=_hash_token(raw),
+        expires_at=datetime.utcnow() + REFRESH_TOKEN_TTL,
+    )
+    db.add(row)
+    db.flush()
+    if replaced is not None:
+        replaced.revoked_at = datetime.utcnow()
+        replaced.replaced_by = row.token_hash
+        db.add(replaced)
+    db.commit()
+    return raw
+
+
+def _issue_session(db: Session, user: User) -> TokenResponse:
+    token = create_access_token({"sub": user.id})
+    refresh_token = _issue_refresh_token(db, user.id)
+    return TokenResponse(
+        id=user.id,
+        name=user.name,
+        email=user.email,
+        role=user.role,
+        token=token,
+        refresh_token=refresh_token,
+    )
 
 
 async def get_current_user(
@@ -143,15 +191,9 @@ async def register(request: Request, user_data: UserCreate, db: Session = Depend
     db.add(user)
     db.commit()
     db.refresh(user)
-    
-    token = create_access_token({"sub": user.id})
-    return TokenResponse(
-        id=user.id,
-        name=user.name,
-        email=user.email,
-        role=user.role,
-        token=token
-    )
+
+    record_access(db, "auth.register", actor_id=user.id, request=request)
+    return _issue_session(db, user)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -182,14 +224,102 @@ async def login(
             raise HTTPException(status_code=401, detail="Invalid TOTP code")
 
     record_access(db, "auth.login", actor_id=user.id, request=request)
-    token = create_access_token({"sub": user.id})
-    return TokenResponse(
-        id=user.id,
-        name=user.name,
-        email=user.email,
-        role=user.role,
-        token=token
+    return _issue_session(db, user)
+
+
+@router.post("/refresh", response_model=RefreshResponse)
+@limiter.limit("20/minute")
+async def refresh(
+    request: Request,
+    data: RefreshRequest,
+    db: Session = Depends(get_session),
+):
+    """Exchange a refresh token for a fresh access token, rotating the refresh
+    token in the process.
+
+    Presenting a token that has already been consumed is the signature of a
+    stolen-token replay, so that revokes every outstanding refresh token for
+    the user (the whole family) rather than just the one.
+    """
+    token = db.exec(
+        select(RefreshToken).where(
+            RefreshToken.token_hash == _hash_token(data.refresh_token.strip())
+        )
+    ).first()
+
+    if token is None:
+        record_access(db, "auth.refresh.unknown", request=request)
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    if token.revoked_at is not None:
+        # Replay of an already-rotated token: burn the family.
+        for member in db.exec(
+            select(RefreshToken).where(RefreshToken.user_id == token.user_id)
+        ).all():
+            if member.revoked_at is None:
+                member.revoked_at = datetime.utcnow()
+                db.add(member)
+        db.commit()
+        record_access(
+            db, "auth.refresh.replay", actor_id=token.user_id, request=request,
+            detail="revoked_token_replayed",
+        )
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    if token.expires_at < datetime.utcnow():
+        record_access(db, "auth.refresh.expired", actor_id=token.user_id, request=request)
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    user = db.get(User, token.user_id)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    # Opportunistic cleanup: drop this user's long-expired rows.
+    for old in db.exec(
+        select(RefreshToken).where(
+            RefreshToken.user_id == user.id,
+            RefreshToken.expires_at < datetime.utcnow(),
+        )
+    ).all():
+        db.delete(old)
+    db.commit()
+
+    new_refresh = _issue_refresh_token(db, user.id, replaced=token)
+    record_access(db, "auth.refresh", actor_id=user.id, request=request)
+    return RefreshResponse(
+        token=create_access_token({"sub": user.id}),
+        refresh_token=new_refresh,
     )
+
+
+@router.post("/logout", response_model=MessageResponse)
+async def logout(
+    request: Request,
+    data: Optional[RefreshRequest] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """Revoke the presented refresh token so the session cannot come back.
+    The access token stays valid until it expires on its own (short-lived)."""
+    if data and data.refresh_token.strip():
+        token = db.exec(
+            select(RefreshToken).where(
+                RefreshToken.token_hash == _hash_token(data.refresh_token.strip()),
+                RefreshToken.user_id == current_user.id,
+            )
+        ).first()
+        if token is not None and token.revoked_at is None:
+            token.revoked_at = datetime.utcnow()
+            db.add(token)
+            db.commit()
+            record_access(
+                db, "auth.logout", actor_id=current_user.id, request=request,
+                detail="refresh_revoked",
+            )
+    else:
+        record_access(db, "auth.logout", actor_id=current_user.id, request=request)
+
+    return MessageResponse(message="Signed out")
 
 
 # --- Password reset ---

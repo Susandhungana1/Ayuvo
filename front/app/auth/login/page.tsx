@@ -6,6 +6,7 @@ import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import { Card } from '@/components/card';
 import { Logo } from '@/components/Logo';
+import { storeSession } from '@/lib/api';
 import Link from 'next/link';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
@@ -44,9 +45,7 @@ export default function Login() {
         throw new Error(data.detail || 'Login failed');
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify({ id: data.id, name: data.name, email: data.email, role: data.role }));
-      window.dispatchEvent(new Event('localStorageUpdated'));
+      storeSession({ token: data.token, refresh_token: data.refresh_token, user: { id: data.id, name: data.name, email: data.email, role: data.role } });
       const next = new URLSearchParams(window.location.search).get('next');
       const safeNext = next?.startsWith('/') && !next.startsWith('//') ? next : '/';
       router.push(safeNext);

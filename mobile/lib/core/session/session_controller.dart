@@ -51,9 +51,11 @@ class SessionController extends AsyncNotifier<SessionState> {
     final client = ref.watch(apiClientProvider);
     _alive = true;
     client.onSessionExpired = _handleExpiry;
+    client.onTokensRefreshed = _handleTokensRefreshed;
     ref.onDispose(() {
       _alive = false;
       client.onSessionExpired = null;
+      client.onTokensRefreshed = null;
     });
 
     return _restore(client);
@@ -74,16 +76,37 @@ class SessionController extends AsyncNotifier<SessionState> {
       return const SignedOut();
     }
 
-    // There is no refresh token — after seven days the answer is simply
-    // "sign in again", and saying so beats a screen that 401s on load.
-    if (isTokenExpired(session.token)) {
+    // A session from before refresh tokens existed can never be renewed: even
+    // an unexpired access token has a use-by date it can't outlive. Sign out
+    // with a reason rather than 401 on the first request.
+    final refreshToken = session.refreshToken;
+    if (refreshToken == null) {
       await _store.clear();
       return const SignedOut(
-        notice: 'Your session ran out after seven days. Sign in again.',
+        notice: 'Your session ran out. Sign in again.',
       );
     }
 
-    client.useToken(session.token);
+    client.useSession(session.token, refreshToken);
+
+    // An expired access token is paid off up front: renewing here, before any
+    // screen renders, means the first request after launch is never a 401 —
+    // and it avoids racing the launch-time background calls against each
+    // other's refreshes.
+    if (isTokenExpired(session.token)) {
+      final renewed = await client.refreshNow();
+      if (!renewed) {
+        await _store.clear();
+        return const SignedOut(
+          notice: 'Your session ran out. Sign in again.',
+        );
+      }
+      session = session.copyWith(
+        token: client.accessToken!,
+        refreshToken: client.currentRefreshToken!,
+      );
+    }
+
     // Not awaited: the app opens on the stored user, and a changed name or
     // role lands a moment later. A 401 here is handled by the interceptor.
     unawaited(_refreshUser());
@@ -92,22 +115,39 @@ class SessionController extends AsyncNotifier<SessionState> {
 
   /// Called after register, or after login when there was no second factor.
   Future<void> signIn(AuthSession session) async {
-    _client.useToken(session.token);
+    _client.useSession(session.token, session.refreshToken);
     await _store.write(jsonEncode(session.toJson()));
     if (_alive) state = AsyncData(SignedIn(session));
   }
 
   /// The user asked to sign out. No notice — they know why they are here.
   ///
-  /// The offline cache goes with the token. Its entries are stamped with the
-  /// owner and would be refused for anyone else anyway, but a phone handed to a
-  /// family member should not still have a medicine list on it, refused or not.
+  /// The refresh token is revoked server-side first (best-effort, so it can't
+  /// resurrect the session), then everything local goes away. The offline cache
+  /// goes with the token: its entries are stamped with the owner and would be
+  /// refused for anyone else anyway, but a phone handed to a family member
+  /// should not still have a medicine list on it, refused or not.
   ///
   /// Cleared through [LocalStore] rather than through `offlineCacheProvider`:
   /// that provider watches the session to know whose cache it is, so reading it
   /// from here would be a circular dependency.
   Future<void> signOut() async {
-    _client.useToken(null);
+    final session = state.valueOrNull;
+    if (session is SignedIn) {
+      _client.useToken(null);
+      _client.useRefreshToken(null);
+      // Revocation is a courtesy, not a requirement: sign-out must complete on
+      // a dead network, so the outcome is deliberately ignored.
+      unawaited(
+        ref
+            .read(authRepositoryProvider)
+            .logout(session.session.refreshToken)
+            .catchError((Object _) {}),
+      );
+    } else {
+      _client.useToken(null);
+      _client.useRefreshToken(null);
+    }
     await Future.wait([
       _store.clear(),
       ref.read(localStoreProvider).clearPrefix(OfflineCache.filePrefix),
@@ -123,15 +163,49 @@ class SessionController extends AsyncNotifier<SessionState> {
     }
   }
 
-  /// The interceptor saw a 401 on an authenticated call. Synchronous, and safe
-  /// to call from several in-flight requests at once.
+  /// The interceptor saw a 401 on an authenticated call and had no way to
+  /// renew (no refresh token, or the refresh itself failed). Synchronous, and
+  /// safe to call from several in-flight requests at once.
   void _handleExpiry() {
     if (!_alive || state.valueOrNull is SignedOut) return;
-    _client.useToken(null);
+    _client.useSession(null, null);
     unawaited(_store.clear());
     state = const AsyncData(
       SignedOut(notice: 'Your session has ended. Sign in again.'),
     );
+  }
+
+  /// The interceptor rotated the pair and wants the new one persisted so the
+  /// next launch starts with a live session instead of a 401-then-refresh.
+  Future<void> _handleTokensRefreshed(
+    String accessToken,
+    String refreshToken,
+  ) async {
+    final current = state.valueOrNull;
+    if (current is SignedIn) {
+      final updated = current.session.copyWith(
+        token: accessToken,
+        refreshToken: refreshToken,
+      );
+      await _store.write(jsonEncode(updated.toJson()));
+      if (_alive) state = AsyncData(SignedIn(updated));
+      return;
+    }
+    // The refresh beat the launch: `build()` is still restoring, so state isn't
+    // SignedIn yet, but the stored pair still needs to be rotated — otherwise
+    // the launch continues on a token that is already dead.
+    if (!_alive) return;
+    try {
+      final raw = await _store.read();
+      if (raw == null) return;
+      final stored =
+          AuthSession.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      await _store.write(jsonEncode(
+        stored.copyWith(token: accessToken, refreshToken: refreshToken).toJson(),
+      ));
+    } catch (_) {
+      // Unreadable blob; the restore path will clear it on its own.
+    }
   }
 
   /// Pulls the current name/email/role so a change made elsewhere (or a role

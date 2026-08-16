@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/button';
@@ -110,14 +111,14 @@ export default function Home() {
 
     const fetchMeds = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/medicines`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await apiFetch(`${API_URL}/api/medicines`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) { const d = await res.json(); setMedicines(d.medicines || []); }
       } catch (e) { console.error(e); } finally { setMedsLoading(false); }
     };
 
     const fetchVitals = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/vitals?limit=20`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await apiFetch(`${API_URL}/api/vitals?limit=20`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) { const d = await res.json(); setVitals(d.vitals || []); }
       } catch (e) { console.error(e); } finally { setVitalsLoading(false); }
     };

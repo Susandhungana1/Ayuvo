@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -27,7 +28,7 @@ async function fetchAvailability(): Promise<Record<string, Availability>> {
   // This used to call /availability/{user.id}, which is wrong twice over:
   // that path wants a Doctor UUID, not a user id, and user ids contain a
   // '#' that truncates the URL into a fragment before it is even sent.
-  const res = await fetch(`${API_URL}/api/doctors/availability`, {
+  const res = await apiFetch(`${API_URL}/api/doctors/availability`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
 
@@ -101,7 +102,7 @@ export default function DoctorAvailability() {
       // POST rejects a window that overlaps one already set for that weekday,
       // so a failure here is something the doctor needs to see, not swallow.
       const res = existing
-        ? await fetch(`${API_URL}/api/doctors/availability/${existing.id}`, {
+        ? await apiFetch(`${API_URL}/api/doctors/availability/${existing.id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -113,7 +114,7 @@ export default function DoctorAvailability() {
               is_available: true
             })
           })
-        : await fetch(`${API_URL}/api/doctors/availability`, {
+        : await apiFetch(`${API_URL}/api/doctors/availability`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -150,7 +151,7 @@ export default function DoctorAvailability() {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/doctors/availability/${avail.id}`, {
+      const res = await apiFetch(`${API_URL}/api/doctors/availability/${avail.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

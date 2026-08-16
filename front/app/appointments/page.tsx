@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { CalendarDays, Plus, CalendarPlus, CheckCircle2, Download, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -49,7 +50,7 @@ function statusChip(status: string) {
 
 async function fetchAppointments(): Promise<Appointment[]> {
   const token = localStorage.getItem('token');
-  const res = await fetch(`${API_URL}/api/appointments`, {
+  const res = await apiFetch(`${API_URL}/api/appointments`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   if (res.ok) {
@@ -61,7 +62,7 @@ async function fetchAppointments(): Promise<Appointment[]> {
 
 async function fetchDoctors(): Promise<Doctor[]> {
   const token = localStorage.getItem('token');
-  const res = await fetch(`${API_URL}/api/doctors/doctors`, {
+  const res = await apiFetch(`${API_URL}/api/doctors/doctors`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   if (res.ok) {
@@ -129,7 +130,7 @@ export default function Appointments() {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/appointments`, {
+      const res = await apiFetch(`${API_URL}/api/appointments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -183,7 +184,7 @@ export default function Appointments() {
     if (!confirm('Are you sure you want to cancel this appointment?')) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/appointments/${id}`, {
+      const res = await apiFetch(`${API_URL}/api/appointments/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

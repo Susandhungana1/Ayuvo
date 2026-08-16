@@ -48,3 +48,5 @@ app.*.map.json
 # not cover the one Gradle writes under android/ during a sync.
 /android/build/
 /android/.gradle/
+.vercel
+.env*

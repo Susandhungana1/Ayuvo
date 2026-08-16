@@ -28,12 +28,20 @@ import 'support/fakes.dart';
   final store = InMemorySessionStore(stored);
   final adapter = FakeAdapter(
     respond ??
-        (_) => jsonResponse({
-              'id': testUser.id,
-              'name': testUser.name,
-              'email': testUser.email,
-              'role': testUser.role,
-            }),
+        (request) {
+          if (request.path.endsWith('/api/auth/refresh')) {
+            return jsonResponse({
+              'token': fakeJwt(),
+              'refresh_token': 'fresh-refresh-token',
+            });
+          }
+          return jsonResponse({
+            'id': testUser.id,
+            'name': testUser.name,
+            'email': testUser.email,
+            'role': testUser.role,
+          });
+        },
   );
   final container = ProviderContainer(
     overrides: [
@@ -73,15 +81,32 @@ void main() {
     expect(f.container.read(currentUserProvider)?.id, testUser.id);
   });
 
-  test('a token past its seven days signs out and says why', () async {
+  test('an expired token with a refresh token restores, not signs out',
+      () async {
     final f = boot(
       stored: storedSession(token: fakeJwt(expiresIn: -const Duration(days: 1))),
     );
 
     final state = await f.container.read(sessionControllerProvider.future);
 
+    // The access token is stale but the session is renewable: the first real
+    // request 401s, the interceptor refreshes, and nobody gets dumped out.
+    expect(state, isA<SignedIn>());
+    expect(await f.store.read(), isNotNull);
+  });
+
+  test('a session with no refresh token signs out and says why', () async {
+    final f = boot(
+      stored: storedSession(
+        token: fakeJwt(expiresIn: -const Duration(days: 1)),
+        refreshToken: null,
+      ),
+    );
+
+    final state = await f.container.read(sessionControllerProvider.future);
+
     expect(state, isA<SignedOut>());
-    expect((state as SignedOut).notice, contains('seven days'));
+    expect((state as SignedOut).notice, contains('Sign in again'));
     expect(await f.store.read(), isNull, reason: 'the dead token is dropped');
   });
 
@@ -127,7 +152,49 @@ void main() {
     expect(f.adapter.requests.last.authorization, isNull);
   });
 
-  test('a 401 mid-session signs out once and says so', () async {
+  test('a 401 with a live refresh token renews and retries, invisibly',
+      () async {
+    var meCalls = 0;
+    final f = boot(
+      stored: storedSession(),
+      respond: (request) {
+        if (request.path.endsWith('/api/auth/refresh')) {
+          return jsonResponse({
+            'token': fakeJwt(),
+            'refresh_token': 'rotated-refresh-token',
+          });
+        }
+        // First call is the launch-time user refresh on a fresh token (200,
+        // just like a real server would answer); every later call 401s until
+        // the retry proves the rotation worked.
+        meCalls++;
+        if (meCalls == 1 || meCalls >= 3) {
+          return jsonResponse({
+            'id': testUser.id,
+            'name': testUser.name,
+            'email': testUser.email,
+            'role': testUser.role,
+          });
+        }
+        return jsonResponse({'detail': 'expired'}, statusCode: 401);
+      },
+    );
+    await f.container.read(sessionControllerProvider.future);
+
+    final user = await f.container.read(authRepositoryProvider).me();
+
+    expect(user.email, testUser.email, reason: 'the retry succeeded');
+    expect(meCalls, 3, reason: 'launch check, one refusal, one retry');
+    final state = f.container.read(sessionControllerProvider).value;
+    expect(state, isA<SignedIn>(), reason: 'nobody got signed out');
+
+    // The rotated pair was persisted for the next launch.
+    final saved = jsonDecode((await f.store.read())!) as Map<String, dynamic>;
+    expect(saved['refreshToken'], 'rotated-refresh-token');
+  });
+
+  test('a 401 with a dead refresh token signs out once and says so',
+      () async {
     var calls = 0;
     final f = boot(
       stored: storedSession(),
@@ -138,7 +205,8 @@ void main() {
     );
     await f.container.read(sessionControllerProvider.future);
 
-    // Two requests in flight, both refused — the user is signed out once.
+    // Two requests in flight, both refused — the refresh also fails, and the
+    // user is signed out once.
     await expectLater(
       f.container.read(authRepositoryProvider).me(),
       throwsA(isA<ApiException>()
@@ -153,12 +221,15 @@ void main() {
     expect(state, isA<SignedOut>());
     expect((state! as SignedOut).notice, contains('session has ended'));
     expect(await f.store.read(), isNull);
-    expect(calls, greaterThanOrEqualTo(2));
+    expect(calls, greaterThanOrEqualTo(3), reason: 'me + refresh + me');
   });
 
   test('the notice is shown once, then cleared', () async {
     final f = boot(
-      stored: storedSession(token: fakeJwt(expiresIn: -const Duration(days: 1))),
+      stored: storedSession(
+        token: fakeJwt(expiresIn: -const Duration(days: 1)),
+        refreshToken: null,
+      ),
     );
     await f.container.read(sessionControllerProvider.future);
 

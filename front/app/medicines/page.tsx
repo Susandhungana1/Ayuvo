@@ -6,6 +6,7 @@ import { Bell, CheckCircle2, Loader2 } from 'lucide-react';
 import { MedicineManager } from '@/components/medicine-manager';
 import { ensurePushSubscription } from '@/components/medicine-alarm';
 import { API_URL, authHeaders } from '@/lib/care';
+import { apiFetch } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Medicines() {
@@ -58,7 +59,7 @@ export default function Medicines() {
     setEnablingReminders(true);
     setReminderStatus('');
     try {
-      const res = await fetch(`${API_URL}/api/push/test`, {
+      const res = await apiFetch(`${API_URL}/api/push/test`, {
         method: 'POST',
         headers: authHeaders(),
       });

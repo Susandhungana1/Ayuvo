@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { Activity, Mic, X, Plus, Info, Thermometer, Heart, Droplets, Wind, Scale, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -236,7 +237,7 @@ export default function Vitals() {
 
   const fetchVitals = async (): Promise<VitalSign[]> => {
     const token = localStorage.getItem('token');
-    const res = await fetch(`${API_URL}/api/vitals?limit=100`, {
+    const res = await apiFetch(`${API_URL}/api/vitals?limit=100`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (res.ok) {
@@ -273,7 +274,7 @@ export default function Vitals() {
       if (formData.oxygen_saturation) body.oxygen_saturation = parseInt(formData.oxygen_saturation);
       if (formData.notes) body.notes = formData.notes;
 
-      const res = await fetch(`${API_URL}/api/vitals`, {
+      const res = await apiFetch(`${API_URL}/api/vitals`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -299,7 +300,7 @@ export default function Vitals() {
     if (!confirm('Delete this vital sign entry?')) return;
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${API_URL}/api/vitals/${id}`, {
+      await apiFetch(`${API_URL}/api/vitals/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

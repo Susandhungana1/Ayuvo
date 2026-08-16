@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { FileText, Pill, CalendarDays, Activity, Pin, History } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -39,7 +40,7 @@ export default function Timeline() {
   const fetchTimeline = async (): Promise<TimelineEvent[]> => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/timeline?limit=100`, {
+      const res = await apiFetch(`${API_URL}/api/timeline?limit=100`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {

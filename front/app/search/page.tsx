@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Search as SearchIcon } from 'lucide-react';
@@ -29,7 +30,7 @@ const TYPE_BADGE: Record<string, string> = {
 async function doSearch(q: string): Promise<SearchResult[]> {
   const token = localStorage.getItem('token');
   if (!token) return [];
-  const res = await fetch(`${API_URL}/api/search?q=${encodeURIComponent(q)}`, {
+  const res = await apiFetch(`${API_URL}/api/search?q=${encodeURIComponent(q)}`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   if (!res.ok) return [];

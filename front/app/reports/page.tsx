@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { FileText, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -92,7 +93,7 @@ export default function Reports() {
   const loadReports = async (): Promise<{ reports: Report[]; offline: boolean } | null> => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/reports`, {
+      const res = await apiFetch(`${API_URL}/api/reports`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -114,7 +115,7 @@ export default function Reports() {
   const loadTrends = async (): Promise<TrendSeries[]> => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/reports/trends`, {
+      const res = await apiFetch(`${API_URL}/api/reports/trends`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -150,7 +151,7 @@ export default function Reports() {
     setLabAnalysis({ reportName: report.report_type.replace('_', ' '), overall: '', abnormal_count: 0, findings: [] });
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/reports/${report.id}/lab-analysis`, {
+      const res = await apiFetch(`${API_URL}/api/reports/${report.id}/lab-analysis`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -166,7 +167,7 @@ export default function Reports() {
     setExplain({ title: report.report_type.replace('_', ' '), text: '' });
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/reports/${report.id}/explain`, {
+      const res = await apiFetch(`${API_URL}/api/reports/${report.id}/explain`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -186,7 +187,7 @@ export default function Reports() {
     let findings;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/reports/${report.id}/lab-analysis`, {
+      const res = await apiFetch(`${API_URL}/api/reports/${report.id}/lab-analysis`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -216,7 +217,7 @@ export default function Reports() {
       if (hospitalName) formData.append('hospital', hospitalName);
       if (verifiedBy) formData.append('doctor_name', verifiedBy);
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/reports`, {
+      const res = await apiFetch(`${API_URL}/api/reports`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -250,7 +251,7 @@ export default function Reports() {
   const handleViewReport = async (report: Report) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/reports/${report.id}/file`, {
+      const res = await apiFetch(`${API_URL}/api/reports/${report.id}/file`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -267,7 +268,7 @@ export default function Reports() {
     if (!confirm('Are you sure you want to delete this report?')) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/reports/${id}`, {
+      const res = await apiFetch(`${API_URL}/api/reports/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

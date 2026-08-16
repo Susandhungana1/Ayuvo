@@ -64,6 +64,33 @@ class AuthRepository {
     return AuthUser.fromJson(json);
   }
 
+  /// `POST /api/auth/refresh` — exchanges a refresh token for a fresh access
+  /// token, rotating the refresh token. The caller (the API client's 401
+  /// interceptor) hands the returned pair back to the session.
+  Future<({String token, String refreshToken})> refreshTokens(
+    String refreshToken,
+  ) async {
+    final json = await _client.post<Map<String, dynamic>>(
+      '/api/auth/refresh',
+      body: {'refresh_token': refreshToken},
+      options: unauthenticated,
+    );
+    return (
+      token: json['token'] as String,
+      refreshToken: json['refresh_token'] as String,
+    );
+  }
+
+  /// `POST /api/auth/logout` — revokes the refresh token server-side so the
+  /// session cannot come back. The access token dies on its own (short-lived).
+  /// Best-effort: sign-out must not fail because the network is down.
+  Future<void> logout(String? refreshToken) async {
+    await _client.post<Map<String, dynamic>>(
+      '/api/auth/logout',
+      body: refreshToken == null ? null : {'refresh_token': refreshToken},
+    );
+  }
+
   /// `POST /api/auth/forgot-password` — rate limited 3/min.
   ///
   /// Answers identically whether or not the email has an account, so the reply

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, useRef } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { FolderOpen, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -61,7 +62,7 @@ export default function Documents() {
     }
 
     try {
-      const res = await fetch(`${API_URL}/api/documents`, {
+      const res = await apiFetch(`${API_URL}/api/documents`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -98,7 +99,7 @@ export default function Documents() {
   const fetchDocumentFiles = async (docId: string) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/documents/${docId}/files`, {
+      const res = await apiFetch(`${API_URL}/api/documents/${docId}/files`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -163,7 +164,7 @@ export default function Documents() {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/documents`, {
+      const res = await apiFetch(`${API_URL}/api/documents`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -183,7 +184,7 @@ export default function Documents() {
         const formDataFile = new FormData();
         formDataFile.append('file', selectedFile);
 
-        await fetch(`${API_URL}/api/documents/${newDoc.id}/files`, {
+        await apiFetch(`${API_URL}/api/documents/${newDoc.id}/files`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
           body: formDataFile
@@ -212,7 +213,7 @@ export default function Documents() {
     if (!confirm('Are you sure you want to delete this document?')) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/documents/${id}`, {
+      const res = await apiFetch(`${API_URL}/api/documents/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

@@ -18,6 +18,8 @@ class RecordedRequest {
   final String body;
 
   String? get authorization => options.headers['Authorization'] as String?;
+
+  String get path => options.path;
 }
 
 class FakeAdapter implements HttpClientAdapter {
