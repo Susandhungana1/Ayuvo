@@ -2,6 +2,12 @@ import { ShieldCheck, CalendarDays, Activity } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { StatusChip } from '@/components/ui/status-chip';
 import { RangeBar } from '@/components/ui/range-bar';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'About Us - MediStore',
+  description: 'MediStore is your personal digital health store — a secure platform to store medical records, track vital signs, manage medications, and share health data with doctors.',
+};
 
 export default function About() {
   return (

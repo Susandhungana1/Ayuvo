@@ -1,6 +1,12 @@
 import { Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Contact Us - MediStore',
+  description: 'Have questions about MediStore? Reach out for help with your account, reports, or appointments.',
+};
 
 export default function Contact() {
   return (

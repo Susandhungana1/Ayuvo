@@ -458,6 +458,49 @@ export default function Home() {
               <Link href="/auth/register"><Button variant="primary" className="text-base px-6 py-2.5">Create Free Account</Button></Link>
             </div>
           </section>
+
+          {/* FAQ — common questions for people deciding whether to trust a
+              health platform with their records. */}
+          <section id="faq" className="py-20 bg-white dark:bg-[var(--color-card)]">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-12">
+                <h2 className="text-2xl font-bold text-[var(--color-ink)] font-heading mb-3">Frequently Asked Questions</h2>
+                <p className="text-[var(--color-ink-variant)]">Answers to the questions people ask before signing up.</p>
+              </div>
+              <div className="space-y-4">
+                {[
+                  {
+                    q: 'Is my medical data safe with MediStore?',
+                    a: 'Yes. Your data is stored securely in an encrypted database, locked behind your account, and never sold or shared without your consent. You control exactly what you share and for how long.',
+                  },
+                  {
+                    q: 'Is MediStore a medical service?',
+                    a: 'No. MediStore is a storage and management tool for your health records. It does not provide medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider for medical decisions.',
+                  },
+                  {
+                    q: 'Who can see my records?',
+                    a: 'Only you, unless you deliberately share them. Doctors you book appointments with and caretakers you invite see only what you authorize, and share links expire automatically after the time you choose.',
+                  },
+                  {
+                    q: 'How does sharing a report work?',
+                    a: 'You generate a secure link with an expiry time and send it to a doctor or family member. The link opens a read-only view of that single report and stops working once it expires.',
+                  },
+                  {
+                    q: 'Is MediStore free?',
+                    a: 'Yes. Creating an account and using all core features — vitals, medicines, reports, appointments, and sharing — is free.',
+                  },
+                ].map((item) => (
+                  <details key={item.q} className="group bg-[var(--color-bg)] dark:bg-[var(--color-background)] border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] rounded-[var(--radius-md)]">
+                    <summary className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer font-medium text-[var(--color-ink)] list-none">
+                      {item.q}
+                      <span className="text-[var(--color-primary)] transition-transform group-open:rotate-45 text-lg leading-none shrink-0">+</span>
+                    </summary>
+                    <p className="px-5 pb-5 text-sm text-[var(--color-ink-variant)] leading-relaxed">{item.a}</p>
+                  </details>
+                ))}
+              </div>
+            </div>
+          </section>
         </>
       )}
     </div>

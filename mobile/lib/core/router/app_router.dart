@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/legal/presentation/not_found_screen.dart';
 import '../../features/appointments/presentation/appointments_screen.dart';
 import '../../features/assistant/presentation/assistant_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
@@ -49,6 +50,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: Routes.splash,
     refreshListenable: refresh,
     redirect: (context, state) => _redirect(ref, state.matchedLocation),
+    errorBuilder: (context, state) => const NotFoundScreen(),
     routes: _routes,
   );
   ref.onDispose(router.dispose);

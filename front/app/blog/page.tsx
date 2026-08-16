@@ -23,6 +23,10 @@ export default function BlogListingPage() {
 
   return (
     <div className="min-h-screen bg-surface">
+      {/* React 19 hoists these to <head>; the page is client-side, so the
+          Metadata API is not available here. */}
+      <title>Health & Wellness Blog - MediStore</title>
+      <meta name="description" content="Practical advice, technology trends, and clinical insights to empower your health journey." />
       {/* Hero */}
       <section className="bg-surface-card border-b border-outline pt-16 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

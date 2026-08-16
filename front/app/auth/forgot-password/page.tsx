@@ -42,6 +42,10 @@ export default function ForgotPassword() {
 
   return (
     <div className="bg-[var(--color-background)] min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      {/* React 19 hoists these to <head>; the page is client-side, so the
+          Metadata API is not available here. */}
+      <title>Forgot Password - MediStore</title>
+      <meta name="description" content="Reset your MediStore password — enter your email and we will send you a reset link." />
       <div className="w-full max-w-md">
 
         <div className="text-center mb-8">

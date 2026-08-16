@@ -86,6 +86,34 @@ export default function RootLayout({
           <PwaRegister />
           <MedicineAlarm />
         </I18nProvider>
+        {/* Structured data — Organization + WebSite so search engines can
+            attribute the site correctly. Rendered server-side. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  "@id": "https://medistore-health.vercel.app/#organization",
+                  name: "MediStore",
+                  url: "https://medistore-health.vercel.app",
+                  logo: "https://medistore-health.vercel.app/icon-512.png",
+                  email: "susandhungana20@gmail.com",
+                  description: "Personal digital health store — securely manage, track, and share your medical records.",
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": "https://medistore-health.vercel.app/#website",
+                  url: "https://medistore-health.vercel.app",
+                  name: "MediStore",
+                  publisher: { "@id": "https://medistore-health.vercel.app/#organization" },
+                },
+              ],
+            }),
+          }}
+        />
       </body>
     </html>
   );

@@ -24,6 +24,7 @@ export function Footer() {
               <li><Link href="/about" className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors">About Us</Link></li>
               <li><Link href="/contact" className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors">Contact</Link></li>
               <li><Link href="/blog" className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors">Blog</Link></li>
+              <li><Link href="/#faq" className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors">FAQ</Link></li>
             </ul>
           </div>
 

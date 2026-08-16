@@ -66,6 +66,10 @@ export default function Register() {
 
   return (
     <div className="bg-[var(--color-background)] min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      {/* React 19 hoists these to <head>; the page is client-side, so the
+          Metadata API is not available here. */}
+      <title>Create Account - MediStore</title>
+      <meta name="description" content="Create a free MediStore account to securely store, track, and share your medical records." />
       <div className="w-full max-w-md">
         
         <div className="text-center mb-8">
