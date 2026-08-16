@@ -45,7 +45,7 @@ export default function Login() {
       }
 
       localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data));
+      localStorage.setItem('user', JSON.stringify({ id: data.id, name: data.name, email: data.email, role: data.role }));
       window.dispatchEvent(new Event('localStorageUpdated'));
       const next = new URLSearchParams(window.location.search).get('next');
       const safeNext = next?.startsWith('/') && !next.startsWith('//') ? next : '/';
@@ -77,6 +77,7 @@ export default function Login() {
               label="Email Address"
               name="email"
               type="email"
+              autoComplete="email"
               placeholder="you@example.com"
               value={formData.email}
               onChange={handleChange}
@@ -88,6 +89,7 @@ export default function Login() {
                 label="Password"
                 name="password"
                 type="password"
+                autoComplete="current-password"
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}

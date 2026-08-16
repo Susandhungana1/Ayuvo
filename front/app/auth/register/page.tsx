@@ -54,7 +54,7 @@ export default function Register() {
       }
 
       localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data));
+      localStorage.setItem('user', JSON.stringify({ id: data.id, name: data.name, email: data.email, role: data.role }));
       window.dispatchEvent(new Event('localStorageUpdated'));
       router.push('/');
     } catch (err: any) {
@@ -104,6 +104,7 @@ export default function Register() {
               label="Password"
               name="password"
               type="password"
+              autoComplete="new-password"
               placeholder="Create a strong password"
               value={formData.password}
               onChange={handleChange}
@@ -114,6 +115,7 @@ export default function Register() {
               label="Confirm Password"
               name="confirmPassword"
               type="password"
+              autoComplete="new-password"
               placeholder="Confirm your password"
               value={formData.confirmPassword}
               onChange={handleChange}

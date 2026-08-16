@@ -129,6 +129,7 @@ function ResetPasswordForm() {
                 label="New Password"
                 name="password"
                 type="password"
+                autoComplete="new-password"
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
@@ -139,6 +140,7 @@ function ResetPasswordForm() {
                 label="Confirm New Password"
                 name="confirmPassword"
                 type="password"
+                autoComplete="new-password"
                 placeholder="••••••••"
                 value={formData.confirmPassword}
                 onChange={handleChange}
