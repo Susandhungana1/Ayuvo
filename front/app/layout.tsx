@@ -24,7 +24,7 @@ const notoSans = Noto_Sans({
 
 export const metadata: Metadata = {
   title: "MediStore - Your Personal Digital Health Store",
-  description: "Securely manage, track, and share your medical records.",
+  description: "Securely manage, track, and share your medical records. Your personal digital health store for vitals, medicines, reports, and more.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -34,6 +34,28 @@ export const metadata: Metadata = {
   icons: {
     icon: "/icon-32.png",
     apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    title: "MediStore - Your Personal Digital Health Store",
+    description: "Securely manage, track, and share your medical records.",
+    url: "https://medistore-health.vercel.app",
+    siteName: "MediStore",
+    type: "website",
+    locale: "en_US",
+    images: [
+      {
+        url: "/icon-512.png",
+        width: 512,
+        height: 512,
+        alt: "MediStore",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MediStore - Your Personal Digital Health Store",
+    description: "Securely manage, track, and share your medical records.",
+    images: ["/icon-512.png"],
   },
 };
 

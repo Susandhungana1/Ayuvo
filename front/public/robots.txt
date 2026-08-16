@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /care/
+
+Sitemap: https://medistore-health.vercel.app/sitemap.xml
