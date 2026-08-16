@@ -43,28 +43,38 @@ let refreshPromise: Promise<boolean> | null = null;
 
 /** Rotate tokens. Single-flight: concurrent callers await the same request. */
 export async function refreshTokens(): Promise<boolean> {
-  const refreshToken =
-    typeof window === 'undefined' ? null : localStorage.getItem('refresh_token');
-  if (!refreshToken) return false;
+  if (typeof window === 'undefined') return false;
+  const attempted = localStorage.getItem('refresh_token');
+  if (!attempted) return false;
   if (!refreshPromise) {
     refreshPromise = (async () => {
       try {
         const res = await fetch(`${API_URL}/api/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: refreshToken }),
+          body: JSON.stringify({ refresh_token: attempted }),
         });
-        if (!res.ok) return false;
-        const data = await res.json();
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('refresh_token', data.refresh_token);
-        return true;
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('refresh_token', data.refresh_token);
+          return true;
+        }
       } catch {
-        return false;
-      } finally {
-        refreshPromise = null;
+        /* fall through to the sibling-tab check below */
       }
+      // The refresh may have failed because a sibling tab won the race to
+      // rotate first (two tabs expiring together). Give that tab's rotation
+      // a moment to land via the storage event, then adopt its pair instead
+      // of giving up and signing out.
+      await new Promise((resolve) => setTimeout(resolve, 750));
+      const fresher = localStorage.getItem('refresh_token');
+      if (fresher && fresher !== attempted) return true;
+      return false;
     })();
+    refreshPromise.finally(() => {
+      refreshPromise = null;
+    });
   }
   return refreshPromise;
 }

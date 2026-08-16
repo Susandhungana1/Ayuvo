@@ -118,6 +118,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 # opaque strings stored hashed in the DB so they can be revoked and rotated.
 ACCESS_TOKEN_TTL = timedelta(minutes=60)
 REFRESH_TOKEN_TTL = timedelta(days=30)
+# A replayed refresh token that was rotated this recently is a sibling-tab
+# race, not an attacker — reject without burning the family.
+REPLAY_GRACE = timedelta(seconds=30)
 
 
 def _issue_refresh_token(db: Session, user_id: str, replaced: Optional[RefreshToken] = None) -> str:
@@ -239,7 +242,10 @@ async def refresh(
 
     Presenting a token that has already been consumed is the signature of a
     stolen-token replay, so that revokes every outstanding refresh token for
-    the user (the whole family) rather than just the one.
+    the user (the whole family) rather than just the one. The exception is a
+    token rotated within `REPLAY_GRACE`: two tabs that expire together race
+    the same refresh, and the loser looks exactly like a replay. That case
+    only rejects the request, keeping the family alive.
     """
     token = db.exec(
         select(RefreshToken).where(
@@ -252,7 +258,20 @@ async def refresh(
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
     if token.revoked_at is not None:
-        # Replay of an already-rotated token: burn the family.
+        # A token that was rotated moments ago was probably consumed by a
+        # sibling tab, not an attacker: two tabs whose access tokens expire at
+        # the same moment race the same refresh, and the loser replays the
+        # token the winner just rotated. Within the grace window treat that as
+        # a race — reject it, but leave the family alive so the legitimate
+        # session survives. Only replays older than the window get the
+        # burn-the-family response.
+        if datetime.utcnow() - token.revoked_at < REPLAY_GRACE:
+            record_access(
+                db, "auth.refresh.race", actor_id=token.user_id,
+                request=request, detail="revoked_token_within_grace",
+            )
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+        # Genuine replay of an already-rotated token: burn the family.
         for member in db.exec(
             select(RefreshToken).where(RefreshToken.user_id == token.user_id)
         ).all():

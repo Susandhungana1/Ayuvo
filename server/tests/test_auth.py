@@ -145,7 +145,10 @@ def test_refresh_rotates_and_old_token_dies(client):
     assert ok.status_code == 200, ok.text
 
 
-def test_refresh_replay_revokes_family(client):
+def test_refresh_replay_within_grace_is_a_race_not_an_attack(client):
+    """Two tabs that expire together race the same refresh: the loser replays
+    the token the winner just rotated. Within the grace window that must NOT
+    burn the family, or a sibling tab would kill the session it shares."""
     email, _ = _register(client)
     body = _login(client, email)
     first = body["refresh_token"]
@@ -153,7 +156,43 @@ def test_refresh_replay_revokes_family(client):
     resp = client.post("/api/auth/refresh", json={"refresh_token": first})
     second = resp.json()["refresh_token"]
 
-    # Present the already-consumed first token: whole family must die.
+    # The loser tab presents the already-consumed first token seconds later.
+    replay = client.post("/api/auth/refresh", json={"refresh_token": first})
+    assert replay.status_code == 401
+
+    # The family survived: the winner's rotated token still refreshes.
+    alive = client.post("/api/auth/refresh", json={"refresh_token": second})
+    assert alive.status_code == 200, alive.text
+
+
+def test_refresh_replay_after_grace_revokes_family(client, db_session):
+    """A token replayed well after its rotation is an attacker, not a race:
+    the whole family must die."""
+    email, _ = _register(client)
+    body = _login(client, email)
+    first = body["refresh_token"]
+
+    resp = client.post("/api/auth/refresh", json={"refresh_token": first})
+    second = resp.json()["refresh_token"]
+
+    # Age the consumed token past the grace window so the replay reads as an
+    # attack rather than a sibling-tab race.
+    from datetime import timedelta
+
+    from app.models.models import RefreshToken
+    from sqlmodel import select
+
+    row = db_session.exec(
+        select(RefreshToken).where(
+            RefreshToken.user_id == body["id"],
+            RefreshToken.revoked_at.is_not(None),
+        )
+    ).first()
+    assert row is not None
+    row.revoked_at = row.revoked_at - timedelta(seconds=60)
+    db_session.add(row)
+    db_session.commit()
+
     replay = client.post("/api/auth/refresh", json={"refresh_token": first})
     assert replay.status_code == 401
 

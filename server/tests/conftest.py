@@ -46,6 +46,16 @@ def client():
 
 
 @pytest.fixture
+def db_session():
+    """A direct session on the same SQLite DB the TestClient uses, for tests
+    that need to manipulate rows (e.g. aging a revoked refresh token)."""
+    from sqlmodel import Session
+
+    with Session(engine) as session:
+        yield session
+
+
+@pytest.fixture
 def auth_client(client):
     """A TestClient with a registered+logged-in user and its bearer token."""
     import uuid
