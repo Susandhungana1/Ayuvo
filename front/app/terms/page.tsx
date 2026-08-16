@@ -21,7 +21,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-[var(--color-ink)] mb-3">1. Acceptance of Terms</h2>
             <p>
-              By accessing or using MediStore (the &quot;Service&quot;), you agree to be bound by these Terms of Service
+              By accessing or using MediStore, a product of Quorlyn (the &quot;Service&quot;), you agree to be bound by these Terms of Service
               (&quot;Terms&quot;). If you do not agree to all of these Terms, you may not use the Service.
             </p>
           </section>
@@ -141,7 +141,12 @@ export default function TermsPage() {
               If you have questions about these Terms, please contact us at:{' '}
               <a href="mailto:susandhungana20@gmail.com" className="text-[var(--color-primary)] hover:underline">
                 susandhungana20@gmail.com
+              </a>{' '}
+              or visit{' '}
+              <a href="https://www.quorlyn.com.np" target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] hover:underline">
+                www.quorlyn.com.np
               </a>
+              .
             </p>
           </section>
         </div>

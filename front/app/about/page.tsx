@@ -1,4 +1,4 @@
-import { ShieldCheck, CalendarDays, Activity } from 'lucide-react';
+import { ShieldCheck, CalendarDays, Activity, ExternalLink } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { StatusChip } from '@/components/ui/status-chip';
 import { RangeBar } from '@/components/ui/range-bar';
@@ -6,8 +6,29 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'About Us - MediStore',
-  description: 'MediStore is your personal digital health store — a secure platform to store medical records, track vital signs, manage medications, and share health data with doctors.',
+  description: 'MediStore is a product of Quorlyn — a secure platform to store medical records, track vital signs, manage medications, and share health data with doctors.',
 };
+
+const FOUNDERS = [
+  {
+    name: 'Susan Dhungana',
+    role: 'Co-Founder & Director',
+    initials: 'SD',
+    color: 'bg-ok-container text-ok',
+  },
+  {
+    name: 'Sandip Bhusal',
+    role: 'Co-Founder & Director',
+    initials: 'SB',
+    color: 'bg-primary/10 text-primary',
+  },
+  {
+    name: 'Anuj Bhusal',
+    role: 'Co-Founder & Director',
+    initials: 'AB',
+    color: 'bg-caution-container text-caution',
+  },
+];
 
 export default function About() {
   return (
@@ -21,6 +42,73 @@ export default function About() {
             medical records, track vital signs, manage medications, book appointments,
             generate reports, and share your health data with doctors — all in one place.
           </p>
+          <p className="text-sm text-on-surface-variant mt-4">
+            A product of{' '}
+            <a
+              href="https://www.quorlyn.com.np"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline font-medium inline-flex items-center gap-1"
+            >
+              Quorlyn <ExternalLink size={12} />
+            </a>
+          </p>
+        </div>
+
+        {/* Our Company */}
+        <div className="mb-24">
+          <Card className="p-xl md:p-2xl">
+            <div className="flex flex-col md:flex-row md:items-center gap-8">
+              <div className="flex-1">
+                <h2 className="text-3xl font-display font-bold text-on-surface mb-4">Our Company</h2>
+                <p className="text-on-surface-variant leading-relaxed mb-4">
+                  MediStore is built and published by{' '}
+                  <a
+                    href="https://www.quorlyn.com.np"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline font-medium"
+                  >
+                    Quorlyn
+                  </a>
+                  , a technology company focused on products that make everyday life simpler and
+                  more secure. Quorlyn brings together a team of founders and directors who care
+                  about building software that people can trust with what matters most.
+                </p>
+                <a
+                  href="https://www.quorlyn.com.np"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+                >
+                  Visit quorlyn.com.np <ExternalLink size={14} />
+                </a>
+              </div>
+              <div className="w-full md:w-64 h-40 rounded-lg bg-surface-card border border-outline flex flex-col items-center justify-center gap-2 shrink-0">
+                <p className="text-xl font-display font-bold text-on-surface">Quorlyn</p>
+                <p className="text-xs text-on-surface-variant">Building MediStore</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Founders */}
+        <div className="mb-24">
+          <h2 className="text-3xl font-display font-bold text-on-surface text-center mb-4">Meet the Founders</h2>
+          <p className="text-on-surface-variant text-center max-w-2xl mx-auto mb-12">
+            The three founders and directors behind Quorlyn, and the team that built MediStore.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {FOUNDERS.map((founder) => (
+              <Card key={founder.name} className="p-lg text-center">
+                <div className={`w-20 h-20 ${founder.color} rounded-full flex items-center justify-center mx-auto mb-5`}>
+                  <span className="text-2xl font-display font-bold">{founder.initials}</span>
+                </div>
+                <h3 className="text-lg font-display font-bold text-on-surface mb-1">{founder.name}</h3>
+                <p className="text-sm text-on-surface-variant">{founder.role}</p>
+              </Card>
+            ))}
+          </div>
         </div>
 
         {/* What We Do */}

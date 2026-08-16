@@ -33,7 +33,7 @@ class TermsScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           _Section(
             title: '1. Acceptance of Terms',
-            body: 'By accessing or using MediStore (the "Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to all of these Terms, you may not use the Service.',
+            body: 'By accessing or using MediStore, a product of Quorlyn (the "Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to all of these Terms, you may not use the Service.',
           ),
           _Section(
             title: '2. Description of Service',
@@ -93,7 +93,7 @@ class TermsScreen extends StatelessWidget {
           ),
           _Section(
             title: '12. Contact Us',
-            body: 'If you have questions about these Terms, please contact us at: susandhungana20@gmail.com',
+            body: 'If you have questions about these Terms, please contact us at: susandhungana20@gmail.com or visit www.quorlyn.com.np',
           ),
         ],
       ),

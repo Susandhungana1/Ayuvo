@@ -23,8 +23,7 @@ export function Footer() {
               <li><Link href="/" className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors">Home</Link></li>
               <li><Link href="/about" className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors">About Us</Link></li>
               <li><Link href="/contact" className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors">Contact</Link></li>
-              <li><Link href="/blog" className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors">Blog</Link></li>
-              <li><Link href="/#faq" className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors">FAQ</Link></li>
+              <li><Link href="/faq" className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors">FAQ</Link></li>
             </ul>
           </div>
 
@@ -59,9 +58,12 @@ export function Footer() {
         </div>
         
         <div className="border-t border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] mt-12 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-[var(--color-ink-variant)]">
-          <p>&copy; {currentYear} MediStore. All rights reserved.</p>
-          <div className="mt-4 md:mt-0">
+          <p>&copy; {currentYear} MediStore by Quorlyn. All rights reserved.</p>
+          <div className="mt-4 md:mt-0 flex flex-col items-center md:items-end gap-1">
             <p>susandhungana20@gmail.com | +977 9812345678</p>
+            <a href="https://www.quorlyn.com.np" target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] hover:underline">
+              www.quorlyn.com.np
+            </a>
           </div>
         </div>
       </div>

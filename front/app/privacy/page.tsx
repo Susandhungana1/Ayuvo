@@ -21,7 +21,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold text-[var(--color-ink)] mb-3">1. Introduction</h2>
             <p>
-              Welcome to MediStore (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). We are committed to protecting your personal information
+              Welcome to MediStore, a product of Quorlyn (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). We are committed to protecting your personal information
               and your right to privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your
               information when you use our digital health platform, including our website and mobile application.
             </p>
@@ -117,7 +117,12 @@ export default function PrivacyPage() {
               If you have questions about this Privacy Policy, please contact us at:{' '}
               <a href="mailto:susandhungana20@gmail.com" className="text-[var(--color-primary)] hover:underline">
                 susandhungana20@gmail.com
+              </a>{' '}
+              or visit{' '}
+              <a href="https://www.quorlyn.com.np" target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] hover:underline">
+                www.quorlyn.com.np
               </a>
+              .
             </p>
           </section>
         </div>

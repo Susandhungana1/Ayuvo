@@ -33,7 +33,7 @@ class PrivacyScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           _Section(
             title: '1. Introduction',
-            body: 'Welcome to MediStore ("we," "our," or "us"). We are committed to protecting your personal information and your right to privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our digital health platform, including our website and mobile application.',
+            body: 'Welcome to MediStore, a product of Quorlyn ("we," "our," or "us"). We are committed to protecting your personal information and your right to privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our digital health platform, including our website and mobile application.',
           ),
           _Section(
             title: '2. Information We Collect',
@@ -87,7 +87,7 @@ class PrivacyScreen extends StatelessWidget {
           ),
           _Section(
             title: '10. Contact Us',
-            body: 'If you have questions about this Privacy Policy, please contact us at: susandhungana20@gmail.com',
+            body: 'If you have questions about this Privacy Policy, please contact us at: susandhungana20@gmail.com or visit www.quorlyn.com.np',
           ),
         ],
       ),

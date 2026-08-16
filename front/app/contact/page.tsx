@@ -1,4 +1,4 @@
-import { Mail } from 'lucide-react';
+import { Mail, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { Metadata } from 'next';
@@ -18,6 +18,17 @@ export default function Contact() {
           <p className="text-lg text-on-surface-variant">
             Have questions about MediStore? Need help setting up your account?
             Reach out and we&apos;ll get back to you as soon as possible.
+          </p>
+          <p className="text-sm text-on-surface-variant mt-4">
+            MediStore is a product of{' '}
+            <a
+              href="https://www.quorlyn.com.np"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline font-medium inline-flex items-center gap-1"
+            >
+              Quorlyn <ExternalLink size={12} />
+            </a>
           </p>
         </div>
 
