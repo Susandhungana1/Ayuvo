@@ -46,7 +46,7 @@ class Settings(BaseSettings):
 
     # --- CORS ---
     # Comma-separated list of allowed origins. "*" allowed only in development.
-    cors_origins: str = "*"
+    cors_origins: str = ""
 
     # --- Outbound email (password reset) ---
     # Two transports, tried in this order (see app/core/email.py):

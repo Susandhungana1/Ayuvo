@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 import httpx
 
@@ -24,7 +24,7 @@ class ChatMessage(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    messages: List[ChatMessage]
+    messages: List[ChatMessage] = Field(max_length=50)
 
 
 class ChatResponse(BaseModel):
@@ -36,9 +36,10 @@ async def chat(request: ChatRequest, current_user: User = Depends(get_current_us
     if not settings.groq_api_key:
         raise HTTPException(status_code=500, detail="Groq API key not configured")
 
+    # Truncate message content to prevent abuse
     groq_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     groq_messages.extend(
-        {"role": m.role, "content": m.content} for m in request.messages
+        {"role": m.role, "content": m.content[:2000]} for m in request.messages[-20:]
     )
 
     async with httpx.AsyncClient(timeout=30) as client:
@@ -59,7 +60,7 @@ async def chat(request: ChatRequest, current_user: User = Depends(get_current_us
     if resp.status_code != 200:
         raise HTTPException(
             status_code=502,
-            detail=f"Groq API error: {resp.status_code} {resp.text}",
+            detail="AI service temporarily unavailable. Please try again.",
         )
 
     data = resp.json()

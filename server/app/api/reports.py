@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 import json
 
@@ -33,7 +33,7 @@ def get_report_bytes(report: MedicalReport) -> Optional[bytes]:
 class ReportCreate(BaseModel):
     report_type: MedicalReportType
     report_date: Optional[datetime] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=2000)
 
 
 class ReportResponse(BaseModel):
@@ -165,8 +165,8 @@ Report data:
             )
             if response.status_code == 200:
                 return response.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        print(f"AI summary error: {e}")
+    except Exception:
+        pass
     return None
 
 
@@ -256,8 +256,8 @@ Report data to analyze:
             )
             if response.status_code == 200:
                 return response.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        print(f"AI formal report error: {e}")
+    except Exception:
+        pass
     return None
 
 

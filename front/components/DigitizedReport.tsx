@@ -29,7 +29,7 @@ export function DigitizedReport({ report, user, onClose }: DigitizedReportProps)
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
     if (!printWindow) return;
     const content = printRef.current?.innerHTML;
     if (!content) return;

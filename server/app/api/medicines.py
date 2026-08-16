@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
 from app.api.auth import get_current_user
@@ -94,23 +94,23 @@ def _owned_medicine(db: Session, medicine_id: str, scope: str) -> Medicine:
 
 
 class MedicineCreate(BaseModel):
-    name: str
-    dosage: str
-    frequency: str
-    start_date: str
-    end_date: Optional[str] = None
-    taking_times: Optional[str] = None
-    notes: Optional[str] = None
+    name: str = Field(max_length=200)
+    dosage: str = Field(max_length=100)
+    frequency: str = Field(max_length=100)
+    start_date: str = Field(max_length=10)
+    end_date: Optional[str] = Field(default=None, max_length=10)
+    taking_times: Optional[str] = Field(default=None, max_length=500)
+    notes: Optional[str] = Field(default=None, max_length=1000)
 
 
 class MedicineUpdate(BaseModel):
-    name: Optional[str] = None
-    dosage: Optional[str] = None
-    frequency: Optional[str] = None
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
-    taking_times: Optional[str] = None
-    notes: Optional[str] = None
+    name: Optional[str] = Field(default=None, max_length=200)
+    dosage: Optional[str] = Field(default=None, max_length=100)
+    frequency: Optional[str] = Field(default=None, max_length=100)
+    start_date: Optional[str] = Field(default=None, max_length=10)
+    end_date: Optional[str] = Field(default=None, max_length=10)
+    taking_times: Optional[str] = Field(default=None, max_length=500)
+    notes: Optional[str] = Field(default=None, max_length=1000)
 
 
 class MedicineResponse(BaseModel):

@@ -8,6 +8,13 @@ DB_BACKUP_RESTORE.md
 # database — they are backups, not source.
 dependents_backup_*.json
 
+# Environment files — NEVER commit secrets
+.env
+.env.*
+!.env.example
+server/.env
+server/.env.*
+
 # macOS
 .DS_Store
 

@@ -2,7 +2,7 @@ import secrets
 import base64
 from datetime import datetime, timedelta
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -117,7 +117,7 @@ async def list_share_links(
 
 @router.post("/qr-code", response_model=ShareResponse)
 async def create_all_reports_share_link(
-    expires_hours: int = 24,
+    expires_hours: int = Query(default=24, ge=1, le=168),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
@@ -156,6 +156,7 @@ async def create_all_reports_share_link(
 
 
 @router.get("/qr-code/{token}", response_model=UserAllReportsResponse)
+@limiter.limit("20/hour")
 async def access_all_shared_reports(
     token: str,
     request: Request,
@@ -592,7 +593,7 @@ async def revoke_claim(
 @router.post("/{report_id}", response_model=ShareResponse)
 async def create_share_link(
     report_id: str,
-    expires_hours: int = 24,
+    expires_hours: int = Query(default=24, ge=1, le=168),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
@@ -616,6 +617,7 @@ async def create_share_link(
 
 
 @router.get("/{token}", response_model=SharedReportWithEmergencyResponse)
+@limiter.limit("20/hour")
 async def access_shared_report(
     token: str,
     request: Request,

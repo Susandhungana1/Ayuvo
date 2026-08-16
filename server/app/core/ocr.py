@@ -177,9 +177,9 @@ async def extract_text_via_vision(content: bytes, filename: str) -> Optional[str
             if resp.status_code == 200:
                 text = (resp.json()["choices"][0]["message"]["content"] or "").strip()
                 return text or None
-            print(f"Vision OCR error: {resp.status_code} {resp.text[:300]}")
-    except Exception as e:  # noqa: BLE001
-        print(f"Vision OCR exception: {e}")
+            pass
+    except Exception:
+        pass
     return None
 
 
