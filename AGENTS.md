@@ -54,7 +54,7 @@ User IDs are generated in format `#hosXXX` where:
 | `/api/auth` | POST register, POST login, GET me |
 | `/api/users` | GET me, PUT me |
 | `/api/documents` | POST, GET, GET/{id}, DELETE/{id}, POST/{id}/files |
-| `/api/reports` | POST, GET, GET/{id}, GET/{id}/file, GET /ai-summary |
+| `/api/reports` | POST, GET, GET/{id}, GET/{id}/file, GET /{id}/lab-analysis, GET /trends |
 | `/api/appointments` | POST, GET, PUT/{id}, DELETE/{id}, PATCH/{id}/status, GET /available-slots/{doctor_id} |
 | `/api/doctors` | POST /doctors, GET /doctors, GET /doctors/me, POST /availability, GET /availability, PUT /availability/{id}, DELETE /availability/{id} |
 

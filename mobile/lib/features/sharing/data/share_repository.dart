@@ -1,10 +1,9 @@
 /// Every `/api/share*` call this app makes.
 ///
-/// Only the owner's half is here. The five public reader routes
-/// (`GET /{token}`, `/qr-code/{token}`, `/{token}/ai-report`,
-/// `/{token}/lab-analysis`, `/{token}/explain`) belong to `front/` and are
-/// deliberately not implemented: a share link exists so that someone *without*
-/// this app can read it.
+/// Only the owner's half is here. The public reader routes
+/// (`GET /{token}`, `/qr-code/{token}`, `/{token}/lab-analysis`) belong to
+/// `front/` and are deliberately not implemented: a share link exists so that
+/// someone *without* this app can read it.
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';

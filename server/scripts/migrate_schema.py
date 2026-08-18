@@ -92,7 +92,7 @@ def migrate(dry_run: bool = False) -> None:
         stmts.append(
             f'ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {type_clause};'
         )
-    for table, col, type_clause in _DROP_COLUMNS:
+    for table, col in _DROP_COLUMNS:
         stmts.append(f'ALTER TABLE {table} DROP COLUMN IF EXISTS {col};')
     for table, col in _DROP_NOT_NULL:
         stmts.append(f'ALTER TABLE {table} ALTER COLUMN {col} DROP NOT NULL;')
