@@ -48,9 +48,6 @@ class AppL10nEn extends AppL10n {
   String get navSearch => 'Search';
 
   @override
-  String get navAssistant => 'Health assistant';
-
-  @override
   String get navNearby => 'Nearby care';
 
   @override
@@ -82,10 +79,6 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get moreSearchBlurb => 'Find a report, a medicine or a visit by name';
-
-  @override
-  String get moreAssistantBlurb =>
-      'Ask a general health question. Not a diagnosis';
 
   @override
   String get moreNearbyBlurb => 'Hospitals, clinics and pharmacies within 4 km';
@@ -159,6 +152,29 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get themeDark => 'Dark';
+
+  @override
+  String get settingsDeleteAccount => 'Delete account';
+
+  @override
+  String get settingsDeleteBlurb =>
+      'Erases your profile, every record and every file. This cannot be undone.';
+
+  @override
+  String get deleteAccountTitle => 'Delete account?';
+
+  @override
+  String get deleteAccountBody =>
+      'All your reports, files, medicines, appointments, vitals, share links and care links will be erased from the server. This cannot be undone.';
+
+  @override
+  String get deleteAccountKeep => 'Keep my account';
+
+  @override
+  String get deleteAccountConfirm => 'Delete my account';
+
+  @override
+  String get accountDeleted => 'Account deleted';
 
   @override
   String get settingsReminders => 'Dose reminders';
@@ -283,49 +299,6 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get searchTypeDocument => 'Visit';
-
-  @override
-  String get assistantTitle => 'Health assistant';
-
-  @override
-  String get assistantGreeting =>
-      'Ask me about symptoms, medicines, nutrition or fitness. I answer in general terms only.';
-
-  @override
-  String get assistantDisclaimer =>
-      'An AI, not a doctor. Nothing here is a diagnosis, and it cannot see your records.';
-
-  @override
-  String get assistantHint => 'Ask about health';
-
-  @override
-  String get assistantListening => 'Listening…';
-
-  @override
-  String get assistantSend => 'Send';
-
-  @override
-  String get assistantVoice => 'Speak your question';
-
-  @override
-  String get assistantThinking => 'Thinking…';
-
-  @override
-  String get assistantClear => 'Clear this conversation';
-
-  @override
-  String get assistantCleared => 'Conversation cleared';
-
-  @override
-  String get assistantOffTitle => 'The assistant is not switched on';
-
-  @override
-  String get assistantOffBody =>
-      'This server has no GROQ_API_KEY set, so there is nothing to answer with.';
-
-  @override
-  String get assistantTrimmed =>
-      'Older messages are dropped from what gets sent, so a long conversation keeps working.';
 
   @override
   String get nearbyTitle => 'Nearby care';

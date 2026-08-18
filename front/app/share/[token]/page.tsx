@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/card';
 import { Button } from '@/components/button';
-import { DigitizedReport } from '@/components/DigitizedReport';
 import ClaimShareButton from '@/components/ClaimShareButton';
 import { formatServerDateTime } from '@/lib/datetime';
 
@@ -16,7 +15,6 @@ interface SharedReport {
   file_name: string;
   file_content: string;
   notes?: string;
-  ai_report_text?: string;
   doctor_name?: string;
   hospital?: string;
   created_at?: string;
@@ -73,11 +71,8 @@ export default function ViewSharedReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [fileUrl, setFileUrl] = useState<string | null>(null);
-  const [digitizedReport, setDigitizedReport] = useState<SharedReport | null>(null);
   const [labAnalysis, setLabAnalysis] = useState<LabAnalysis | null>(null);
   const [labLoading, setLabLoading] = useState(true);
-  const [explanation, setExplanation] = useState<string | null>(null);
-  const [explainLoading, setExplainLoading] = useState(false);
 
   const report = responseData?.report ?? null;
   const emergency = responseData?.emergency;
@@ -100,19 +95,6 @@ export default function ViewSharedReport() {
       console.error(err);
     } finally {
       setLabLoading(false);
-    }
-  };
-
-  const handleExplain = async () => {
-    setExplainLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/api/share/${token}/explain`);
-      const data = await res.json();
-      setExplanation(res.ok ? data.explanation : `Could not generate explanation: ${data.detail || 'unknown error'}`);
-    } catch {
-      setExplanation('Network error. Please try again.');
-    } finally {
-      setExplainLoading(false);
     }
   };
 
@@ -190,12 +172,6 @@ export default function ViewSharedReport() {
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
               WhatsApp
             </a>
-            <button
-              onClick={() => setDigitizedReport(report)}
-              className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-medium text-sm hover:bg-emerald-100 transition-colors"
-            >
-              Digital Report
-            </button>
           </div>
         </div>
 
@@ -311,51 +287,12 @@ export default function ViewSharedReport() {
         </div>
 
         <Card className="p-6 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center">
-                <span className="text-sky-700 text-xs font-bold">AI</span>
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-text-main">In Plain Language</h2>
-                <p className="text-xs text-subtext">Simplified by MediStore AI · not medical advice</p>
-              </div>
-            </div>
-            {!explanation && (
-              <Button onClick={handleExplain} disabled={explainLoading} className="shrink-0">
-                {explainLoading ? 'Explaining…' : 'Explain Simply'}
-              </Button>
-            )}
-          </div>
-          {explainLoading ? (
-            <p className="text-subtext text-sm py-4">AI is explaining this report…</p>
-          ) : explanation ? (
-            <p className="text-sm text-text-main whitespace-pre-wrap leading-relaxed mt-2">{explanation}</p>
-          ) : (
-            <p className="text-subtext text-sm mt-2">Get a patient-friendly, jargon-free summary of this report.</p>
-          )}
-        </Card>
-
-        {report?.notes && (
-          <Card className="p-4 mb-6">
+          {report?.notes && (
             <p className="text-sm text-subtext">Patient Notes</p>
-            <p className="text-text-main italic">{report.notes}</p>
-          </Card>
-        )}
+          )}
+          {report?.notes && <p className="text-text-main italic">{report.notes}</p>}
+        </Card>
       </div>
-
-      {digitizedReport && (
-        <DigitizedReport
-          report={digitizedReport}
-          user={{
-            name: responseData?.user_name || 'Patient',
-            id: responseData?.user_id || '',
-            email: '',
-            blood_type: responseData?.user_blood_type || undefined,
-          }}
-          onClose={() => setDigitizedReport(null)}
-        />
-      )}
     </div>
   );
 }

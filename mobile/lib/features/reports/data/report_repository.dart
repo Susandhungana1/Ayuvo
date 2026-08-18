@@ -22,17 +22,15 @@ class ReportRepository {
 
   /// How long to wait on an upload before giving up.
   ///
-  /// `create_report` runs OCR, then an AI summary, then a formal AI report —
-  /// two LLM calls with 60-second timeouts of their own, all inside the
-  /// request. The default 30 seconds abandons work the server is still doing,
-  /// and the report lands anyway with the user believing it failed.
+  /// `create_report` runs OCR and writes the file; the default 30 seconds can
+  /// abandon work the server is still doing, and the report lands anyway with
+  /// the user believing it failed.
   static const uploadTimeout = Duration(minutes: 4);
 
   /// `GET /api/reports` — newest first.
   ///
-  /// Carries `extracted_text` and `ai_report_text` in full for **every**
-  /// report, which is why the list is fetched once and cached rather than on
-  /// every visit to the tab.
+  /// Carries `extracted_text` in full for **every** report, which is why the
+  /// list is fetched once and cached rather than on every visit to the tab.
   Future<List<MedicalReport>> list() async {
     final json = await _client.get<Map<String, dynamic>>(_base);
     final rows = json['reports'] as List<dynamic>? ?? const [];
@@ -42,7 +40,7 @@ class ReportRepository {
     ];
   }
 
-  /// `POST /api/reports` — multipart, 10 MB cap, synchronous OCR and AI.
+  /// `POST /api/reports` — multipart, 10 MB cap, synchronous OCR.
   ///
   /// [onProgress] reports bytes sent, which covers the upload but not the
   /// processing that follows it. The screen has to say so; a bar that sits at
@@ -89,16 +87,7 @@ class ReportRepository {
     return LabAnalysis.fromJson(json);
   }
 
-  /// `POST /api/reports/{id}/explain` — plain-language rewrite.
-  ///
-  /// 400 when the report has no OCR text, 503 when no AI key is configured.
-  /// Both arrive as an [ApiException] with the server's own wording, which is
-  /// clearer than anything this layer could substitute.
-  Future<String> explain(String id) async {
-    final json =
-        await _client.post<Map<String, dynamic>>('$_base/$id/explain');
-    return json['explanation'] as String? ?? '';
-  }
+  /// `POST /api/reports/{id}/explain` was removed with the AI features.
 
   /// `GET /api/reports/trends` — analytes tracked across reports, two points
   /// minimum, abnormal series first.

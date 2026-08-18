@@ -284,11 +284,11 @@ void main() {
       await tester.tap(find.text('cbc-june.pdf (BLOOD_TEST)'));
       await settle(tester);
 
-      // The detail screen shows the summary the list row only teased.
-      expect(
-        find.textContaining('Haemoglobin slightly below range'),
-        findsWidgets,
-      );
+      // The detail screen opened, not a list — its facts show the hospital the
+      // search row never displayed.
+      expect(find.text('Bir Hospital'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'View the file'),
+          findsOneWidget);
     });
 
     testWidgets('a medicine search can return one that was removed',

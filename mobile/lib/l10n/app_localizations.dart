@@ -175,12 +175,6 @@ abstract class AppL10n {
   /// **'Search'**
   String get navSearch;
 
-  /// No description provided for @navAssistant.
-  ///
-  /// In en, this message translates to:
-  /// **'Health assistant'**
-  String get navAssistant;
-
   /// No description provided for @navNearby.
   ///
   /// In en, this message translates to:
@@ -240,12 +234,6 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Find a report, a medicine or a visit by name'**
   String get moreSearchBlurb;
-
-  /// No description provided for @moreAssistantBlurb.
-  ///
-  /// In en, this message translates to:
-  /// **'Ask a general health question. Not a diagnosis'**
-  String get moreAssistantBlurb;
 
   /// No description provided for @moreNearbyBlurb.
   ///
@@ -384,6 +372,48 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Dark'**
   String get themeDark;
+
+  /// No description provided for @settingsDeleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get settingsDeleteAccount;
+
+  /// No description provided for @settingsDeleteBlurb.
+  ///
+  /// In en, this message translates to:
+  /// **'Erases your profile, every record and every file. This cannot be undone.'**
+  String get settingsDeleteBlurb;
+
+  /// No description provided for @deleteAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account?'**
+  String get deleteAccountTitle;
+
+  /// No description provided for @deleteAccountBody.
+  ///
+  /// In en, this message translates to:
+  /// **'All your reports, files, medicines, appointments, vitals, share links and care links will be erased from the server. This cannot be undone.'**
+  String get deleteAccountBody;
+
+  /// No description provided for @deleteAccountKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep my account'**
+  String get deleteAccountKeep;
+
+  /// No description provided for @deleteAccountConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete my account'**
+  String get deleteAccountConfirm;
+
+  /// No description provided for @accountDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Account deleted'**
+  String get accountDeleted;
 
   /// No description provided for @settingsReminders.
   ///
@@ -564,84 +594,6 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Visit'**
   String get searchTypeDocument;
-
-  /// No description provided for @assistantTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Health assistant'**
-  String get assistantTitle;
-
-  /// No description provided for @assistantGreeting.
-  ///
-  /// In en, this message translates to:
-  /// **'Ask me about symptoms, medicines, nutrition or fitness. I answer in general terms only.'**
-  String get assistantGreeting;
-
-  /// No description provided for @assistantDisclaimer.
-  ///
-  /// In en, this message translates to:
-  /// **'An AI, not a doctor. Nothing here is a diagnosis, and it cannot see your records.'**
-  String get assistantDisclaimer;
-
-  /// No description provided for @assistantHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Ask about health'**
-  String get assistantHint;
-
-  /// No description provided for @assistantListening.
-  ///
-  /// In en, this message translates to:
-  /// **'Listening…'**
-  String get assistantListening;
-
-  /// No description provided for @assistantSend.
-  ///
-  /// In en, this message translates to:
-  /// **'Send'**
-  String get assistantSend;
-
-  /// No description provided for @assistantVoice.
-  ///
-  /// In en, this message translates to:
-  /// **'Speak your question'**
-  String get assistantVoice;
-
-  /// No description provided for @assistantThinking.
-  ///
-  /// In en, this message translates to:
-  /// **'Thinking…'**
-  String get assistantThinking;
-
-  /// No description provided for @assistantClear.
-  ///
-  /// In en, this message translates to:
-  /// **'Clear this conversation'**
-  String get assistantClear;
-
-  /// No description provided for @assistantCleared.
-  ///
-  /// In en, this message translates to:
-  /// **'Conversation cleared'**
-  String get assistantCleared;
-
-  /// No description provided for @assistantOffTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'The assistant is not switched on'**
-  String get assistantOffTitle;
-
-  /// No description provided for @assistantOffBody.
-  ///
-  /// In en, this message translates to:
-  /// **'This server has no GROQ_API_KEY set, so there is nothing to answer with.'**
-  String get assistantOffBody;
-
-  /// No description provided for @assistantTrimmed.
-  ///
-  /// In en, this message translates to:
-  /// **'Older messages are dropped from what gets sent, so a long conversation keeps working.'**
-  String get assistantTrimmed;
 
   /// No description provided for @nearbyTitle.
   ///

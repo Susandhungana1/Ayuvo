@@ -71,9 +71,7 @@ class SharedReportItem {
     required this.fileName,
     required this.fileContentB64,
     this.notes,
-    this.resultSummary,
     this.extractedText,
-    this.aiReportText,
     this.doctorName,
     this.hospital,
     this.createdAt,
@@ -86,9 +84,7 @@ class SharedReportItem {
         fileName: json['file_name'] as String? ?? 'Report',
         fileContentB64: json['file_content'] as String? ?? '',
         notes: json['notes'] as String?,
-        resultSummary: json['result_summary'] as String?,
         extractedText: json['extracted_text'] as String?,
-        aiReportText: json['ai_report_text'] as String?,
         doctorName: json['doctor_name'] as String?,
         hospital: json['hospital'] as String?,
         createdAt: json['created_at'] as String?,
@@ -101,9 +97,7 @@ class SharedReportItem {
   /// Base64-encoded original file, possibly empty when the server has no blob.
   final String fileContentB64;
   final String? notes;
-  final String? resultSummary;
   final String? extractedText;
-  final String? aiReportText;
   final String? doctorName;
   final String? hospital;
   final String? createdAt;

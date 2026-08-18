@@ -61,8 +61,9 @@ dependencies:
   share_plus: ^13.3.0
   # Phase 6. The four browser-only pieces the web app used, replaced:
   # Leaflet → flutter_map, Web Push → flutter_local_notifications (scheduled
-  # locally, so the frozen backend needs nothing), Web Speech → speech_to_text,
-  # and `front/lib/i18n.tsx` → flutter_localizations + ARB.
+  # locally, so the frozen backend needs nothing), Web Speech was dropped with
+  # the AI assistant feature, and `front/lib/i18n.tsx` →
+  # flutter_localizations + ARB.
   flutter_localizations:
     sdk: flutter
   flutter_map: ^8.3.1
@@ -74,7 +75,6 @@ dependencies:
   # `flutter_timezone` asks the OS which entry in it the user is standing in.
   timezone: ^0.11.1
   flutter_timezone: ^5.1.0
-  speech_to_text: ^7.4.0
 
 dev_dependencies:
   flutter_test:

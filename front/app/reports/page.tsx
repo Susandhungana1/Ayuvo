@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import { FileText, Sparkles, X } from 'lucide-react';
+import { FileText, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,6 @@ import { StatusChip } from '@/components/ui/status-chip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Dialog } from '@/components/ui/dialog';
-import { DigitizedReport } from '@/components/DigitizedReport';
 import { generateReportPdf } from '@/lib/reportPdf';
 import { cacheGet, cacheSet } from '@/lib/offlineCache';
 import { formatPlainDate } from '@/lib/datetime';
@@ -24,9 +23,7 @@ interface Report {
   report_date?: string;
   file_name: string;
   notes?: string;
-  result_summary?: string;
   extracted_text?: string;
-  ai_report_text?: string;
   document_id?: string;
   doctor_name?: string;
   hospital?: string;
@@ -82,11 +79,8 @@ export default function Reports() {
   const [verifiedBy, setVerifiedBy] = useState('');
   const [uploadedReport, setUploadedReport] = useState<Report | null>(null);
   const [viewingReport, setViewingReport] = useState<{url: string; name: string} | null>(null);
-  const [digitizedReport, setDigitizedReport] = useState<Report | null>(null);
   const [labAnalysis, setLabAnalysis] = useState<LabAnalysis | null>(null);
   const [labLoading, setLabLoading] = useState(false);
-  const [explain, setExplain] = useState<{ title: string; text: string } | null>(null);
-  const [explainLoading, setExplainLoading] = useState(false);
   const [trends, setTrends] = useState<TrendSeries[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -160,26 +154,6 @@ export default function Reports() {
       }
     } catch (err) { console.error(err); }
     finally { setLabLoading(false); }
-  };
-
-  const handleExplain = async (report: Report) => {
-    setExplainLoading(true);
-    setExplain({ title: report.report_type.replace('_', ' '), text: '' });
-    try {
-      const token = localStorage.getItem('token');
-      const res = await apiFetch(`${API_URL}/api/reports/${report.id}/explain`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setExplain({ title: report.report_type.replace('_', ' '), text: data.explanation });
-      } else {
-        setExplain({ title: report.report_type.replace('_', ' '), text: `Could not generate explanation: ${data.detail || 'unknown error'}` });
-      }
-    } catch {
-      setExplain({ title: report.report_type.replace('_', ' '), text: 'Network error. Please try again.' });
-    } finally { setExplainLoading(false); }
   };
 
   const handleDownloadPdf = async (report: Report) => {
@@ -290,7 +264,8 @@ export default function Reports() {
         <Card className="p-lg mb-8">
           <h2 className="text-xl font-display font-semibold text-on-surface mb-4">Upload Medical Report</h2>
           <p className="text-on-surface-variant text-sm mb-4">
-            Upload a photo or file of your medical report. AI will read the text and generate a formal medical report.
+            Upload a photo or PDF of your report. The text is read out of the
+            file so Lab Values can be parsed from it.
           </p>
           <div className="space-y-4">
             <div className="flex flex-col gap-1.5 w-full">
@@ -366,14 +341,14 @@ export default function Reports() {
             </div>
 
             <Button onClick={handleUpload} disabled={!selectedFile || uploading} isLoading={uploading}>
-              {uploading ? 'AI is reading your report…' : 'Upload & Generate Report'}
+              {uploading ? 'Uploading…' : 'Upload Report'}
             </Button>
 
             {uploadedReport && (
               <div className="flex items-start gap-2 rounded-md bg-ok-container border border-ok/40 px-4 py-3">
                 <FileText className="w-5 h-5 text-ok shrink-0 mt-0.5" />
                 <p className="text-sm text-ok">
-                  Report uploaded. Use <span className="font-medium">Lab Values</span> and <span className="font-medium">Explain Simply</span> on the report below to review it.
+                  Report uploaded. Use <span className="font-medium">Lab Values</span> on the report below to review it.
                 </p>
               </div>
             )}
@@ -389,7 +364,7 @@ export default function Reports() {
             <EmptyState
               icon={FileText}
               title="No medical reports yet"
-              description="Upload your first report above — AI will read it and generate a formal medical report."
+              description="Upload your first report above — its text is read out of the file so Lab Values can be parsed from it."
             />
           </Card>
         ) : (
@@ -448,8 +423,6 @@ export default function Reports() {
                   <div className="flex gap-2 flex-wrap">
                     <Button size="sm" variant="secondary" onClick={() => handleViewReport(report)}>View</Button>
                     <Button size="sm" variant="secondary" onClick={() => handleLabAnalysis(report)}>Lab Values</Button>
-                    <Button size="sm" variant="secondary" onClick={() => handleExplain(report)}>Explain Simply</Button>
-                    <Button size="sm" variant="secondary" onClick={() => setDigitizedReport(report)}>Digital Report</Button>
                     <Button size="sm" variant="secondary" onClick={() => handleDownloadPdf(report)}>Download PDF</Button>
                     <Button size="sm" variant="destructive" onClick={() => handleDelete(report.id)}>Delete</Button>
                   </div>
@@ -483,18 +456,6 @@ export default function Reports() {
           </>
         )}
       </Dialog>
-
-      {digitizedReport && (() => {
-        const userData = localStorage.getItem('user');
-        const user = userData ? JSON.parse(userData) : { name: 'Unknown', id: '', email: '' };
-        return (
-          <DigitizedReport
-            report={digitizedReport}
-            user={user}
-            onClose={() => setDigitizedReport(null)}
-          />
-        );
-      })()}
 
       {/* Lab Values modal */}
       <Dialog open={labAnalysis !== null} onClose={() => setLabAnalysis(null)} className="max-w-2xl">
@@ -538,37 +499,6 @@ export default function Reports() {
                   ))}
                 </div>
               </>
-            )}
-          </>
-        )}
-      </Dialog>
-
-      {/* Explain modal */}
-      <Dialog open={explain !== null} onClose={() => setExplain(null)} className="max-w-2xl">
-        {explain && (
-          <>
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-primary/10 rounded-sm flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-display font-semibold text-on-surface">In Plain Language — {explain.title}</h3>
-                  <p className="text-xs text-on-surface-variant">Simplified by MediStore AI · not medical advice</p>
-                </div>
-              </div>
-              <button onClick={() => setExplain(null)} className="text-on-surface-variant hover:text-on-surface transition-colors" aria-label="Close">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            {explainLoading ? (
-              <div className="space-y-3 py-6">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-5/6" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
-            ) : (
-              <p className="text-sm text-on-surface whitespace-pre-wrap leading-relaxed">{explain.text}</p>
             )}
           </>
         )}

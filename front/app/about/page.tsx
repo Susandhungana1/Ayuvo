@@ -120,7 +120,7 @@ export default function About() {
                 MediStore lets you upload and organize lab results, prescriptions, and
                 medical history, track vital signs like blood pressure, heart rate, blood
                 sugar, and weight, manage your medications with dose reminders, book
-                appointments with doctors, generate AI-powered medical reports, and share
+                appointments with doctors, and share
                 records securely via expiring links.
               </p>
             </div>
@@ -177,7 +177,7 @@ export default function About() {
                 <CalendarDays size={32} />
               </div>
               <h3 className="text-xl font-display font-bold text-on-surface mb-3">Reports & Appointments</h3>
-              <p className="text-on-surface-variant">Generate detailed medical reports and book appointments with doctors directly through the platform.</p>
+              <p className="text-on-surface-variant">Store and manage your medical reports and book appointments with doctors directly through the platform.</p>
             </Card>
 
             <Card className="p-lg text-center">

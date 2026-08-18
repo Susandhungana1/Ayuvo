@@ -1,12 +1,10 @@
 import uuid
-import httpx
 import os
 from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
-import json
 
 from app.api.auth import get_current_user
 from app.core.config import get_session, settings
@@ -42,9 +40,7 @@ class ReportResponse(BaseModel):
     report_date: Optional[datetime]
     file_name: str
     notes: Optional[str]
-    result_summary: Optional[str]
     extracted_text: Optional[str]
-    ai_report_text: Optional[str]
     document_id: Optional[str] = None
     doctor_name: Optional[str] = None
     hospital: Optional[str] = None
@@ -52,14 +48,6 @@ class ReportResponse(BaseModel):
 
 class ReportListResponse(BaseModel):
     reports: List[ReportResponse]
-
-
-class AISummary(BaseModel):
-    summary: str
-
-
-class AIReport(BaseModel):
-    report: str
 
 
 class LabFinding(BaseModel):
@@ -76,10 +64,6 @@ class LabAnalysisResponse(BaseModel):
     total: int
     abnormal_count: int
     findings: List[LabFinding]
-
-
-class ExplainResponse(BaseModel):
-    explanation: str
 
 
 class TrendSeries(BaseModel):
@@ -113,191 +97,11 @@ def _build_report_response(report: MedicalReport, db: Session) -> ReportResponse
         report_date=report.report_date,
         file_name=report.file_name,
         notes=report.notes,
-        result_summary=report.result_summary,
         extracted_text=report.extracted_text,
-        ai_report_text=report.ai_report_text,
         document_id=report.document_id,
         doctor_name=doctor_name,
         hospital=hospital
     )
-
-
-async def generate_ai_summary(report_data: str, notes: Optional[str] = None) -> Optional[str]:
-    if not settings.openrouter_api_key:
-        return None
-    
-    prompt = f"""You are a medical assistant. Analyze this blood test report and provide a clear, easy-to-understand summary.
-
-Please structure your response as:
-1. OVERALL STATUS: (Normal/Abnormal)
-2. KEY FINDINGS: (List the most important values that are outside normal range)
-3. RECOMMENDATIONS: (If needed, based on the results)
-
-Focus on values that are HIGH or LOW. Use simple language.
-
-Report data:
-{report_data}"""
-
-    if notes:
-        prompt += f"\n\nPatient Notes: {notes}"
-    
-    try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {settings.openrouter_api_key}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": "openai/gpt-4o-mini",
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": "You are a helpful medical assistant. Provide clear, concise summaries."
-                        },
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ]
-                }
-            )
-            if response.status_code == 200:
-                return response.json()["choices"][0]["message"]["content"]
-    except Exception:
-        pass
-    return None
-
-
-async def generate_formal_ai_report(report_type: str, extracted_text: str, notes: Optional[str] = None, report_date: Optional[str] = None) -> Optional[str]:
-    if not settings.openrouter_api_key:
-        return None
-    
-    prompt = f"""You are a medical report analyst. Based on the following medical report data, generate a comprehensive, formal, and well-structured medical report.
-
-Format the report with the following sections:
-
-================================================================================
-                        FORMAL MEDICAL REPORT
-================================================================================
-
-REPORT TYPE: {report_type.replace('_', ' ').title()}
-REPORT DATE: {report_date or 'Not specified'}
-
---------------------------------------------------------------------------------
-1.  PATIENT INFORMATION
-    - (Summarize patient context from notes if available)
---------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
-2.  REPORT CLASSIFICATION
-    - Type of examination/analysis performed
-    - Date of analysis
---------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
-3.  RESULTS & FINDINGS
-    (Present all extracted values in a structured format with reference ranges
-     where applicable. Clearly indicate which values are within normal range
-     and which are outside.)
---------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
-4.  INTERPRETATION & ANALYSIS
-    (Provide a detailed medical interpretation of the findings. Explain what
-     abnormal results may indicate and their potential implications.)
---------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
-5.  CLINICAL CORRELATION
-    (Correlate findings with patient notes and symptoms if provided.)
---------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
-6.  RECOMMENDATIONS & FOLLOW-UP
-    (Provide specific recommendations based on the findings. Include suggested
-     follow-up tests, lifestyle modifications, or specialist referrals if
-     applicable.)
---------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
-7.  CONCLUSION
-    (Summarize the overall health status based on this report.)
---------------------------------------------------------------------------------
-
-Report data to analyze:
-{extracted_text}"""
-
-    if notes:
-        prompt += f"\n\nPatient Notes/Context:\n{notes}"
-    
-    try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {settings.openrouter_api_key}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": "openai/gpt-4o-mini",
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": "You are a senior medical report analyst. Generate formal, detailed, and structured medical reports. Use professional medical terminology while remaining clear and concise."
-                        },
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ]
-                }
-            )
-            if response.status_code == 200:
-                return response.json()["choices"][0]["message"]["content"]
-    except Exception:
-        pass
-    return None
-
-
-async def generate_plain_explanation(report_type: str, extracted_text: str) -> Optional[str]:
-    """Explain a report in plain, patient-friendly language using Groq (free tier)."""
-    if not settings.groq_api_key:
-        return None
-
-    prompt = (
-        "Explain the following medical report to a patient with no medical "
-        "background. Use simple, reassuring, everyday language. Define any medical "
-        "terms. Use short bullet points. Do NOT give a diagnosis or prescribe "
-        "treatment. End with a reminder to consult their doctor.\n\n"
-        f"Report type: {report_type.replace('_', ' ').title()}\n\n"
-        f"Report content:\n{extracted_text}"
-    )
-    try:
-        async with httpx.AsyncClient(timeout=45.0) as client:
-            resp = await client.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {settings.groq_api_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": "llama-3.3-70b-versatile",
-                    "messages": [
-                        {"role": "system", "content": "You are a caring medical explainer for patients."},
-                        {"role": "user", "content": prompt},
-                    ],
-                    "temperature": 0.5,
-                    "max_tokens": 800,
-                },
-            )
-            if resp.status_code == 200:
-                return resp.json()["choices"][0]["message"]["content"]
-            print(f"Groq explain error: {resp.status_code} {resp.text}")
-    except Exception as e:
-        print(f"Plain explanation error: {e}")
-    return None
 
 
 MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -344,48 +148,7 @@ async def create_report(
     db.commit()
     db.refresh(report)
     
-    if extracted_text:
-        summary = await generate_ai_summary(extracted_text, notes)
-        if summary:
-            report.result_summary = summary
-        ai_report = await generate_formal_ai_report(
-            report_type=report.report_type,
-            extracted_text=extracted_text,
-            notes=notes,
-            report_date=str(report.report_date) if report.report_date else None
-        )
-        if ai_report:
-            report.ai_report_text = ai_report
-        if summary or ai_report:
-            db.add(report)
-            db.commit()
-            db.refresh(report)
-    
     return _build_report_response(report, db)
-
-
-@router.get("/ai-summary", response_model=AISummary)
-async def get_ai_summary(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_session)
-):
-    reports = db.exec(
-        select(MedicalReport)
-        .where(MedicalReport.user_id == current_user.id)
-        .order_by(MedicalReport.created_at.desc())
-        .limit(5)
-    ).all()
-    
-    if not reports:
-        return AISummary(summary="No reports available")
-    
-    report_text = "\n".join([
-        f"{r.report_type}: {r.extracted_text or r.notes or 'No details'}"
-        for r in reports
-    ])
-    
-    summary = await generate_ai_summary(report_text)
-    return AISummary(summary=summary or "Unable to generate summary")
 
 
 @router.get("", response_model=ReportListResponse)
@@ -490,19 +253,6 @@ async def get_report(
     return _build_report_response(report, db)
 
 
-@router.get("/{report_id}/ai-report", response_model=AIReport)
-async def get_ai_report(
-    report_id: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_session)
-):
-    report = db.get(MedicalReport, report_id)
-    if not report or report.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="Report not found")
-    
-    return AIReport(report=report.ai_report_text or "No AI report available")
-
-
 @router.get("/{report_id}/file")
 async def download_report_file(
     report_id: str,
@@ -550,22 +300,3 @@ async def get_lab_analysis(
         abnormal_count=summary["abnormal_count"],
         findings=[LabFinding(**f) for f in findings],
     )
-
-
-@router.post("/{report_id}/explain", response_model=ExplainResponse)
-async def explain_report(
-    report_id: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_session)
-):
-    report = db.get(MedicalReport, report_id)
-    if not report or report.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="Report not found")
-
-    if not report.extracted_text:
-        raise HTTPException(status_code=400, detail="No readable text found in this report")
-
-    explanation = await generate_plain_explanation(report.report_type, report.extracted_text)
-    if not explanation:
-        raise HTTPException(status_code=503, detail="AI explanation is unavailable (no API key configured)")
-    return ExplainResponse(explanation=explanation)

@@ -51,13 +51,12 @@ async def search(
         searchable = " ".join(filter(None, [
             report.report_type.value if hasattr(report.report_type, 'value') else str(report.report_type),
             report.notes or "",
-            report.result_summary or "",
             report.extracted_text or "",
             report.file_name or "",
         ])).lower()
         if query_lower in searchable:
             seen.add(report.id)
-            snippet = report.result_summary or report.notes or report.extracted_text or ""
+            snippet = report.notes or report.extracted_text or ""
             snippet = snippet[:200] if snippet else ""
             results.append(SearchResultItem(
                 type="report",

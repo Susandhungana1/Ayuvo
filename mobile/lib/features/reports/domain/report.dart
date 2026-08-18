@@ -62,15 +62,9 @@ abstract class MedicalReport with _$MedicalReport {
     @JsonKey(name: 'file_name') required String fileName,
     String? notes,
 
-    /// The short AI summary generated at upload, if OCR found any text.
-    @JsonKey(name: 'result_summary') String? resultSummary,
-
     /// The OCR output. **Every list response carries this in full** for every
     /// report — see `BACKEND_NOTES.md` §3.
     @JsonKey(name: 'extracted_text') String? extractedText,
-
-    /// The long formal AI report, rendered by the digital-report screen.
-    @JsonKey(name: 'ai_report_text') String? aiReportText,
     @JsonKey(name: 'document_id') String? documentId,
 
     /// Falls back to the linked document's values when unset server-side.
@@ -87,12 +81,10 @@ abstract class MedicalReport with _$MedicalReport {
 
   DateTime? get dated => MediTime.parseDate(reportDate);
 
-  /// Whether OCR read anything. `POST /{id}/explain` 400s without it, and the
-  /// lab analyser has nothing to parse, so the actions that depend on it are
-  /// hidden rather than offered and then refused.
+  /// Whether OCR read anything. The lab analyser has nothing to parse without
+  /// it, so the actions that depend on it are hidden rather than offered and
+  /// then refused.
   bool get hasText => extractedText?.trim().isNotEmpty ?? false;
-
-  bool get hasAiReport => aiReportText?.trim().isNotEmpty ?? false;
 }
 
 /// One analyte from `GET /api/reports/{id}/lab-analysis`.

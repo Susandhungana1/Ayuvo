@@ -244,19 +244,15 @@ class _ReportCard extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: AppSpacing.sm),
-              Text(
-                report.resultSummary?.trim().isNotEmpty ?? false
-                    ? report.resultSummary!.trim()
-                    // Saying which is honest: a scan with no readable text
-                    // supports none of the AI actions, and the detail screen
-                    // will show fewer of them.
-                    : 'No summary — nothing readable was extracted from this '
-                        'file.',
-                style: context.texts.bodyMedium,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: AppSpacing.sm),
+              if (report.hasText) ...[
+                Text(
+                  report.extractedText!.trim(),
+                  style: context.texts.bodyMedium,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+              ],
               Text(
                 report.fileName,
                 style: context.texts.bodySmall

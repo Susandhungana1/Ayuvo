@@ -48,7 +48,7 @@ def _timeline_union(user_id: str):
             MedicalReport.id.label("id"),
             MedicalReport.file_name.label("title_col"),
             MedicalReport.notes.label("desc_col1"),
-            MedicalReport.result_summary.label("desc_col2"),
+            MedicalReport.extracted_text.label("desc_col2"),
             cast(literal(None), String).label("status_col"),
             cast(literal(None), String).label("bp_sys"),
             cast(literal(None), String).label("bp_dia"),

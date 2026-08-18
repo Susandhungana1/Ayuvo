@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import { Activity, Mic, X, Plus, Info, Thermometer, Heart, Droplets, Wind, Scale, Stethoscope } from 'lucide-react';
+import { Activity, X, Plus, Info, Thermometer, Heart, Droplets, Wind, Scale, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,6 @@ import {
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, Legend, ReferenceArea, ResponsiveContainer,
 } from 'recharts';
-import { useSpeechRecognition } from '@/lib/useSpeechRecognition';
 import { formatServerDate, formatServerDateTime } from '@/lib/datetime';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
@@ -231,9 +230,6 @@ export default function Vitals() {
     weight: '', blood_sugar: '', temperature: '', oxygen_saturation: '', notes: ''
   });
   const [chartType, setChartType] = useState('bp');
-  const { listening, supported, toggle } = useSpeechRecognition(
-    (text) => setFormData((prev) => ({ ...prev, notes: (prev.notes ? prev.notes + ' ' : '') + text }))
-  );
 
   const fetchVitals = async (): Promise<VitalSign[]> => {
     const token = localStorage.getItem('token');
@@ -412,24 +408,7 @@ export default function Vitals() {
                   onChange={e => setFormData({ ...formData, oxygen_saturation: e.target.value })} />
               </div>
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-sm font-semibold text-on-surface">Notes</label>
-                  {supported && (
-                    <button
-                      type="button"
-                      onClick={toggle}
-                      title={listening ? 'Stop voice input' : 'Dictate notes'}
-                      className={`flex items-center gap-1.5 text-xs font-medium rounded-sm px-2 py-1.5 transition-colors ${
-                        listening
-                          ? 'bg-alert-container text-alert animate-pulse'
-                          : 'bg-surface-card text-on-surface-variant border border-outline hover:text-on-surface'
-                      }`}
-                    >
-                      <Mic className="w-3.5 h-3.5" />
-                      {listening ? 'Listening…' : 'Speak'}
-                    </button>
-                  )}
-                </div>
+                <label className="text-sm font-semibold text-on-surface">Notes</label>
                 <textarea
                   value={formData.notes}
                   onChange={e => setFormData({ ...formData, notes: e.target.value })}

@@ -16,11 +16,9 @@ T _$identity<T>(T value) => value;
 mixin _$MedicalReport {
 
  String get id;@JsonKey(name: 'report_type') String get reportType;/// Date-only in meaning, datetime in transport. Never shift it.
-@JsonKey(name: 'report_date') String? get reportDate;@JsonKey(name: 'file_name') String get fileName; String? get notes;/// The short AI summary generated at upload, if OCR found any text.
-@JsonKey(name: 'result_summary') String? get resultSummary;/// The OCR output. **Every list response carries this in full** for every
+@JsonKey(name: 'report_date') String? get reportDate;@JsonKey(name: 'file_name') String get fileName; String? get notes;/// The OCR output. **Every list response carries this in full** for every
 /// report — see `BACKEND_NOTES.md` §3.
-@JsonKey(name: 'extracted_text') String? get extractedText;/// The long formal AI report, rendered by the digital-report screen.
-@JsonKey(name: 'ai_report_text') String? get aiReportText;@JsonKey(name: 'document_id') String? get documentId;/// Falls back to the linked document's values when unset server-side.
+@JsonKey(name: 'extracted_text') String? get extractedText;@JsonKey(name: 'document_id') String? get documentId;/// Falls back to the linked document's values when unset server-side.
 @JsonKey(name: 'doctor_name') String? get doctorName; String? get hospital;
 /// Create a copy of MedicalReport
 /// with the given fields replaced by the non-null parameter values.
@@ -34,16 +32,16 @@ $MedicalReportCopyWith<MedicalReport> get copyWith => _$MedicalReportCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MedicalReport&&(identical(other.id, id) || other.id == id)&&(identical(other.reportType, reportType) || other.reportType == reportType)&&(identical(other.reportDate, reportDate) || other.reportDate == reportDate)&&(identical(other.fileName, fileName) || other.fileName == fileName)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.resultSummary, resultSummary) || other.resultSummary == resultSummary)&&(identical(other.extractedText, extractedText) || other.extractedText == extractedText)&&(identical(other.aiReportText, aiReportText) || other.aiReportText == aiReportText)&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.doctorName, doctorName) || other.doctorName == doctorName)&&(identical(other.hospital, hospital) || other.hospital == hospital));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MedicalReport&&(identical(other.id, id) || other.id == id)&&(identical(other.reportType, reportType) || other.reportType == reportType)&&(identical(other.reportDate, reportDate) || other.reportDate == reportDate)&&(identical(other.fileName, fileName) || other.fileName == fileName)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.extractedText, extractedText) || other.extractedText == extractedText)&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.doctorName, doctorName) || other.doctorName == doctorName)&&(identical(other.hospital, hospital) || other.hospital == hospital));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,reportType,reportDate,fileName,notes,resultSummary,extractedText,aiReportText,documentId,doctorName,hospital);
+int get hashCode => Object.hash(runtimeType,id,reportType,reportDate,fileName,notes,extractedText,documentId,doctorName,hospital);
 
 @override
 String toString() {
-  return 'MedicalReport(id: $id, reportType: $reportType, reportDate: $reportDate, fileName: $fileName, notes: $notes, resultSummary: $resultSummary, extractedText: $extractedText, aiReportText: $aiReportText, documentId: $documentId, doctorName: $doctorName, hospital: $hospital)';
+  return 'MedicalReport(id: $id, reportType: $reportType, reportDate: $reportDate, fileName: $fileName, notes: $notes, extractedText: $extractedText, documentId: $documentId, doctorName: $doctorName, hospital: $hospital)';
 }
 
 
@@ -54,7 +52,7 @@ abstract mixin class $MedicalReportCopyWith<$Res>  {
   factory $MedicalReportCopyWith(MedicalReport value, $Res Function(MedicalReport) _then) = _$MedicalReportCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'report_type') String reportType,@JsonKey(name: 'report_date') String? reportDate,@JsonKey(name: 'file_name') String fileName, String? notes,@JsonKey(name: 'result_summary') String? resultSummary,@JsonKey(name: 'extracted_text') String? extractedText,@JsonKey(name: 'ai_report_text') String? aiReportText,@JsonKey(name: 'document_id') String? documentId,@JsonKey(name: 'doctor_name') String? doctorName, String? hospital
+ String id,@JsonKey(name: 'report_type') String reportType,@JsonKey(name: 'report_date') String? reportDate,@JsonKey(name: 'file_name') String fileName, String? notes,@JsonKey(name: 'extracted_text') String? extractedText,@JsonKey(name: 'document_id') String? documentId,@JsonKey(name: 'doctor_name') String? doctorName, String? hospital
 });
 
 
@@ -71,16 +69,14 @@ class _$MedicalReportCopyWithImpl<$Res>
 
 /// Create a copy of MedicalReport
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? reportType = null,Object? reportDate = freezed,Object? fileName = null,Object? notes = freezed,Object? resultSummary = freezed,Object? extractedText = freezed,Object? aiReportText = freezed,Object? documentId = freezed,Object? doctorName = freezed,Object? hospital = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? reportType = null,Object? reportDate = freezed,Object? fileName = null,Object? notes = freezed,Object? extractedText = freezed,Object? documentId = freezed,Object? doctorName = freezed,Object? hospital = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,reportType: null == reportType ? _self.reportType : reportType // ignore: cast_nullable_to_non_nullable
 as String,reportDate: freezed == reportDate ? _self.reportDate : reportDate // ignore: cast_nullable_to_non_nullable
 as String?,fileName: null == fileName ? _self.fileName : fileName // ignore: cast_nullable_to_non_nullable
 as String,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
-as String?,resultSummary: freezed == resultSummary ? _self.resultSummary : resultSummary // ignore: cast_nullable_to_non_nullable
 as String?,extractedText: freezed == extractedText ? _self.extractedText : extractedText // ignore: cast_nullable_to_non_nullable
-as String?,aiReportText: freezed == aiReportText ? _self.aiReportText : aiReportText // ignore: cast_nullable_to_non_nullable
 as String?,documentId: freezed == documentId ? _self.documentId : documentId // ignore: cast_nullable_to_non_nullable
 as String?,doctorName: freezed == doctorName ? _self.doctorName : doctorName // ignore: cast_nullable_to_non_nullable
 as String?,hospital: freezed == hospital ? _self.hospital : hospital // ignore: cast_nullable_to_non_nullable
@@ -169,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'report_type')  String reportType, @JsonKey(name: 'report_date')  String? reportDate, @JsonKey(name: 'file_name')  String fileName,  String? notes, @JsonKey(name: 'result_summary')  String? resultSummary, @JsonKey(name: 'extracted_text')  String? extractedText, @JsonKey(name: 'ai_report_text')  String? aiReportText, @JsonKey(name: 'document_id')  String? documentId, @JsonKey(name: 'doctor_name')  String? doctorName,  String? hospital)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'report_type')  String reportType, @JsonKey(name: 'report_date')  String? reportDate, @JsonKey(name: 'file_name')  String fileName,  String? notes, @JsonKey(name: 'extracted_text')  String? extractedText, @JsonKey(name: 'document_id')  String? documentId, @JsonKey(name: 'doctor_name')  String? doctorName,  String? hospital)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MedicalReport() when $default != null:
-return $default(_that.id,_that.reportType,_that.reportDate,_that.fileName,_that.notes,_that.resultSummary,_that.extractedText,_that.aiReportText,_that.documentId,_that.doctorName,_that.hospital);case _:
+return $default(_that.id,_that.reportType,_that.reportDate,_that.fileName,_that.notes,_that.extractedText,_that.documentId,_that.doctorName,_that.hospital);case _:
   return orElse();
 
 }
@@ -190,10 +186,10 @@ return $default(_that.id,_that.reportType,_that.reportDate,_that.fileName,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'report_type')  String reportType, @JsonKey(name: 'report_date')  String? reportDate, @JsonKey(name: 'file_name')  String fileName,  String? notes, @JsonKey(name: 'result_summary')  String? resultSummary, @JsonKey(name: 'extracted_text')  String? extractedText, @JsonKey(name: 'ai_report_text')  String? aiReportText, @JsonKey(name: 'document_id')  String? documentId, @JsonKey(name: 'doctor_name')  String? doctorName,  String? hospital)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'report_type')  String reportType, @JsonKey(name: 'report_date')  String? reportDate, @JsonKey(name: 'file_name')  String fileName,  String? notes, @JsonKey(name: 'extracted_text')  String? extractedText, @JsonKey(name: 'document_id')  String? documentId, @JsonKey(name: 'doctor_name')  String? doctorName,  String? hospital)  $default,) {final _that = this;
 switch (_that) {
 case _MedicalReport():
-return $default(_that.id,_that.reportType,_that.reportDate,_that.fileName,_that.notes,_that.resultSummary,_that.extractedText,_that.aiReportText,_that.documentId,_that.doctorName,_that.hospital);case _:
+return $default(_that.id,_that.reportType,_that.reportDate,_that.fileName,_that.notes,_that.extractedText,_that.documentId,_that.doctorName,_that.hospital);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -210,10 +206,10 @@ return $default(_that.id,_that.reportType,_that.reportDate,_that.fileName,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'report_type')  String reportType, @JsonKey(name: 'report_date')  String? reportDate, @JsonKey(name: 'file_name')  String fileName,  String? notes, @JsonKey(name: 'result_summary')  String? resultSummary, @JsonKey(name: 'extracted_text')  String? extractedText, @JsonKey(name: 'ai_report_text')  String? aiReportText, @JsonKey(name: 'document_id')  String? documentId, @JsonKey(name: 'doctor_name')  String? doctorName,  String? hospital)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'report_type')  String reportType, @JsonKey(name: 'report_date')  String? reportDate, @JsonKey(name: 'file_name')  String fileName,  String? notes, @JsonKey(name: 'extracted_text')  String? extractedText, @JsonKey(name: 'document_id')  String? documentId, @JsonKey(name: 'doctor_name')  String? doctorName,  String? hospital)?  $default,) {final _that = this;
 switch (_that) {
 case _MedicalReport() when $default != null:
-return $default(_that.id,_that.reportType,_that.reportDate,_that.fileName,_that.notes,_that.resultSummary,_that.extractedText,_that.aiReportText,_that.documentId,_that.doctorName,_that.hospital);case _:
+return $default(_that.id,_that.reportType,_that.reportDate,_that.fileName,_that.notes,_that.extractedText,_that.documentId,_that.doctorName,_that.hospital);case _:
   return null;
 
 }
@@ -225,7 +221,7 @@ return $default(_that.id,_that.reportType,_that.reportDate,_that.fileName,_that.
 @JsonSerializable()
 
 class _MedicalReport extends MedicalReport {
-  const _MedicalReport({required this.id, @JsonKey(name: 'report_type') required this.reportType, @JsonKey(name: 'report_date') this.reportDate, @JsonKey(name: 'file_name') required this.fileName, this.notes, @JsonKey(name: 'result_summary') this.resultSummary, @JsonKey(name: 'extracted_text') this.extractedText, @JsonKey(name: 'ai_report_text') this.aiReportText, @JsonKey(name: 'document_id') this.documentId, @JsonKey(name: 'doctor_name') this.doctorName, this.hospital}): super._();
+  const _MedicalReport({required this.id, @JsonKey(name: 'report_type') required this.reportType, @JsonKey(name: 'report_date') this.reportDate, @JsonKey(name: 'file_name') required this.fileName, this.notes, @JsonKey(name: 'extracted_text') this.extractedText, @JsonKey(name: 'document_id') this.documentId, @JsonKey(name: 'doctor_name') this.doctorName, this.hospital}): super._();
   factory _MedicalReport.fromJson(Map<String, dynamic> json) => _$MedicalReportFromJson(json);
 
 @override final  String id;
@@ -234,13 +230,9 @@ class _MedicalReport extends MedicalReport {
 @override@JsonKey(name: 'report_date') final  String? reportDate;
 @override@JsonKey(name: 'file_name') final  String fileName;
 @override final  String? notes;
-/// The short AI summary generated at upload, if OCR found any text.
-@override@JsonKey(name: 'result_summary') final  String? resultSummary;
 /// The OCR output. **Every list response carries this in full** for every
 /// report — see `BACKEND_NOTES.md` §3.
 @override@JsonKey(name: 'extracted_text') final  String? extractedText;
-/// The long formal AI report, rendered by the digital-report screen.
-@override@JsonKey(name: 'ai_report_text') final  String? aiReportText;
 @override@JsonKey(name: 'document_id') final  String? documentId;
 /// Falls back to the linked document's values when unset server-side.
 @override@JsonKey(name: 'doctor_name') final  String? doctorName;
@@ -259,16 +251,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MedicalReport&&(identical(other.id, id) || other.id == id)&&(identical(other.reportType, reportType) || other.reportType == reportType)&&(identical(other.reportDate, reportDate) || other.reportDate == reportDate)&&(identical(other.fileName, fileName) || other.fileName == fileName)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.resultSummary, resultSummary) || other.resultSummary == resultSummary)&&(identical(other.extractedText, extractedText) || other.extractedText == extractedText)&&(identical(other.aiReportText, aiReportText) || other.aiReportText == aiReportText)&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.doctorName, doctorName) || other.doctorName == doctorName)&&(identical(other.hospital, hospital) || other.hospital == hospital));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MedicalReport&&(identical(other.id, id) || other.id == id)&&(identical(other.reportType, reportType) || other.reportType == reportType)&&(identical(other.reportDate, reportDate) || other.reportDate == reportDate)&&(identical(other.fileName, fileName) || other.fileName == fileName)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.extractedText, extractedText) || other.extractedText == extractedText)&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.doctorName, doctorName) || other.doctorName == doctorName)&&(identical(other.hospital, hospital) || other.hospital == hospital));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,reportType,reportDate,fileName,notes,resultSummary,extractedText,aiReportText,documentId,doctorName,hospital);
+int get hashCode => Object.hash(runtimeType,id,reportType,reportDate,fileName,notes,extractedText,documentId,doctorName,hospital);
 
 @override
 String toString() {
-  return 'MedicalReport(id: $id, reportType: $reportType, reportDate: $reportDate, fileName: $fileName, notes: $notes, resultSummary: $resultSummary, extractedText: $extractedText, aiReportText: $aiReportText, documentId: $documentId, doctorName: $doctorName, hospital: $hospital)';
+  return 'MedicalReport(id: $id, reportType: $reportType, reportDate: $reportDate, fileName: $fileName, notes: $notes, extractedText: $extractedText, documentId: $documentId, doctorName: $doctorName, hospital: $hospital)';
 }
 
 
@@ -279,7 +271,7 @@ abstract mixin class _$MedicalReportCopyWith<$Res> implements $MedicalReportCopy
   factory _$MedicalReportCopyWith(_MedicalReport value, $Res Function(_MedicalReport) _then) = __$MedicalReportCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'report_type') String reportType,@JsonKey(name: 'report_date') String? reportDate,@JsonKey(name: 'file_name') String fileName, String? notes,@JsonKey(name: 'result_summary') String? resultSummary,@JsonKey(name: 'extracted_text') String? extractedText,@JsonKey(name: 'ai_report_text') String? aiReportText,@JsonKey(name: 'document_id') String? documentId,@JsonKey(name: 'doctor_name') String? doctorName, String? hospital
+ String id,@JsonKey(name: 'report_type') String reportType,@JsonKey(name: 'report_date') String? reportDate,@JsonKey(name: 'file_name') String fileName, String? notes,@JsonKey(name: 'extracted_text') String? extractedText,@JsonKey(name: 'document_id') String? documentId,@JsonKey(name: 'doctor_name') String? doctorName, String? hospital
 });
 
 
@@ -296,16 +288,14 @@ class __$MedicalReportCopyWithImpl<$Res>
 
 /// Create a copy of MedicalReport
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? reportType = null,Object? reportDate = freezed,Object? fileName = null,Object? notes = freezed,Object? resultSummary = freezed,Object? extractedText = freezed,Object? aiReportText = freezed,Object? documentId = freezed,Object? doctorName = freezed,Object? hospital = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? reportType = null,Object? reportDate = freezed,Object? fileName = null,Object? notes = freezed,Object? extractedText = freezed,Object? documentId = freezed,Object? doctorName = freezed,Object? hospital = freezed,}) {
   return _then(_MedicalReport(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,reportType: null == reportType ? _self.reportType : reportType // ignore: cast_nullable_to_non_nullable
 as String,reportDate: freezed == reportDate ? _self.reportDate : reportDate // ignore: cast_nullable_to_non_nullable
 as String?,fileName: null == fileName ? _self.fileName : fileName // ignore: cast_nullable_to_non_nullable
 as String,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
-as String?,resultSummary: freezed == resultSummary ? _self.resultSummary : resultSummary // ignore: cast_nullable_to_non_nullable
 as String?,extractedText: freezed == extractedText ? _self.extractedText : extractedText // ignore: cast_nullable_to_non_nullable
-as String?,aiReportText: freezed == aiReportText ? _self.aiReportText : aiReportText // ignore: cast_nullable_to_non_nullable
 as String?,documentId: freezed == documentId ? _self.documentId : documentId // ignore: cast_nullable_to_non_nullable
 as String?,doctorName: freezed == doctorName ? _self.doctorName : doctorName // ignore: cast_nullable_to_non_nullable
 as String?,hospital: freezed == hospital ? _self.hospital : hospital // ignore: cast_nullable_to_non_nullable

@@ -16,6 +16,9 @@ missing, so running it twice is harmless.
            medical_reports.storage_key
            medical_files.storage_key, medical_files.content_type
            medicines.deleted_at              (caretaker: soft delete)
+           share_links.pin_hash              (PIN-protected whole-record shares)
+    Drops: medical_reports.result_summary, medical_reports.ai_report_text
+           (AI features removed; the AI text is deleted with them)
     Relaxes (so legacy blobs can be moved out): medical_reports.file_content and
            medical_files.content become NULLable.
     Creates: audit_logs table, and the caretaker tables — care_invites,
@@ -50,12 +53,21 @@ _ADD_COLUMNS = [
     # caretaker removed. Every read filters deleted_at IS NULL; existing rows
     # default to NULL and are therefore untouched.
     ("medicines", "deleted_at", "TIMESTAMP"),
+    # PIN guarding whole-record (QR) shares.
+    ("share_links", "pin_hash", "VARCHAR"),
 ]
 
 # Indexes that belong to columns added above. SQLModel builds these for a fresh
 # table, but ADD COLUMN on an existing one does not.
 _ADD_INDEXES = [
     ("ix_medicines_deleted_at", "medicines", "deleted_at"),
+]
+
+# AI columns removed with the feature: the AI-generated text is deleted, the
+# OCR extracted_text column stays (the offline lab parser reads it).
+_DROP_COLUMNS = [
+    ("medical_reports", "result_summary"),
+    ("medical_reports", "ai_report_text"),
 ]
 
 # Legacy blob columns that must become nullable so the backfill can NULL them.
@@ -80,6 +92,8 @@ def migrate(dry_run: bool = False) -> None:
         stmts.append(
             f'ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {type_clause};'
         )
+    for table, col, type_clause in _DROP_COLUMNS:
+        stmts.append(f'ALTER TABLE {table} DROP COLUMN IF EXISTS {col};')
     for table, col in _DROP_NOT_NULL:
         stmts.append(f'ALTER TABLE {table} ALTER COLUMN {col} DROP NOT NULL;')
     for name, table, col in _ADD_INDEXES:

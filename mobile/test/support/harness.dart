@@ -79,13 +79,14 @@ Future<void> pumpSignedIn(
   HealthStatus health = testHealth,
   LocalStore? store,
   Reminders? reminders,
+  FakeAuthRepository? auth,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         sessionStoreProvider
             .overrideWithValue(InMemorySessionStore(storedSession(user: user))),
-        authRepositoryProvider.overrideWithValue(FakeAuthRepository(user: user)),
+        authRepositoryProvider.overrideWithValue(auth ?? FakeAuthRepository(user: user)),
         healthProvider.overrideWith((ref) async => health),
         localStoreProvider.overrideWithValue(store ?? InMemoryLocalStore()),
         remindersProvider.overrideWithValue(reminders ?? NoReminders()),

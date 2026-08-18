@@ -146,6 +146,16 @@ class FakeAuthRepository implements AuthRepository {
     logoutCalls++;
   }
 
+  int deleteAccountCalls = 0;
+  ApiException? deleteAccountError;
+
+  @override
+  Future<void> deleteAccount() async {
+    deleteAccountCalls++;
+    final error = deleteAccountError;
+    if (error != null) throw error;
+  }
+
   @override
   Future<String> forgotPassword(String email) async =>
       'If an account exists for that email, a reset link has been sent.';

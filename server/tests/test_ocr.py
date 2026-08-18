@@ -1,14 +1,13 @@
 """Tests for report text extraction (app/core/ocr.py).
 
-Covers the three improvements:
+Covers the two offline paths:
   1. Image preprocessing (grayscale + upscale) and real Tesseract OCR.
   2. Scanned-PDF fallback: a PDF with no text layer is rasterized and OCR'd.
-  3. Vision-LLM primary path + graceful fallback to offline OCR.
 
-Network is never touched: the vision layer is exercised with a fake httpx client.
+The old vision-LLM layer was removed with the AI features; OCR is fully
+offline now. Network is never touched.
 """
 
-import asyncio
 import io
 
 import fitz  # PyMuPDF
@@ -16,7 +15,6 @@ import pytest
 from PIL import Image, ImageDraw, ImageFont
 
 import app.core.ocr as ocr
-from app.core.config import settings
 
 
 def _tesseract_available() -> bool:
@@ -104,79 +102,26 @@ def test_extract_pdf_ocrs_scanned_page_without_text_layer():
     assert "PLATELETS" in text.upper()
 
 
-def test_extract_text_from_file_ignores_unknown_types():
-    assert ocr.extract_text_from_file(b"whatever", "notes.txt") is None
+def test_extract_report_text_ignores_unknown_types():
+    import asyncio
+
+    assert asyncio.run(ocr.extract_report_text(b"whatever", "notes.txt")) is None
 
 
-# --- 3. Vision LLM primary path ---------------------------------------------
+def test_extract_report_text_png_goes_through_tesseract(monkeypatch):
+    """The orchestrator routes images to Tesseract (no vision layer anymore)."""
+    monkeypatch.setattr(ocr, "ocr_image_bytes", lambda b: "HEMOGLOBIN 13.5")
 
-class _FakeResp:
-    status_code = 200
-
-    def json(self):
-        return {"choices": [{"message": {"content": "Hemoglobin 13.5 g/dL"}}]}
-
-
-class _FakeClient:
-    captured = None
-
-    def __init__(self, *a, **k):
-        pass
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, *a):
-        return False
-
-    async def post(self, url, headers=None, json=None):
-        _FakeClient.captured = json
-        return _FakeResp()
-
-
-def test_vision_returns_none_without_api_key(monkeypatch):
-    monkeypatch.setattr(settings, "openrouter_api_key", "", raising=False)
-    png = _text_image_png("X")
-    assert asyncio.run(ocr.extract_text_via_vision(png, "r.png")) is None
-
-
-def test_vision_transcribes_image(monkeypatch):
-    import httpx
-
-    monkeypatch.setattr(settings, "openrouter_api_key", "sk-test", raising=False)
-    monkeypatch.setattr(settings, "vision_ocr_model", "some/vision-model", raising=False)
-    monkeypatch.setattr(httpx, "AsyncClient", _FakeClient)
-
-    png = _text_image_png("Hemoglobin 13.5")
-    out = asyncio.run(ocr.extract_text_via_vision(png, "r.png"))
-    assert out == "Hemoglobin 13.5 g/dL"
-
-    # The request carried the configured model and an image part as a data URL.
-    payload = _FakeClient.captured
-    assert payload["model"] == "some/vision-model"
-    content = payload["messages"][0]["content"]
-    assert any(p.get("type") == "image_url" for p in content)
-    img_part = next(p for p in content if p.get("type") == "image_url")
-    assert img_part["image_url"]["url"].startswith("data:image/png;base64,")
-
-
-def test_orchestrator_prefers_vision(monkeypatch):
-    async def fake_vision(content, filename):
-        return "FROM VISION"
-
-    monkeypatch.setattr(ocr, "extract_text_via_vision", fake_vision)
-    monkeypatch.setattr(ocr, "extract_text_from_file", lambda c, f: "FROM TESSERACT")
+    import asyncio
 
     out = asyncio.run(ocr.extract_report_text(b"x", "r.png"))
-    assert out == "FROM VISION"
+    assert out == "HEMOGLOBIN 13.5"
 
 
-def test_orchestrator_falls_back_to_tesseract(monkeypatch):
-    async def fake_vision(content, filename):
-        return None  # vision unavailable / empty
+def test_extract_report_text_pdf_goes_through_pdf_path(monkeypatch):
+    monkeypatch.setattr(ocr, "extract_pdf", lambda b: "PLATELETS 250")
 
-    monkeypatch.setattr(ocr, "extract_text_via_vision", fake_vision)
-    monkeypatch.setattr(ocr, "extract_text_from_file", lambda c, f: "FROM TESSERACT")
+    import asyncio
 
-    out = asyncio.run(ocr.extract_report_text(b"x", "r.png"))
-    assert out == "FROM TESSERACT"
+    out = asyncio.run(ocr.extract_report_text(b"x", "r.pdf"))
+    assert out == "PLATELETS 250"

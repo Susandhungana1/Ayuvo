@@ -150,15 +150,6 @@ void main() {
       expect(find.text('1 result'), findsOneWidget);
     });
 
-    testWidgets('the assistant survives 2x text in $theme', (tester) async {
-      await _pumpAt(tester, _backend(), brightness: brightness);
-      await _openFromAccount(tester, 'Health assistant');
-
-      // The composer is the tight one: a field, a mic and a send button on one
-      // line at 320px.
-      expect(find.byType(TextField), findsOneWidget);
-    });
-
     testWidgets('caretakers survive 2x text in $theme', (tester) async {
       await _pumpAt(tester, _backend(), brightness: brightness);
       await _openFromAccount(tester, 'Caretakers');

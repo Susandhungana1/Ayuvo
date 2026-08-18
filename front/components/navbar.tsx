@@ -22,6 +22,7 @@ const moreLinks = [
   { href: '/appointments', tKey: 'nav.appointments' },
   { href: '/emergency', tKey: 'nav.emergency' },
   { href: '/settings/caretakers', tKey: 'nav.caretakers' },
+  { href: '/settings', tKey: 'nav.settings' },
   { href: '/nearby', tKey: 'nav.nearby' },
   { href: '/timeline', tKey: 'nav.timeline' },
   { href: '/share', tKey: 'nav.share' },

@@ -7,7 +7,6 @@ export interface ReportForPdf {
   doctor_name?: string;
   hospital?: string;
   notes?: string;
-  result_summary?: string;
   extracted_text?: string;
 }
 
@@ -78,12 +77,6 @@ export function generateReportPdf(
   if (report.notes) {
     line('Notes', 13, 'bold');
     line(report.notes, 11);
-    y += 6;
-  }
-
-  if (report.result_summary) {
-    line('Result Summary', 13, 'bold');
-    line(report.result_summary, 11);
     y += 6;
   }
 

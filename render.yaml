@@ -56,10 +56,6 @@ services:
         sync: false
       - key: S3_SECRET_ACCESS_KEY
         sync: false
-      - key: OPENROUTER_API_KEY
-        sync: false
-      - key: GROQ_API_KEY
-        sync: false
       - key: SENTRY_DSN
         sync: false
       # Web Push (medicine reminders when the app is closed).

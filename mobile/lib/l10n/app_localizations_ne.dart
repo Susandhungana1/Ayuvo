@@ -48,9 +48,6 @@ class AppL10nNe extends AppL10n {
   String get navSearch => 'खोज';
 
   @override
-  String get navAssistant => 'स्वास्थ्य सहायक';
-
-  @override
   String get navNearby => 'नजिकैको सेवा';
 
   @override
@@ -83,10 +80,6 @@ class AppL10nNe extends AppL10n {
 
   @override
   String get moreSearchBlurb => 'रिपोर्ट, औषधि वा भ्रमण नामबाट खोज्नुहोस्';
-
-  @override
-  String get moreAssistantBlurb =>
-      'सामान्य स्वास्थ्य प्रश्न सोध्नुहोस्। यो निदान होइन';
 
   @override
   String get moreNearbyBlurb => '४ कि.मि. भित्रका अस्पताल, क्लिनिक र फार्मेसी';
@@ -160,6 +153,29 @@ class AppL10nNe extends AppL10n {
 
   @override
   String get themeDark => 'अँध्यारो';
+
+  @override
+  String get settingsDeleteAccount => 'खाता मेट्नुहोस्';
+
+  @override
+  String get settingsDeleteBlurb =>
+      'तपाईंको प्रोफाइल, सबै रेकर्ड र सबै फाइल मेटिन्छ। यो फिर्ता हुँदैन।';
+
+  @override
+  String get deleteAccountTitle => 'खाता मेट्ने?';
+
+  @override
+  String get deleteAccountBody =>
+      'तपाईंका सबै रिपोर्ट, फाइल, औषधि, अपोइन्टमेन्ट, स्वास्थ्य नाप, साझा लिंक र हेरचाह लिंक सर्भरबाट मेटिनेछ। यो फिर्ता हुँदैन।';
+
+  @override
+  String get deleteAccountKeep => 'खाता राख्नुहोस्';
+
+  @override
+  String get deleteAccountConfirm => 'खाता मेट्नुहोस्';
+
+  @override
+  String get accountDeleted => 'खाता मेटियो';
 
   @override
   String get settingsReminders => 'औषधिको सम्झना';
@@ -283,49 +299,6 @@ class AppL10nNe extends AppL10n {
 
   @override
   String get searchTypeDocument => 'भ्रमण';
-
-  @override
-  String get assistantTitle => 'स्वास्थ्य सहायक';
-
-  @override
-  String get assistantGreeting =>
-      'लक्षण, औषधि, खानपान वा व्यायामबारे सोध्नुहोस्। म सामान्य जानकारी मात्र दिन्छु।';
-
-  @override
-  String get assistantDisclaimer =>
-      'म AI हुँ, डाक्टर होइन। यो निदान होइन, र मैले तपाईंको रेकर्ड देख्दिनँ।';
-
-  @override
-  String get assistantHint => 'स्वास्थ्यबारे सोध्नुहोस्';
-
-  @override
-  String get assistantListening => 'सुन्दैछु…';
-
-  @override
-  String get assistantSend => 'पठाउनुहोस्';
-
-  @override
-  String get assistantVoice => 'बोलेर सोध्नुहोस्';
-
-  @override
-  String get assistantThinking => 'सोच्दैछु…';
-
-  @override
-  String get assistantClear => 'यो कुराकानी मेटाउनुहोस्';
-
-  @override
-  String get assistantCleared => 'कुराकानी मेटियो';
-
-  @override
-  String get assistantOffTitle => 'सहायक चालु छैन';
-
-  @override
-  String get assistantOffBody =>
-      'यो सर्भरमा GROQ_API_KEY राखिएको छैन, त्यसैले जवाफ दिने केही छैन।';
-
-  @override
-  String get assistantTrimmed =>
-      'पुराना सन्देश पठाउने सूचीबाट हटाइन्छ, ताकि लामो कुराकानी पनि चलिरहोस्।';
 
   @override
   String get nearbyTitle => 'नजिकैको सेवा';

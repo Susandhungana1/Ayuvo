@@ -2,7 +2,7 @@
 
 /**
  * Login session read from localStorage, exposed as an external store so chrome
- * (navbar, ChatBot) can subscribe without the setState-in-effect pattern the
+ * (navbar, footer) can subscribe without the setState-in-effect pattern the
  * react-hooks v6 rules reject.
  *
  * Written by the auth pages (token + user), read here. Same-tab changes are

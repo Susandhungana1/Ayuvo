@@ -26,9 +26,7 @@ export interface SharedReport {
   file_name: string;
   file_content: string;
   notes?: string | null;
-  result_summary?: string | null;
   extracted_text?: string | null;
-  ai_report_text?: string | null;
   doctor_name?: string | null;
   hospital?: string | null;
   created_at?: string | null;

@@ -3,7 +3,6 @@ import "./globals.css";
 import { Figtree, Noto_Sans } from "next/font/google";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
-import { ChatBot } from "@/components/ChatBot";
 import { HideOnShare } from "@/components/hide-on-share";
 import { PwaRegister } from "@/components/pwa-register";
 import { MedicineAlarm } from "@/components/medicine-alarm";
@@ -82,7 +81,6 @@ export default function RootLayout({
             {children}
           </main>
           <HideOnShare><Footer /></HideOnShare>
-          <HideOnShare><ChatBot /></HideOnShare>
           <PwaRegister />
           <MedicineAlarm />
         </I18nProvider>

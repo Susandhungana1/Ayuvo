@@ -1,5 +1,7 @@
 import secrets
 import base64
+import hashlib
+import secrets as _secrets
 from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -7,7 +9,7 @@ from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from app.api.auth import get_current_user
-from app.api.reports import generate_plain_explanation, get_report_bytes
+from app.api.reports import get_report_bytes
 from app.core.config import get_session
 from app.core.audit import record_access
 from app.core.lab_analysis import analyze_lab_text, summarize_findings
@@ -19,9 +21,16 @@ from app.models.models import (
 router = APIRouter()
 
 
+def _hash_pin(token: str, pin: str) -> str:
+    """Hash a share PIN keyed by the link's token. The token is already random
+    and secret, so the pair is unique per link and the PIN alone leaks nothing."""
+    return hashlib.sha256(f"{token}:{pin}".encode()).hexdigest()
+
+
 class ShareResponse(BaseModel):
     token: str
     expires_at: datetime
+    pin: Optional[str] = None
 
 
 class SharedReportResponse(BaseModel):
@@ -30,9 +39,7 @@ class SharedReportResponse(BaseModel):
     file_name: str
     file_content: str
     notes: Optional[str]
-    result_summary: Optional[str]
     extracted_text: Optional[str]
-    ai_report_text: Optional[str]
     doctor_name: Optional[str] = None
     hospital: Optional[str] = None
     created_at: Optional[str]
@@ -117,7 +124,7 @@ async def list_share_links(
 
 @router.post("/qr-code", response_model=ShareResponse)
 async def create_all_reports_share_link(
-    expires_hours: int = Query(default=24, ge=1, le=168),
+    expires_hours: int = Query(default=24, ge=1, le=72),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
@@ -141,18 +148,23 @@ async def create_all_reports_share_link(
 
     token = secrets.token_urlsafe(32)
     expires_at = datetime.utcnow() + timedelta(hours=expires_hours)
-    
+
+    # A whole-record share exposes every report and medicine, so it gets a
+    # 6-digit PIN the sharer must hand over separately (or read out). A
+    # photographed QR alone is useless without it.
+    pin = f"{_secrets.randbelow(1_000_000):06d}"
     share_link = ShareLink(
         token=token,
         report_id=None,
         user_id=current_user.id,
         all_reports=True,
+        pin_hash=_hash_pin(token, pin),
         expires_at=expires_at
     )
     db.add(share_link)
     db.commit()
     
-    return ShareResponse(token=token, expires_at=expires_at)
+    return ShareResponse(token=token, expires_at=expires_at, pin=pin)
 
 
 @router.get("/qr-code/{token}", response_model=UserAllReportsResponse)
@@ -160,6 +172,7 @@ async def create_all_reports_share_link(
 async def access_all_shared_reports(
     token: str,
     request: Request,
+    pin: Optional[str] = Query(default=None),
     db: Session = Depends(get_session)
 ):
     share_link = db.exec(
@@ -175,11 +188,25 @@ async def access_all_shared_reports(
     if share_link.expires_at < datetime.utcnow():
         raise HTTPException(status_code=410, detail="Share link expired")
 
-    record_access(
-        db, "share.view.all",
-        subject_id=share_link.user_id, resource_type="ShareLink",
-        resource_id=share_link.id, request=request, detail=f"token={token[:8]}…",
-    )
+    if share_link.pin_hash is not None:
+        if not pin:
+            raise HTTPException(
+                status_code=401,
+                detail="This health record is PIN-protected. Ask the owner for the 6-digit PIN.",
+            )
+        if _hash_pin(token, pin) != share_link.pin_hash:
+            raise HTTPException(status_code=401, detail="Incorrect PIN")
+        record_access(
+            db, "share.view.all.pin_ok",
+            subject_id=share_link.user_id, resource_type="ShareLink",
+            resource_id=share_link.id, request=request, detail=f"token={token[:8]}…",
+        )
+    else:
+        record_access(
+            db, "share.view.all",
+            subject_id=share_link.user_id, resource_type="ShareLink",
+            resource_id=share_link.id, request=request, detail=f"token={token[:8]}…",
+        )
 
     reports = db.exec(
         select(MedicalReport)
@@ -205,9 +232,7 @@ async def access_all_shared_reports(
             file_name=report.file_name,
             file_content=file_content_b64,
             notes=report.notes,
-            result_summary=report.result_summary,
             extracted_text=report.extracted_text,
-            ai_report_text=report.ai_report_text,
             doctor_name=report.doctor_name,
             hospital=report.hospital,
             created_at=str(report.created_at) if report.created_at else None
@@ -480,9 +505,7 @@ async def read_received_share(
             file_name=report.file_name,
             file_content=file_content_b64,
             notes=report.notes,
-            result_summary=report.result_summary,
             extracted_text=report.extracted_text,
-            ai_report_text=report.ai_report_text,
             doctor_name=report.doctor_name,
             hospital=report.hospital,
             created_at=str(report.created_at) if report.created_at else None,
@@ -668,9 +691,7 @@ async def access_shared_report(
         file_name=report.file_name,
         file_content=file_content_b64,
         notes=report.notes,
-        result_summary=report.result_summary,
         extracted_text=report.extracted_text,
-        ai_report_text=report.ai_report_text,
         doctor_name=report.doctor_name,
         hospital=report.hospital,
         created_at=str(report.created_at) if report.created_at else None
@@ -683,33 +704,6 @@ async def access_shared_report(
         user_id=user.id if user else None,
         user_blood_type=user.blood_type if user else None
     )
-
-
-@router.get("/{token}/ai-report")
-async def get_shared_ai_report(
-    token: str,
-    report_id: Optional[str] = None,
-    db: Session = Depends(get_session)
-):
-    share_link = db.exec(
-        select(ShareLink).where(ShareLink.token == token)
-    ).first()
-    
-    if not share_link:
-        raise HTTPException(status_code=404, detail="Share link not found")
-    
-    if share_link.expires_at < datetime.utcnow():
-        raise HTTPException(status_code=410, detail="Share link expired")
-    
-    rid = report_id or share_link.report_id
-    if not rid:
-        raise HTTPException(status_code=400, detail="No report specified")
-    
-    report = db.get(MedicalReport, rid)
-    if not report:
-        raise HTTPException(status_code=400, detail="Report not found")
-
-    return {"report": report.ai_report_text or "No AI report available"}
 
 
 def _resolve_shared_report(token: str, report_id: Optional[str], db: Session) -> MedicalReport:
@@ -749,22 +743,6 @@ async def get_shared_lab_analysis(
         "abnormal_count": summary["abnormal_count"],
         "findings": findings,
     }
-
-
-@router.get("/{token}/explain")
-async def get_shared_explanation(
-    token: str,
-    report_id: Optional[str] = None,
-    db: Session = Depends(get_session)
-):
-    """Public plain-language explanation for a shared report (no login required)."""
-    report = _resolve_shared_report(token, report_id, db)
-    if not report.extracted_text:
-        raise HTTPException(status_code=400, detail="No readable text found in this report")
-    explanation = await generate_plain_explanation(report.report_type, report.extracted_text)
-    if not explanation:
-        raise HTTPException(status_code=503, detail="AI explanation is unavailable (no API key configured)")
-    return {"explanation": explanation}
 
 
 @router.delete("/{token}")

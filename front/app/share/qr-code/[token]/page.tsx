@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/card';
 import { Button } from '@/components/button';
-import { DigitizedReport } from '@/components/DigitizedReport';
 import ClaimShareButton from '@/components/ClaimShareButton';
 import { formatPlainDate, formatServerDateTime } from '@/lib/datetime';
 
@@ -16,7 +15,6 @@ interface Report {
   file_name: string;
   file_content: string;
   notes?: string;
-  ai_report_text?: string;
   doctor_name?: string;
   hospital?: string;
   created_at?: string;
@@ -84,21 +82,33 @@ export default function ViewAllSharedReports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [viewingReport, setViewingReport] = useState<{url: string; name: string} | null>(null);
-  const [digitizedReport, setDigitizedReport] = useState<Report | null>(null);
   // Which panel (if any) is open per report, plus caches for fetched data.
-  const [panels, setPanels] = useState<Record<string, 'lab' | 'explain' | null>>({});
+  const [panels, setPanels] = useState<Record<string, 'lab' | null>>({});
   const [labCache, setLabCache] = useState<Record<string, LabAnalysis | 'loading' | 'error'>>({});
-  const [explainCache, setExplainCache] = useState<Record<string, string>>({});
+  // PIN gate: whole-record shares are PIN-protected, so the reader asks for
+  // the 6-digit code before the first request goes out.
+  const [needsPin, setNeedsPin] = useState(false);
+  const [pin, setPin] = useState('');
+  const [pinError, setPinError] = useState('');
 
   useEffect(() => {
     if (token) {
       fetchReports();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const fetchReports = async () => {
+  const fetchReports = async (enteredPin?: string) => {
     try {
-      const res = await fetch(`${API_URL}/api/share/qr-code/${token}`);
+      const query = enteredPin ? `?pin=${encodeURIComponent(enteredPin)}` : '';
+      const res = await fetch(`${API_URL}/api/share/qr-code/${token}${query}`);
+      if (res.status === 401) {
+        const errData = await res.json().catch(() => ({ detail: 'PIN required' }));
+        setPinError(errData.detail || 'This health record is PIN-protected.');
+        setNeedsPin(true);
+        setLoading(false);
+        return;
+      }
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.detail || 'Link not found or expired');
@@ -110,6 +120,13 @@ export default function ViewAllSharedReports() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const submitPin = () => {
+    setPinError('');
+    setLoading(true);
+    setNeedsPin(false);
+    fetchReports(pin.trim());
   };
 
   const handleViewReport = (report: Report) => {
@@ -142,23 +159,40 @@ export default function ViewAllSharedReports() {
     }
   };
 
-  const showExplain = async (id: string) => {
-    setPanels(p => ({ ...p, [id]: p[id] === 'explain' ? null : 'explain' }));
-    if (explainCache[id]) return;
-    setExplainCache(c => ({ ...c, [id]: '__loading__' }));
-    try {
-      const res = await fetch(`${API_URL}/api/share/${token}/explain?report_id=${id}`);
-      const data = await res.json();
-      setExplainCache(c => ({ ...c, [id]: res.ok ? data.explanation : `Could not generate explanation: ${data.detail || 'unknown error'}` }));
-    } catch {
-      setExplainCache(c => ({ ...c, [id]: 'Network error. Please try again.' }));
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-subtext">Loading...</p>
+      </div>
+    );
+  }
+
+  if (needsPin) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="p-8 max-w-md w-full">
+          <h2 className="text-xl font-bold text-text-main mb-2">PIN required</h2>
+          <p className="text-subtext mb-4">
+            This health record is PIN-protected. Ask the owner for the 6-digit
+            PIN that came with the QR code.
+          </p>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={6}
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+            placeholder="6-digit PIN"
+            className="w-full h-11 rounded-lg border border-gray-300 px-3.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+          />
+          {pinError && (
+            <p className="text-sm text-red-600 mb-3">{pinError}</p>
+          )}
+          <Button onClick={submitPin} disabled={pin.length !== 6} className="w-full">
+            View health record
+          </Button>
+        </Card>
       </div>
     );
   }
@@ -287,22 +321,10 @@ export default function ViewAllSharedReports() {
                     View Original
                   </button>
                   <button
-                    onClick={() => setDigitizedReport(report)}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-medium text-sm hover:bg-emerald-100 transition-colors"
-                  >
-                    Digital Report
-                  </button>
-                  <button
                     onClick={() => showLab(report.id)}
                     className="px-3 py-1.5 rounded-lg bg-teal-50 text-teal-700 font-medium text-sm hover:bg-teal-100 transition-colors"
                   >
                     {panels[report.id] === 'lab' ? 'Hide Lab Values' : 'Lab Values'}
-                  </button>
-                  <button
-                    onClick={() => showExplain(report.id)}
-                    className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 font-medium text-sm hover:bg-sky-100 transition-colors"
-                  >
-                    {panels[report.id] === 'explain' ? 'Hide Explanation' : 'Explain Simply'}
                   </button>
                 </div>
 
@@ -344,17 +366,6 @@ export default function ViewAllSharedReports() {
                     })()}
                   </div>
                 )}
-
-                {panels[report.id] === 'explain' && (
-                  <div className="border border-gray-100 rounded-lg p-4">
-                    <p className="text-xs text-subtext mb-2">Simplified by MediStore AI · not medical advice</p>
-                    {!explainCache[report.id] || explainCache[report.id] === '__loading__' ? (
-                      <p className="text-subtext text-sm">AI is explaining this report…</p>
-                    ) : (
-                      <p className="text-sm text-text-main whitespace-pre-wrap leading-relaxed">{explainCache[report.id]}</p>
-                    )}
-                  </div>
-                )}
               </Card>
             ))}
           </div>
@@ -387,19 +398,6 @@ export default function ViewAllSharedReports() {
             </div>
           </div>
         </div>
-      )}
-
-      {digitizedReport && (
-        <DigitizedReport
-          report={digitizedReport}
-          user={{
-            name: data?.user_name || 'Patient',
-            id: data?.user_id || '',
-            email: '',
-            blood_type: data?.user_blood_type || undefined,
-          }}
-          onClose={() => setDigitizedReport(null)}
-        />
       )}
     </div>
   );

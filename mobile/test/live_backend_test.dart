@@ -23,8 +23,6 @@ import 'package:medistore/core/network/scoped_url.dart';
 import 'package:medistore/core/time/medi_time.dart';
 import 'package:medistore/features/appointments/data/appointment_repository.dart';
 import 'package:medistore/features/appointments/domain/appointment.dart';
-import 'package:medistore/features/assistant/data/chat_repository.dart';
-import 'package:medistore/features/assistant/domain/chat_message.dart';
 import 'package:medistore/features/auth/data/auth_repository.dart';
 import 'package:medistore/features/auth/domain/auth_user.dart';
 import 'package:medistore/features/care/data/care_repository.dart';
@@ -698,7 +696,6 @@ void main() {
     late TimelineRepository timeline;
     late SearchRepository search;
     late CareRepository care;
-    late ChatRepository chat;
     late bool caretakerEnabled;
 
     setUpAll(() async {
@@ -714,7 +711,6 @@ void main() {
       timeline = TimelineRepository(scoped);
       search = SearchRepository(scoped);
       care = CareRepository(scoped);
-      chat = ChatRepository(scoped);
 
       final health = await scoped.get<Map<String, dynamic>>(
         '/health',
@@ -829,19 +825,6 @@ void main() {
         (await search.find('doxycycline')).of(SearchKind.medicine),
         hasLength(1),
       );
-    });
-
-    test('the assistant answers, or says why it cannot', () async {
-      // A local dev server usually has no GROQ_API_KEY. Both outcomes are
-      // correct; what must not happen is an unhandled error or a blank reply.
-      try {
-        final reply = await chat.reply([
-          const ChatMessage.user('In one sentence: what is a normal pulse?'),
-        ]);
-        expect(reply, isNotEmpty);
-      } on AssistantUnavailable catch (failure) {
-        expect(failure.message, isNotEmpty);
-      }
     });
 
     test('the care routes match what /health advertises', () async {

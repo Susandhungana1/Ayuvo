@@ -267,9 +267,9 @@ class MedicalReport(SQLModel, table=True):
     hospital: Optional[str] = None
     doctor_name: Optional[str] = None
 
-    result_summary: Optional[str] = None
+    # OCR-extracted text, kept for the offline lab-value parser (/lab-analysis,
+    # /trends). The AI-generated summary/formal-report columns were removed.
     extracted_text: Optional[str] = None
-    ai_report_text: Optional[str] = None
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -311,6 +311,11 @@ class ShareLink(SQLModel, table=True):
     report_id: Optional[str] = Field(default=None)
     user_id: str = Field(foreign_key="users.id")
     all_reports: bool = Field(default=False)
+
+    # 6-digit PIN guarding whole-record (QR) shares. Single-report shares stay
+    # PIN-free: they carry one consented report, not the whole health record.
+    # Stored hashed so a leaked DB dump does not hand out working PINs.
+    pin_hash: Optional[str] = Field(default=None)
 
     expires_at: datetime
     created_at: datetime = Field(default_factory=datetime.utcnow)

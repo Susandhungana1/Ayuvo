@@ -1,9 +1,11 @@
-/// Language, appearance and dose reminders.
+/// Language, appearance, dose reminders and the account's erasure.
 ///
-/// Deliberately three things and not a dumping ground. Profile editing
+/// Deliberately four things and not a dumping ground. Profile editing
 /// (`PUT /api/users/me`) and two-factor setup are account operations that
 /// belong with the account, and are phase 8 — a settings screen that mixes
 /// "how the app looks" with "change my password" makes both harder to find.
+/// Deletion lives here because the Play Store review requirement names this
+/// screen: a user must be able to erase the account from inside the app.
 library;
 
 import 'package:flutter/material.dart';
@@ -12,9 +14,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/l10n/context_l10n.dart';
 import '../../../core/notifications/reminder_sync.dart';
 import '../../../core/notifications/reminders.dart';
+import '../../../core/session/session_controller.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/widgets/states.dart';
+import '../../auth/data/auth_repository.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -36,6 +41,8 @@ class SettingsScreen extends ConsumerWidget {
           _Appearance(),
           SizedBox(height: AppSpacing.xl),
           _Reminders(),
+          SizedBox(height: AppSpacing.xl),
+          _DeleteAccount(),
         ],
       ),
     );
@@ -309,3 +316,79 @@ final reminderPermissionProvider =
   await ref.watch(reminderSyncProvider.future);
   return ref.watch(remindersProvider).status();
 });
+
+/// Erase the account, for real.
+///
+/// Deliberately at the bottom and styled as a danger: a two-step confirm with
+/// the erasure spelled out, because the server really does delete everything
+/// and nothing here can undo it. On success the session ends the way a
+/// sign-out does — tokens cleared locally — but with the notice that the
+/// account is gone, not just the session.
+class _DeleteAccount extends ConsumerWidget {
+  const _DeleteAccount();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    return _Section(
+      title: l10n.settingsDeleteAccount,
+      blurb: l10n.settingsDeleteBlurb,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: () => _confirm(context, ref),
+            icon: Icon(Icons.delete_forever_outlined,
+                color: Theme.of(context).colorScheme.error),
+            label: Text(
+              l10n.settingsDeleteAccount,
+              style: context.texts.bodyMedium
+                  ?.copyWith(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirm(BuildContext context, WidgetRef ref) async {
+    final l10n = context.l10n;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.deleteAccountTitle),
+        content: Text(l10n.deleteAccountBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.deleteAccountKeep),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            child: Text(l10n.deleteAccountConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(authRepositoryProvider).deleteAccount();
+      // The account is gone; the local session must not survive it. signOut
+      // revokes the refresh token best-effort (a dead token answers 401, which
+      // signOut ignores) and clears everything local.
+      await ref.read(sessionControllerProvider.notifier).signOut();
+      navigator.popUntil((route) => route.isFirst);
+      messenger.showSnackBar(SnackBar(content: Text(l10n.accountDeleted)));
+    } catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text(ErrorText.of(error))));
+    }
+  }
+}

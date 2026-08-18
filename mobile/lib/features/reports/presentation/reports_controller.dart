@@ -56,12 +56,3 @@ final labAnalysisProvider =
     FutureProvider.autoDispose.family<LabAnalysis, String>(
   (ref, id) => ref.watch(reportRepositoryProvider).labAnalysis(id),
 );
-
-/// `POST /api/reports/{id}/explain`.
-///
-/// A POST behind a provider, so it runs once per screen rather than on every
-/// rebuild — and auto-disposes, because the explanation is regenerated each
-/// time and there is nothing worth caching between visits.
-final explanationProvider = FutureProvider.autoDispose.family<String, String>(
-  (ref, id) => ref.watch(reportRepositoryProvider).explain(id),
-);

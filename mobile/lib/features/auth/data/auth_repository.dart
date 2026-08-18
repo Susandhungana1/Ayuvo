@@ -91,6 +91,13 @@ class AuthRepository {
     );
   }
 
+  /// `DELETE /api/users/me` — erases the account and every row that belongs
+  /// to it: reports and their files, medicines, appointments, share links,
+  /// vitals, care links, everything. There is no undo.
+  Future<void> deleteAccount() async {
+    await _client.delete<void>('/api/users/me');
+  }
+
   /// `POST /api/auth/forgot-password` — rate limited 3/min.
   ///
   /// Answers identically whether or not the email has an account, so the reply

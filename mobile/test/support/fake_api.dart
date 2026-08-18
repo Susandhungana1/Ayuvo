@@ -135,9 +135,7 @@ Map<String, Object?> reportRow({
   String reportType = 'BLOOD_TEST',
   String fileName = 'cbc-june.pdf',
   String? reportDate = '2026-06-14T00:00:00',
-  String? summary = 'Haemoglobin slightly below range; everything else normal.',
   String? extractedText = 'HAEMOGLOBIN 11.2 g/dL',
-  String? aiReportText,
   String? documentId,
 }) =>
     {
@@ -148,9 +146,7 @@ Map<String, Object?> reportRow({
       'doctor_name': 'Dr Asha Rai',
       'hospital': 'Bir Hospital',
       'notes': null,
-      'result_summary': summary,
       'extracted_text': extractedText,
-      'ai_report_text': aiReportText,
       'document_id': documentId,
     };
 

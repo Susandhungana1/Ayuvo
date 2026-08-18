@@ -82,8 +82,11 @@ def test_whole_record_token_is_rejected_by_the_single_report_reader(client):
     resp = client.get(f"/api/share/{share_token}")
     assert resp.status_code == 404
     assert resp.json()["detail"] == "Invalid share link"
-    # The route that *can* serve it still does.
-    assert client.get(f"/api/share/qr-code/{share_token}").status_code == 200
+    # The route that *can* serve it still does (PIN included — whole-record
+    # shares are now PIN-protected).
+    pin = qr.json()["pin"]
+    assert pin is not None
+    assert client.get(f"/api/share/qr-code/{share_token}?pin={pin}").status_code == 200
 
 
 def test_report_reassigned_away_from_the_sharer_is_not_served(client):

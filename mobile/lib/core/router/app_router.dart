@@ -12,7 +12,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/legal/presentation/not_found_screen.dart';
 import '../../features/appointments/presentation/appointments_screen.dart';
-import '../../features/assistant/presentation/assistant_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/reset_password_screen.dart';
@@ -203,10 +202,6 @@ final _routes = <RouteBase>[
               GoRoute(
                 path: 'search',
                 builder: (context, state) => const SearchScreen(),
-              ),
-              GoRoute(
-                path: 'assistant',
-                builder: (context, state) => const AssistantScreen(),
               ),
               GoRoute(
                 path: 'nearby',

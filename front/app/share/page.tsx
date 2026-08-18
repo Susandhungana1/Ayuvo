@@ -30,6 +30,7 @@ export default function Share() {
   const [shareLinks, setShareLinks] = useState<ShareLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [qrPin, setQrPin] = useState<string | null>(null);
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [reportQrModal, setReportQrModal] = useState<{reportId: string; reportName: string; url: string} | null>(null);
 
@@ -117,6 +118,7 @@ export default function Share() {
         const data = await res.json();
         const qrUrl = `${window.location.origin}/share/qr-code/${data.token}`;
         setQrCode(qrUrl);
+        setQrPin(data.pin ?? null);
         setQrModalOpen(true);
       } else {
         const data = await res.json();
@@ -271,7 +273,7 @@ export default function Share() {
               <li>3. Copy the link and share it with your doctor</li>
               <li>4. The link will expire automatically after 24 hours</li>
               <li>5. You can revoke the link at any time</li>
-              <li>6. Use QR Code to share all reports at once</li>
+              <li>6. Use QR Code to share all reports at once — the reader asks for the 6-digit PIN that comes with it</li>
               <li>
                 7. A recipient signed in to MediStore can save the share to keep
                 it after the link expires — you&apos;ll see them listed below
@@ -291,6 +293,15 @@ export default function Share() {
             <div className="flex justify-center mb-4 p-4 bg-white">
               <QRCodeSVG value={qrCode} size={200} />
             </div>
+            {qrPin && (
+              <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-3">
+                <p className="text-sm font-semibold text-amber-800 mb-1">PIN: {qrPin}</p>
+                <p className="text-xs text-amber-700">
+                  Whoever scans this code will be asked for this PIN. Give it to
+                  them separately — do not print it on the same page as the code.
+                </p>
+              </div>
+            )}
             <p className="text-subtext text-sm mb-4">Scan this QR code to view all your medical reports</p>
             <p className="text-subtext text-xs mb-4">Link: {qrCode}</p>
             <div className="flex gap-2 justify-center">

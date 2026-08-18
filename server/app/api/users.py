@@ -4,7 +4,14 @@ from pydantic import BaseModel, field_validator
 from sqlmodel import Session, select
 
 from app.api.auth import get_current_user, get_session
-from app.models.models import User
+from app.core import storage
+from app.models.models import (
+    User, PasswordResetToken, RefreshToken, Doctor, DoctorAvailability,
+    MedicalDocument, MedicalFile, Medicine, MedicineIntakeLog, PushSubscription,
+    MedicalReport, Appointment, ShareLink, VitalSign, EmergencyContact,
+    AuditLog, CareInvite, CareLink, MedicineAudit, ReminderDelivery,
+    ClaimedShare,
+)
 
 router = APIRouter()
 
@@ -83,3 +90,111 @@ async def update_current_user(
         city=current_user.city,
         timezone=current_user.timezone
     )
+
+
+def _wipe_stored_files(db: Session, user_id: str) -> None:
+    """Delete object-storage blobs for the user's reports and document files
+    before the DB rows go, so storage does not leak after the account does."""
+    for report in db.exec(
+        select(MedicalReport).where(MedicalReport.user_id == user_id)
+    ).all():
+        if report.storage_key:
+            try:
+                storage.delete_file(report.storage_key)
+            except Exception:
+                pass
+    for doc in db.exec(
+        select(MedicalDocument).where(MedicalDocument.user_id == user_id)
+    ).all():
+        for file in db.exec(select(MedicalFile).where(MedicalFile.document_id == doc.id)).all():
+            if file.storage_key:
+                try:
+                    storage.delete_file(file.storage_key)
+                except Exception:
+                    pass
+
+
+@router.delete("/me", status_code=status.HTTP_200_OK)
+async def delete_current_user(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    """Permanently delete the account and every row that belongs to it.
+
+    Covers the user's own data (reports, documents, vitals, medicines,
+    appointments, emergency profile, push subscriptions, refresh tokens), the
+    caretaker graph (links they issued or redeemed, medicine audit, queued
+    deliveries) and claimed shares on both sides. Audit log rows referencing
+    the user are removed too — the GDPR-style right to erasure wins over the
+    access trail here. Object-storage blobs are deleted before the DB rows.
+    """
+    user_id = current_user.id
+
+    _wipe_stored_files(db, user_id)
+
+    doc_ids = [d.id for d in db.exec(
+        select(MedicalDocument).where(MedicalDocument.user_id == user_id)
+    ).all()]
+
+    for table in [MedicalReport, Appointment, ShareLink,
+                  VitalSign, EmergencyContact, MedicineIntakeLog,
+                  Medicine, PushSubscription, MedicalDocument]:
+        rows = db.exec(
+            select(table).where(table.user_id == user_id)
+        ).all()
+        for row in rows:
+            db.delete(row)
+
+    for doc_id in doc_ids:
+        for row in db.exec(select(MedicalFile).where(MedicalFile.document_id == doc_id)).all():
+            db.delete(row)
+
+    doctor = db.exec(select(Doctor).where(Doctor.user_id == user_id)).first()
+    if doctor:
+        for row in db.exec(
+            select(DoctorAvailability).where(DoctorAvailability.doctor_id == doctor.id)
+        ).all():
+            db.delete(row)
+        db.delete(doctor)
+
+    for row in db.exec(select(CareInvite).where(CareInvite.patient_id == user_id)).all():
+        db.delete(row)
+    for row in db.exec(
+        select(CareLink).where(
+            (CareLink.patient_id == user_id) | (CareLink.caretaker_id == user_id)
+        )
+    ).all():
+        db.delete(row)
+    for row in db.exec(select(MedicineAudit).where(MedicineAudit.patient_id == user_id)).all():
+        db.delete(row)
+    for row in db.exec(
+        select(ReminderDelivery).where(
+            (ReminderDelivery.recipient_id == user_id)
+            | (ReminderDelivery.patient_id == user_id)
+        )
+    ).all():
+        db.delete(row)
+    for row in db.exec(
+        select(ClaimedShare).where(
+            (ClaimedShare.recipient_id == user_id) | (ClaimedShare.owner_id == user_id)
+        )
+    ).all():
+        db.delete(row)
+    for row in db.exec(
+        select(AuditLog).where(
+            (AuditLog.actor_id == user_id) | (AuditLog.subject_id == user_id)
+        )
+    ).all():
+        db.delete(row)
+    for row in db.exec(
+        select(PasswordResetToken).where(PasswordResetToken.user_id == user_id)
+    ).all():
+        db.delete(row)
+    for row in db.exec(
+        select(RefreshToken).where(RefreshToken.user_id == user_id)
+    ).all():
+        db.delete(row)
+
+    db.delete(current_user)
+    db.commit()
+    return {"message": "Account deleted"}

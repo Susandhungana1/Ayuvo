@@ -84,31 +84,26 @@ void main() {
         findsOneWidget);
   });
 
-  testWidgets('a report is listed with its summary and its file',
+  testWidgets('a report is listed with its OCR text and its file',
       (tester) async {
     await openReports(tester, backend(reports: [reportRow()]));
 
     expect(find.text('Your reports'), findsOneWidget);
     expect(find.text('Blood test'), findsOneWidget);
     expect(find.text('Bir Hospital · Dr Asha Rai'), findsOneWidget);
-    expect(
-      find.text('Haemoglobin slightly below range; everything else normal.'),
-      findsOneWidget,
-    );
+    expect(find.text('HAEMOGLOBIN 11.2 g/dL'), findsOneWidget);
     expect(find.text('cbc-june.pdf'), findsOneWidget);
   });
 
-  testWidgets('a report OCR read nothing from says which, not nothing',
+  testWidgets('a report OCR read nothing from shows the file, not a promise',
       (tester) async {
     await openReports(
       tester,
-      backend(reports: [reportRow(summary: null, extractedText: null)]),
+      backend(reports: [reportRow(extractedText: null)]),
     );
 
-    expect(
-      find.text('No summary — nothing readable was extracted from this file.'),
-      findsOneWidget,
-    );
+    expect(find.text('HAEMOGLOBIN 11.2 g/dL'), findsNothing);
+    expect(find.text('cbc-june.pdf'), findsOneWidget);
   });
 
   testWidgets('an undated report says Undated rather than guessing a date',
@@ -143,7 +138,7 @@ void main() {
   });
 
   group('detail', () {
-    testWidgets('offers the lab values and the explanation when there is text',
+    testWidgets('offers the file and the lab values when there is text',
         (tester) async {
       final api = backend(reports: [reportRow()])
         ..json('GET /api/reports/rep-1/lab-analysis', labAnalysis());
@@ -153,25 +148,17 @@ void main() {
       await settle(tester);
 
       expect(find.byType(ReportDetailScreen), findsOneWidget);
-      expect(find.text('Summary'), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'View the file'), findsOneWidget);
 
       await scrollTo(tester, find.text('Lab values'),
           scrollable: scrollableIn(ReportDetailScreen));
       expect(find.text('Haemoglobin'), findsOneWidget);
       expect(find.text('Platelets'), findsOneWidget);
-
-      // The explanation is a POST that calls an LLM, so it waits to be asked.
-      await scrollTo(tester, find.text('In plain language'),
-          scrollable: scrollableIn(ReportDetailScreen));
-      expect(find.widgetWithText(OutlinedButton, 'Explain simply'),
-          findsOneWidget);
-      expect(api.calls, isNot(contains('POST /api/reports/rep-1/explain')));
     });
 
     testWidgets('hides what OCR made impossible and says why', (tester) async {
-      // `POST /explain` 400s without extracted text and the lab analyser has
-      // nothing to parse, so offering either would be offering a refusal.
+      // The lab analyser has nothing to parse without extracted text, so
+      // offering it would be offering a refusal.
       await openReports(
         tester,
         backend(reports: [reportRow(extractedText: null)]),
@@ -181,61 +168,14 @@ void main() {
       await settle(tester);
 
       expect(
-        find.text('No text could be read from this file, so the lab values, '
-            'the plain-language explanation and the formal report are not '
-            'available for it. The file itself is stored and viewable.'),
+        find.text('No text could be read from this file, so the lab '
+            'values are not available for it. The file itself is '
+            'stored and viewable.'),
         findsOneWidget,
       );
       expect(find.text('Lab values'), findsNothing);
-      expect(find.widgetWithText(OutlinedButton, 'Explain simply'),
-          findsNothing);
       // The file is still there, so viewing it is still offered.
       expect(find.widgetWithText(FilledButton, 'View the file'), findsOneWidget);
-    });
-
-    testWidgets('offers the formal report only when one was generated',
-        (tester) async {
-      final withReport = backend(reports: [
-        reportRow(aiReportText: 'CONCLUSION\nMild anemia.'),
-      ])
-        ..json('GET /api/reports/rep-1/lab-analysis', labAnalysis());
-      await openReports(tester, withReport);
-
-      await tester.tap(find.text('Blood test'));
-      await settle(tester);
-
-      expect(find.widgetWithText(OutlinedButton, 'Formal report'),
-          findsOneWidget);
-    });
-
-    testWidgets('asking for the explanation posts once and shows the answer',
-        (tester) async {
-      final api = backend(reports: [reportRow()])
-        ..json('GET /api/reports/rep-1/lab-analysis', labAnalysis())
-        ..json('POST /api/reports/rep-1/explain',
-            {'explanation': 'Your iron is a little low. Eat more greens.'});
-      await openReports(tester, api);
-
-      await tester.tap(find.text('Blood test'));
-      await settle(tester);
-
-      await tapAfterScroll(
-        tester,
-        find.widgetWithText(OutlinedButton, 'Explain simply'),
-        scrollable: scrollableIn(ReportDetailScreen),
-      );
-
-      expect(find.text('Your iron is a little low. Eat more greens.'),
-          findsOneWidget);
-      expect(
-        find.text('Generated by AI. Check anything that matters with your '
-            'doctor.'),
-        findsOneWidget,
-      );
-      expect(
-        api.calls.where((c) => c == 'POST /api/reports/rep-1/explain'),
-        hasLength(1),
-      );
     });
 
     testWidgets('deleting from the detail screen returns to the list',

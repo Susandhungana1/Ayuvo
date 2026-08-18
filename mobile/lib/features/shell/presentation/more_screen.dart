@@ -55,12 +55,6 @@ class MoreScreen extends ConsumerWidget {
 
   static List<_Destination> _help(AppL10n l10n) => [
         _Destination(
-          route: Routes.assistant,
-          icon: Icons.forum_outlined,
-          title: l10n.navAssistant,
-          subtitle: l10n.moreAssistantBlurb,
-        ),
-        _Destination(
           route: Routes.nearby,
           icon: Icons.map_outlined,
           title: l10n.navNearby,
