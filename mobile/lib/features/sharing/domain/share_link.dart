@@ -22,6 +22,11 @@ abstract class ShareLink with _$ShareLink {
 
     /// Naive UTC, like every other server timestamp. `"2026-08-07T09:14:22"`.
     @JsonKey(name: 'expires_at') required String expiresAt,
+
+    /// The 6-digit PIN of a whole-record link, if one exists. Only the create
+    /// response carries it — the server stores a hash, not the value, so a link
+    /// fetched from the list later never has one.
+    String? pin,
   }) = _ShareLink;
 
   const ShareLink._();
@@ -63,6 +68,9 @@ abstract class ShareGrant with _$ShareGrant {
   const factory ShareGrant({
     required String token,
     @JsonKey(name: 'expires_at') required String expiresAt,
+
+    /// Whole-record creates answer with the PIN that guards the link.
+    String? pin,
   }) = _ShareGrant;
 
   const ShareGrant._();
@@ -72,8 +80,12 @@ abstract class ShareGrant with _$ShareGrant {
 
   /// Turns the create response into the list row it will become, so a new link
   /// appears with the same shape as the ones that came from the server.
-  ShareLink asLink({required String reportId}) =>
-      ShareLink(token: token, reportId: reportId, expiresAt: expiresAt);
+  ShareLink asLink({required String reportId}) => ShareLink(
+        token: token,
+        reportId: reportId,
+        expiresAt: expiresAt,
+        pin: pin,
+      );
 }
 
 /// How long a new link should live. The API takes `?expires_hours=` and

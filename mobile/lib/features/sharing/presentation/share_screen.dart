@@ -419,6 +419,37 @@ Future<void> showLinkSheet(
                       'its own.',
               style: context.texts.bodyMedium,
             ),
+            if (link.pin != null) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Container(
+                padding: AppSpacing.card,
+                decoration: BoxDecoration(
+                  color: context.colors.tertiaryContainer,
+                  borderRadius: AppRadius.md,
+                  border: Border.all(color: context.colors.tertiary),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '6-digit PIN: ${link.pin}',
+                      style: context.texts.titleMedium?.copyWith(
+                        color: context.colors.onTertiaryContainer,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxs),
+                    Text(
+                      'Anyone who scans the code will be asked for this. Give '
+                      'it to them separately — do not print it beside the QR.',
+                      style: context.texts.bodySmall?.copyWith(
+                        color: context.colors.onTertiaryContainer,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: AppSpacing.lg),
             LinkCard(
               url: link.url,

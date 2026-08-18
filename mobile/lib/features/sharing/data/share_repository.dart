@@ -65,9 +65,13 @@ class ShareRepository {
 
   /// `GET /api/share/qr-code/{token}` — read a shared whole record. **No auth:**
   /// the token is the credential, exactly as the web reader treats it.
-  Future<SharedRecord> fetchSharedRecord(String token) async {
+  ///
+  /// Whole-record links are PIN-guarded: [pin] is asked for after the first
+  /// 401 (the server hashes it, so there is no way to skip the prompt).
+  Future<SharedRecord> fetchSharedRecord(String token, {String? pin}) async {
+    final query = pin == null ? '' : '?pin=$pin';
     final json = await _client.get<Map<String, dynamic>>(
-      '$_base/qr-code/$token',
+      '$_base/qr-code/$token$query',
       options: unauthenticated,
     );
     return SharedRecord.fromJson(json);

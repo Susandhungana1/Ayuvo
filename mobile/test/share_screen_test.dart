@@ -100,11 +100,11 @@ void main() {
     expect(find.textContaining('__ALL_REPORTS__'), findsNothing);
   });
 
-  testWidgets('creating a whole-record link sends the chosen window and shows '
-      'the URL', (tester) async {
+  testWidgets('creating a whole-record link sends the chosen window, shows '
+      'the URL, and surfaces the PIN the reader will ask for', (tester) async {
     final api = backend()
       ..json('POST /api/share/qr-code',
-          {'token': 'tok-new', 'expires_at': _live});
+          {'token': 'tok-new', 'expires_at': _live, 'pin': '123456'});
     await openSharing(tester, api);
 
     await tester.tap(find.widgetWithText(ChoiceChip, 'For a week'));
@@ -121,6 +121,11 @@ void main() {
       findsOneWidget,
     );
     expect(find.widgetWithText(OutlinedButton, 'Copy link'), findsOneWidget);
+
+    // A whole-record link is PIN-guarded: the owner must see the PIN at the
+    // one moment it exists (the server stores a hash, never the value).
+    expect(find.text('6-digit PIN: 123456'), findsOneWidget);
+    expect(find.textContaining('do not print it beside the QR'), findsOneWidget);
     expect(api.unmatched, isEmpty);
   });
 

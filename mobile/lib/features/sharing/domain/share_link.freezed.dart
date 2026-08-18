@@ -19,7 +19,10 @@ mixin _$ShareLink {
 /// never logged and never put in an error message.
  String get token;/// The report this opens, or the sentinel [wholeRecord].
 @JsonKey(name: 'report_id') String get reportId;/// Naive UTC, like every other server timestamp. `"2026-08-07T09:14:22"`.
-@JsonKey(name: 'expires_at') String get expiresAt;
+@JsonKey(name: 'expires_at') String get expiresAt;/// The 6-digit PIN of a whole-record link, if one exists. Only the create
+/// response carries it — the server stores a hash, not the value, so a link
+/// fetched from the list later never has one.
+ String? get pin;
 /// Create a copy of ShareLink
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -32,16 +35,16 @@ $ShareLinkCopyWith<ShareLink> get copyWith => _$ShareLinkCopyWithImpl<ShareLink>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ShareLink&&(identical(other.token, token) || other.token == token)&&(identical(other.reportId, reportId) || other.reportId == reportId)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ShareLink&&(identical(other.token, token) || other.token == token)&&(identical(other.reportId, reportId) || other.reportId == reportId)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt)&&(identical(other.pin, pin) || other.pin == pin));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,token,reportId,expiresAt);
+int get hashCode => Object.hash(runtimeType,token,reportId,expiresAt,pin);
 
 @override
 String toString() {
-  return 'ShareLink(token: $token, reportId: $reportId, expiresAt: $expiresAt)';
+  return 'ShareLink(token: $token, reportId: $reportId, expiresAt: $expiresAt, pin: $pin)';
 }
 
 
@@ -52,7 +55,7 @@ abstract mixin class $ShareLinkCopyWith<$Res>  {
   factory $ShareLinkCopyWith(ShareLink value, $Res Function(ShareLink) _then) = _$ShareLinkCopyWithImpl;
 @useResult
 $Res call({
- String token,@JsonKey(name: 'report_id') String reportId,@JsonKey(name: 'expires_at') String expiresAt
+ String token,@JsonKey(name: 'report_id') String reportId,@JsonKey(name: 'expires_at') String expiresAt, String? pin
 });
 
 
@@ -69,12 +72,13 @@ class _$ShareLinkCopyWithImpl<$Res>
 
 /// Create a copy of ShareLink
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? token = null,Object? reportId = null,Object? expiresAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? token = null,Object? reportId = null,Object? expiresAt = null,Object? pin = freezed,}) {
   return _then(_self.copyWith(
 token: null == token ? _self.token : token // ignore: cast_nullable_to_non_nullable
 as String,reportId: null == reportId ? _self.reportId : reportId // ignore: cast_nullable_to_non_nullable
 as String,expiresAt: null == expiresAt ? _self.expiresAt : expiresAt // ignore: cast_nullable_to_non_nullable
-as String,
+as String,pin: freezed == pin ? _self.pin : pin // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -159,10 +163,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String token, @JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'expires_at')  String expiresAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String token, @JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'expires_at')  String expiresAt,  String? pin)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ShareLink() when $default != null:
-return $default(_that.token,_that.reportId,_that.expiresAt);case _:
+return $default(_that.token,_that.reportId,_that.expiresAt,_that.pin);case _:
   return orElse();
 
 }
@@ -180,10 +184,10 @@ return $default(_that.token,_that.reportId,_that.expiresAt);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String token, @JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'expires_at')  String expiresAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String token, @JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'expires_at')  String expiresAt,  String? pin)  $default,) {final _that = this;
 switch (_that) {
 case _ShareLink():
-return $default(_that.token,_that.reportId,_that.expiresAt);case _:
+return $default(_that.token,_that.reportId,_that.expiresAt,_that.pin);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +204,10 @@ return $default(_that.token,_that.reportId,_that.expiresAt);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String token, @JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'expires_at')  String expiresAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String token, @JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'expires_at')  String expiresAt,  String? pin)?  $default,) {final _that = this;
 switch (_that) {
 case _ShareLink() when $default != null:
-return $default(_that.token,_that.reportId,_that.expiresAt);case _:
+return $default(_that.token,_that.reportId,_that.expiresAt,_that.pin);case _:
   return null;
 
 }
@@ -215,7 +219,7 @@ return $default(_that.token,_that.reportId,_that.expiresAt);case _:
 @JsonSerializable()
 
 class _ShareLink extends ShareLink {
-  const _ShareLink({required this.token, @JsonKey(name: 'report_id') required this.reportId, @JsonKey(name: 'expires_at') required this.expiresAt}): super._();
+  const _ShareLink({required this.token, @JsonKey(name: 'report_id') required this.reportId, @JsonKey(name: 'expires_at') required this.expiresAt, this.pin}): super._();
   factory _ShareLink.fromJson(Map<String, dynamic> json) => _$ShareLinkFromJson(json);
 
 /// The secret. 32 random bytes, URL-safe — it *is* the credential, so it is
@@ -225,6 +229,10 @@ class _ShareLink extends ShareLink {
 @override@JsonKey(name: 'report_id') final  String reportId;
 /// Naive UTC, like every other server timestamp. `"2026-08-07T09:14:22"`.
 @override@JsonKey(name: 'expires_at') final  String expiresAt;
+/// The 6-digit PIN of a whole-record link, if one exists. Only the create
+/// response carries it — the server stores a hash, not the value, so a link
+/// fetched from the list later never has one.
+@override final  String? pin;
 
 /// Create a copy of ShareLink
 /// with the given fields replaced by the non-null parameter values.
@@ -239,16 +247,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ShareLink&&(identical(other.token, token) || other.token == token)&&(identical(other.reportId, reportId) || other.reportId == reportId)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ShareLink&&(identical(other.token, token) || other.token == token)&&(identical(other.reportId, reportId) || other.reportId == reportId)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt)&&(identical(other.pin, pin) || other.pin == pin));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,token,reportId,expiresAt);
+int get hashCode => Object.hash(runtimeType,token,reportId,expiresAt,pin);
 
 @override
 String toString() {
-  return 'ShareLink(token: $token, reportId: $reportId, expiresAt: $expiresAt)';
+  return 'ShareLink(token: $token, reportId: $reportId, expiresAt: $expiresAt, pin: $pin)';
 }
 
 
@@ -259,7 +267,7 @@ abstract mixin class _$ShareLinkCopyWith<$Res> implements $ShareLinkCopyWith<$Re
   factory _$ShareLinkCopyWith(_ShareLink value, $Res Function(_ShareLink) _then) = __$ShareLinkCopyWithImpl;
 @override @useResult
 $Res call({
- String token,@JsonKey(name: 'report_id') String reportId,@JsonKey(name: 'expires_at') String expiresAt
+ String token,@JsonKey(name: 'report_id') String reportId,@JsonKey(name: 'expires_at') String expiresAt, String? pin
 });
 
 
@@ -276,12 +284,13 @@ class __$ShareLinkCopyWithImpl<$Res>
 
 /// Create a copy of ShareLink
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? token = null,Object? reportId = null,Object? expiresAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? token = null,Object? reportId = null,Object? expiresAt = null,Object? pin = freezed,}) {
   return _then(_ShareLink(
 token: null == token ? _self.token : token // ignore: cast_nullable_to_non_nullable
 as String,reportId: null == reportId ? _self.reportId : reportId // ignore: cast_nullable_to_non_nullable
 as String,expiresAt: null == expiresAt ? _self.expiresAt : expiresAt // ignore: cast_nullable_to_non_nullable
-as String,
+as String,pin: freezed == pin ? _self.pin : pin // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -292,7 +301,8 @@ as String,
 /// @nodoc
 mixin _$ShareGrant {
 
- String get token;@JsonKey(name: 'expires_at') String get expiresAt;
+ String get token;@JsonKey(name: 'expires_at') String get expiresAt;/// Whole-record creates answer with the PIN that guards the link.
+ String? get pin;
 /// Create a copy of ShareGrant
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -305,16 +315,16 @@ $ShareGrantCopyWith<ShareGrant> get copyWith => _$ShareGrantCopyWithImpl<ShareGr
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ShareGrant&&(identical(other.token, token) || other.token == token)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ShareGrant&&(identical(other.token, token) || other.token == token)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt)&&(identical(other.pin, pin) || other.pin == pin));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,token,expiresAt);
+int get hashCode => Object.hash(runtimeType,token,expiresAt,pin);
 
 @override
 String toString() {
-  return 'ShareGrant(token: $token, expiresAt: $expiresAt)';
+  return 'ShareGrant(token: $token, expiresAt: $expiresAt, pin: $pin)';
 }
 
 
@@ -325,7 +335,7 @@ abstract mixin class $ShareGrantCopyWith<$Res>  {
   factory $ShareGrantCopyWith(ShareGrant value, $Res Function(ShareGrant) _then) = _$ShareGrantCopyWithImpl;
 @useResult
 $Res call({
- String token,@JsonKey(name: 'expires_at') String expiresAt
+ String token,@JsonKey(name: 'expires_at') String expiresAt, String? pin
 });
 
 
@@ -342,11 +352,12 @@ class _$ShareGrantCopyWithImpl<$Res>
 
 /// Create a copy of ShareGrant
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? token = null,Object? expiresAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? token = null,Object? expiresAt = null,Object? pin = freezed,}) {
   return _then(_self.copyWith(
 token: null == token ? _self.token : token // ignore: cast_nullable_to_non_nullable
 as String,expiresAt: null == expiresAt ? _self.expiresAt : expiresAt // ignore: cast_nullable_to_non_nullable
-as String,
+as String,pin: freezed == pin ? _self.pin : pin // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -431,10 +442,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String token, @JsonKey(name: 'expires_at')  String expiresAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String token, @JsonKey(name: 'expires_at')  String expiresAt,  String? pin)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ShareGrant() when $default != null:
-return $default(_that.token,_that.expiresAt);case _:
+return $default(_that.token,_that.expiresAt,_that.pin);case _:
   return orElse();
 
 }
@@ -452,10 +463,10 @@ return $default(_that.token,_that.expiresAt);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String token, @JsonKey(name: 'expires_at')  String expiresAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String token, @JsonKey(name: 'expires_at')  String expiresAt,  String? pin)  $default,) {final _that = this;
 switch (_that) {
 case _ShareGrant():
-return $default(_that.token,_that.expiresAt);case _:
+return $default(_that.token,_that.expiresAt,_that.pin);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -472,10 +483,10 @@ return $default(_that.token,_that.expiresAt);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String token, @JsonKey(name: 'expires_at')  String expiresAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String token, @JsonKey(name: 'expires_at')  String expiresAt,  String? pin)?  $default,) {final _that = this;
 switch (_that) {
 case _ShareGrant() when $default != null:
-return $default(_that.token,_that.expiresAt);case _:
+return $default(_that.token,_that.expiresAt,_that.pin);case _:
   return null;
 
 }
@@ -487,11 +498,13 @@ return $default(_that.token,_that.expiresAt);case _:
 @JsonSerializable()
 
 class _ShareGrant extends ShareGrant {
-  const _ShareGrant({required this.token, @JsonKey(name: 'expires_at') required this.expiresAt}): super._();
+  const _ShareGrant({required this.token, @JsonKey(name: 'expires_at') required this.expiresAt, this.pin}): super._();
   factory _ShareGrant.fromJson(Map<String, dynamic> json) => _$ShareGrantFromJson(json);
 
 @override final  String token;
 @override@JsonKey(name: 'expires_at') final  String expiresAt;
+/// Whole-record creates answer with the PIN that guards the link.
+@override final  String? pin;
 
 /// Create a copy of ShareGrant
 /// with the given fields replaced by the non-null parameter values.
@@ -506,16 +519,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ShareGrant&&(identical(other.token, token) || other.token == token)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ShareGrant&&(identical(other.token, token) || other.token == token)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt)&&(identical(other.pin, pin) || other.pin == pin));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,token,expiresAt);
+int get hashCode => Object.hash(runtimeType,token,expiresAt,pin);
 
 @override
 String toString() {
-  return 'ShareGrant(token: $token, expiresAt: $expiresAt)';
+  return 'ShareGrant(token: $token, expiresAt: $expiresAt, pin: $pin)';
 }
 
 
@@ -526,7 +539,7 @@ abstract mixin class _$ShareGrantCopyWith<$Res> implements $ShareGrantCopyWith<$
   factory _$ShareGrantCopyWith(_ShareGrant value, $Res Function(_ShareGrant) _then) = __$ShareGrantCopyWithImpl;
 @override @useResult
 $Res call({
- String token,@JsonKey(name: 'expires_at') String expiresAt
+ String token,@JsonKey(name: 'expires_at') String expiresAt, String? pin
 });
 
 
@@ -543,11 +556,12 @@ class __$ShareGrantCopyWithImpl<$Res>
 
 /// Create a copy of ShareGrant
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? token = null,Object? expiresAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? token = null,Object? expiresAt = null,Object? pin = freezed,}) {
   return _then(_ShareGrant(
 token: null == token ? _self.token : token // ignore: cast_nullable_to_non_nullable
 as String,expiresAt: null == expiresAt ? _self.expiresAt : expiresAt // ignore: cast_nullable_to_non_nullable
-as String,
+as String,pin: freezed == pin ? _self.pin : pin // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
