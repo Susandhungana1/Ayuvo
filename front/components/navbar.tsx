@@ -35,16 +35,26 @@ const doctorLinks = [
   { href: '/doctor/availability', tKey: 'nav.availability' },
 ];
 
+const companyLinks = [
+  { href: '/about', tKey: 'nav.about' },
+  { href: '/contact', tKey: 'nav.contact' },
+  { href: '/faq', tKey: 'nav.faq' },
+  { href: '/privacy', tKey: 'nav.privacy' },
+  { href: '/terms', tKey: 'nav.terms' },
+];
+
 export function Navbar() {
   const router = useRouter();
   const { t } = useI18n();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [companyOpen, setCompanyOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isDoctor, setIsDoctor] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+  const companyRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -82,6 +92,9 @@ export function Navbar() {
     const handleClickOutside = (e: MouseEvent) => {
       if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
         setMoreOpen(false);
+      }
+      if (companyRef.current && !companyRef.current.contains(e.target as Node)) {
+        setCompanyOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -176,6 +189,35 @@ export function Navbar() {
               )}
             </div>
           )}
+
+          {/* Company links — always visible, signed in or not */}
+          <div className="hidden lg:flex items-center gap-6">
+            <div className="relative" ref={companyRef}>
+              <button
+                onClick={() => setCompanyOpen(!companyOpen)}
+                className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] transition-colors font-medium text-sm flex items-center gap-1"
+              >
+                {t('nav.company')}
+                <svg className={`w-3 h-3 transition-transform ${companyOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {companyOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[var(--color-card)] rounded-lg shadow-lg border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] py-2">
+                  {companyLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setCompanyOpen(false)}
+                      className="block px-4 py-2 text-sm text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] hover:bg-[var(--color-muted)] transition-colors"
+                    >
+                      {t(link.tKey)}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Right side */}
           <div className="flex items-center gap-1 sm:gap-3">
@@ -272,6 +314,21 @@ export function Navbar() {
                   {t(link.tKey)}
                 </Link>
               ))}
+              <div className="pt-3 mt-2 border-t border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)]">
+                <p className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-ink-muted)]">
+                  {t('nav.company')}
+                </p>
+                {companyLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="text-[var(--color-ink-variant)] hover:text-[var(--color-primary)] hover:bg-[var(--color-muted)] transition-colors font-medium py-2.5 px-3 rounded-[var(--radius-sm)]"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {t(link.tKey)}
+                  </Link>
+                ))}
+              </div>
               <div className="pt-3 mt-2 border-t border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)]">
                 {isLoggedIn ? (
                   <button onClick={handleLogout} className="text-[var(--color-alert)] hover:text-[var(--color-alert-text)] hover:bg-[var(--color-alert-container)] font-medium text-left py-2.5 px-3 rounded-[var(--radius-sm)] w-full transition-colors">

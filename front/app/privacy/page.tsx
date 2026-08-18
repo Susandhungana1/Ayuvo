@@ -14,7 +14,7 @@ export default function PrivacyPage() {
         <h1 className="text-3xl font-bold text-[var(--color-ink)] mb-8">Privacy Policy</h1>
 
         <p className="text-[var(--color-ink-variant)] text-sm mb-6">
-          Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+          Last updated: August 16, 2026
         </p>
 
         <div className="prose prose-sm max-w-none space-y-6 text-[var(--color-ink-variant)]">

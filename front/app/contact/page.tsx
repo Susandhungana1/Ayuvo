@@ -53,6 +53,33 @@ export default function Contact() {
             </a>
           </Card>
 
+          {/* Company Website */}
+          <Card className="p-xl flex flex-col items-start">
+            <div className="w-12 h-12 bg-primary/10 text-primary rounded-md flex items-center justify-center mb-4">
+              <ExternalLink size={24} />
+            </div>
+            <h2 className="text-xl font-display font-semibold text-on-surface mb-1">Company Website</h2>
+            <p className="text-on-surface-variant text-sm mb-4">
+              Learn more about Quorlyn, the company behind MediStore.
+            </p>
+            <a
+              href="https://www.quorlyn.com.np"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline font-medium mb-6 break-all"
+            >
+              www.quorlyn.com.np
+            </a>
+            <a
+              href="https://www.quorlyn.com.np"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-auto"
+            >
+              <Button>Visit website</Button>
+            </a>
+          </Card>
+
           {/* What to include */}
           <Card className="p-xl">
             <h2 className="text-xl font-display font-semibold text-on-surface mb-4">Help us help you faster</h2>
