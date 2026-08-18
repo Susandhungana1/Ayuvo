@@ -21,6 +21,7 @@ export default function Register() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -32,6 +33,11 @@ export default function Register() {
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
+      return;
+    }
+
+    if (!agreed) {
+      setError('Please agree to the Terms of Service and Privacy Policy to continue.');
       return;
     }
 
@@ -129,17 +135,31 @@ export default function Register() {
               <p className="text-[var(--color-alert)] text-sm">{error}</p>
             )}
 
+            <label className="flex items-start gap-2.5 text-xs text-[var(--color-ink-variant)] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-primary)]"
+              />
+              <span>
+                I agree to the{' '}
+                <Link href="/terms" className="text-[var(--color-primary)] hover:underline">
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link href="/privacy" className="text-[var(--color-primary)] hover:underline">
+                  Privacy Policy
+                </Link>
+                .
+              </span>
+            </label>
+
             <div className="pt-2">
-              <Button type="submit" className="w-full py-3" disabled={loading}>
+              <Button type="submit" className="w-full py-3" disabled={loading || !agreed}>
                 {loading ? 'Registering...' : 'Register'}
               </Button>
             </div>
-            
-            <p className="text-xs text-[var(--color-ink-variant)] text-center mt-4">
-              By registering, you agree to our{' '}
-              <a href="#" className="text-[var(--color-primary)] hover:underline">Terms of Service</a> and{' '}
-              <a href="#" className="text-[var(--color-primary)] hover:underline">Privacy Policy</a>.
-            </p>
           </form>
 
           <div className="mt-6 text-center text-sm text-[var(--color-ink-variant)] border-t border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] pt-6">

@@ -1,9 +1,13 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show TextInput;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/widgets/states.dart';
+import '../../legal/presentation/privacy_screen.dart';
+import '../../legal/presentation/terms_screen.dart';
 import 'auth_controllers.dart';
 import 'auth_scaffold.dart';
 import 'submit_button.dart';
@@ -21,6 +25,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
+  bool _agreed = false;
 
   @override
   void dispose() {
@@ -31,8 +36,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
+  void _openLegal(Widget screen) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => screen),
+    );
+  }
+
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (!_agreed) return;
     FocusScope.of(context).unfocus();
 
     final created = await ref.read(registerControllerProvider.notifier).submit(
@@ -103,10 +115,58 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       : "Those two passwords don't match.",
                   onSubmitted: _submit,
                 ),
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: AppSpacing.lg),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Checkbox(
+                      value: _agreed,
+                      onChanged: (value) =>
+                          setState(() => _agreed = value ?? false),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: RichText(
+                          key: const ValueKey('consent-text'),
+                          text: TextSpan(
+                            style: context.texts.bodySmall?.copyWith(
+                              color: context.colors.onSurfaceVariant,
+                            ),
+                            children: [
+                              const TextSpan(text: 'I agree to the '),
+                              TextSpan(
+                                text: 'Terms of Service',
+                                style: context.texts.bodySmall?.copyWith(
+                                  color: context.colors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () => _openLegal(const TermsScreen()),
+                              ),
+                              const TextSpan(text: ' and the '),
+                              TextSpan(
+                                text: 'Privacy Policy',
+                                style: context.texts.bodySmall?.copyWith(
+                                  color: context.colors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () => _openLegal(const PrivacyScreen()),
+                              ),
+                              const TextSpan(text: '.'),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
                 SubmitButton(
                   label: 'Create account',
                   submitting: state.submitting,
+                  enabled: _agreed,
                   onPressed: _submit,
                 ),
               ],

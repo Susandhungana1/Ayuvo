@@ -10,16 +10,20 @@ class SubmitButton extends StatelessWidget {
     required this.label,
     required this.submitting,
     required this.onPressed,
+    this.enabled = true,
   });
 
   final String label;
   final bool submitting;
   final VoidCallback onPressed;
 
+  /// Extra gate beyond [submitting] — e.g. the consent checkbox on sign-up.
+  final bool enabled;
+
   @override
   Widget build(BuildContext context) {
     return FilledButton(
-      onPressed: submitting ? null : onPressed,
+      onPressed: submitting || !enabled ? null : onPressed,
       child: submitting
           ? SizedBox.square(
               dimension: 20,
