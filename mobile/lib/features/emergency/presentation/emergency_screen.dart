@@ -1,9 +1,8 @@
 /// The card someone reads when you cannot answer them.
 ///
 /// Written for the reader, not the owner: blood type first and largest, then
-/// allergies, then conditions, then who to phone. The QR points at a public
-/// `front/` page rather than anything in this app — a paramedic holding your
-/// phone has no MediStore account and no time to make one.
+/// allergies, then conditions, then who to phone. These details also ride
+/// along with the all-reports share QR on the web app.
 library;
 
 import 'package:flutter/material.dart';
@@ -13,7 +12,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/widgets/form_sheet.dart';
-import '../../../core/widgets/link_card.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/states.dart';
 import '../domain/emergency_profile.dart';
@@ -63,16 +61,15 @@ class _Profile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final link = ref.watch(emergencyLinkProvider);
-
     return ListView(
       padding: AppSpacing.screen,
       children: [
         if (profile.isEmpty)
           const MessageBanner(
             tone: BannerTone.notice,
-            message: 'Nothing is filled in yet, so the card and the QR would '
-                'show a stranger an empty page. Start with your blood type.',
+            message: 'Nothing is filled in yet, so your all-reports share QR '
+                'would show a stranger an empty card. Start with your blood '
+                'type.',
           )
         else
           _Card(profile: profile),
@@ -114,28 +111,6 @@ class _Profile extends ConsumerWidget {
               ],
             ),
           ),
-        if (link != null) ...[
-          const SizedBox(height: AppSpacing.xl),
-          Text('Your public card', style: context.texts.titleMedium),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'This link needs no password. Print the code and keep it in a '
-            'wallet, or show it on screen — whoever scans it sees exactly what '
-            'is above.',
-            style: context.texts.bodySmall,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Card(
-            child: Padding(
-              padding: AppSpacing.card,
-              child: LinkCard(
-                url: link,
-                shareSubject: 'My emergency details',
-                caption: 'Opens in any browser.',
-              ),
-            ),
-          ),
-        ],
         const SizedBox(height: AppSpacing.xxl),
       ],
     );
@@ -369,8 +344,8 @@ class _DetailsSheetState extends ConsumerState<_DetailsSheet> {
   Widget build(BuildContext context) {
     return FormSheet(
       title: 'Emergency details',
-      subtitle: 'Anyone with your QR can read this. Put in what would help '
-          'someone treating you, and nothing else.',
+      subtitle: 'Anyone scanning your all-reports share QR can read this. '
+          'Put in what would help someone treating you, and nothing else.',
       submitLabel: 'Save details',
       busy: _busy,
       error: _error,

@@ -1,8 +1,9 @@
 /// Every `/api/emergency*` call the signed-in owner makes.
 ///
 /// `GET /api/emergency/public/{user_id}` is missing on purpose: it is
-/// unauthenticated, it is what the QR points at, and it is read in a browser by
-/// a paramedic who does not have this app.
+/// unauthenticated and only ever read by the public web page; these details
+/// also travel with the all-reports share QR, which is the supported way for
+/// someone else to see them.
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';

@@ -9,7 +9,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/core/config/env.dart';
 import 'package:medistore/core/widgets/form_sheet.dart';
 import 'package:medistore/features/emergency/presentation/emergency_screen.dart';
 import 'package:medistore/features/shell/presentation/more_screen.dart';
@@ -44,7 +43,7 @@ void main() {
     expect(find.text('Type 2 diabetes'), findsOneWidget);
   });
 
-  testWidgets('an empty profile says the QR would show a blank page',
+  testWidgets('an empty profile warns the share QR would show a blank card',
       (tester) async {
     await openEmergency(
       tester,
@@ -58,32 +57,14 @@ void main() {
     );
 
     expect(
-      find.textContaining('the card and the QR would show a stranger an empty '
-          'page'),
+      find.textContaining('your all-reports share QR would show a stranger an '
+          'empty card'),
       findsOneWidget,
     );
     expect(
       find.widgetWithText(OutlinedButton, 'Fill in my details'),
       findsOneWidget,
     );
-  });
-
-  testWidgets('the QR points at the web app, with the # in the id encoded',
-      (tester) async {
-    await openEmergency(tester, backend());
-    await scrollTo(
-      tester,
-      find.text('Opens in any browser.'),
-      scrollable: scrollableIn(EmergencyScreen),
-    );
-
-    // testUser.id is '#hos014'. Interpolated raw, everything after the # is a
-    // fragment the server never sees and the page loads for nobody.
-    expect(
-      find.text('${Env.webBaseUrl}/emergency/id/%23hos014'),
-      findsOneWidget,
-    );
-    expect(find.textContaining('/emergency/id/#hos014'), findsNothing);
   });
 
   testWidgets('a doctor account never reaches this screen', (tester) async {

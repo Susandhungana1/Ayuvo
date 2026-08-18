@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import { QRCodeSVG } from 'qrcode.react';
 import { Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -46,8 +45,6 @@ export default function Emergency() {
   const [showContactForm, setShowContactForm] = useState(false);
   const [contactForm, setContactForm] = useState({ name: '', relationship: '', phone: '', email: '' });
   const [profileForm, setProfileForm] = useState({ blood_type: '', allergies: '', medical_conditions: '' });
-  const [publicUrl, setPublicUrl] = useState('');
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -55,12 +52,6 @@ export default function Emergency() {
     let cancelled = false;
     (async () => {
       try {
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        // User IDs contain a leading '#' (e.g. "#hos013"), which is a URL
-        // fragment delimiter — encode it so the link/QR resolve correctly.
-        if (user.id && !cancelled) {
-          setPublicUrl(`${window.location.origin}/emergency/id/${encodeURIComponent(user.id)}`);
-        }
         const data = await fetchProfile();
         if (!cancelled) {
           setProfile(data);
@@ -75,14 +66,6 @@ export default function Emergency() {
     })();
     return () => { cancelled = true; };
   }, [router]);
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(publicUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch { /* clipboard unavailable */ }
-  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -278,47 +261,10 @@ export default function Emergency() {
             )}
           </div>
           <p className="text-xs text-on-surface-variant text-center mt-lg">
-            This info can be accessed via the public emergency API. Share your user ID with healthcare providers.
+            These details (blood type, allergies, conditions and your contacts)
+            ride along with your all-reports QR — generate it under Share
+            Records and anyone who scans it sees them.
           </p>
-        </Card>
-
-        <Card>
-          <h2 className="text-lg sm:text-xl font-display font-semibold text-on-surface mb-xs">Emergency QR Code</h2>
-          <p className="text-sm text-on-surface-variant mb-lg">
-            First responders can scan this to view your medical ID — no login needed. Print it and keep it in your wallet or on your phone case.
-          </p>
-          {publicUrl ? (
-            <div className="flex flex-col sm:flex-row items-center gap-xl">
-              {/* QR codes need a light quiet zone to scan reliably — keep white in both themes */}
-              <div className="bg-white p-md rounded-md border border-outline shrink-0">
-                <QRCodeSVG value={publicUrl} size={160} level="M" />
-              </div>
-              <div className="flex-1 w-full min-w-0">
-                <label className="text-xs font-medium text-on-surface-variant block mb-xs">Public link</label>
-                <div className="flex flex-col sm:flex-row gap-sm">
-                  <input
-                    readOnly
-                    value={publicUrl}
-                    onFocus={(e) => e.target.select()}
-                    className="flex-1 h-11 rounded-sm border border-outline bg-surface-card px-3.5 text-sm text-on-surface min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                  />
-                  <Button type="button" onClick={handleCopyLink} className="w-full sm:w-auto">
-                    {copied ? 'Copied!' : 'Copy Link'}
-                  </Button>
-                </div>
-                <a
-                  href={publicUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block mt-md text-sm font-semibold text-primary hover:underline"
-                >
-                  Open public emergency ID →
-                </a>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-on-surface-variant">Sign in again to generate your emergency QR code.</p>
-          )}
         </Card>
       </div>
     </div>

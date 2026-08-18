@@ -3,7 +3,6 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/config/env.dart';
 import '../../../core/session/session_controller.dart';
 import '../data/emergency_repository.dart';
 import '../domain/emergency_profile.dart';
@@ -77,14 +76,3 @@ class EmergencyController extends AsyncNotifier<EmergencyProfile> {
     );
   }
 }
-
-/// The URL behind the QR: a `front/` page, not a screen in this app.
-///
-/// Null when nobody is signed in. The id is percent-encoded because it starts
-/// with `#` — pasted raw into a URL, everything after it is a fragment the
-/// server never sees, and the page loads for nobody.
-final emergencyLinkProvider = Provider<String?>((ref) {
-  final user = ref.watch(currentUserProvider);
-  if (user == null) return null;
-  return Env.webLink('emergency/id', user.id);
-});

@@ -31,8 +31,8 @@ abstract class EmergencyProfile with _$EmergencyProfile {
   bool get hasConditions => medicalConditions?.trim().isNotEmpty ?? false;
 
   /// Whether the card would say anything at all. An empty emergency ID is
-  /// worse than none: it is a QR that promises information and delivers a
-  /// blank page to whoever scans it.
+  /// worse than none: the all-reports share QR would promise information and
+  /// deliver a blank card to whoever scans it.
   bool get isEmpty =>
       !hasBloodType && !hasAllergies && !hasConditions && contacts.isEmpty;
 }

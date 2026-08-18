@@ -255,7 +255,11 @@ export default function Share() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <div>
                 <h3 className="text-base sm:text-lg font-semibold text-text-main">Share All Reports via QR Code</h3>
-                <p className="text-subtext text-xs sm:text-sm mt-1">Generate a QR code that contains all your medical reports</p>
+                <p className="text-subtext text-xs sm:text-sm mt-1">
+                  Generate a QR code that contains all your medical reports plus
+                  your emergency details (blood type, allergies, conditions and
+                  emergency contacts)
+                </p>
               </div>
               <Button onClick={handleGenerateQRCode} disabled={reports.length === 0} className="w-full sm:w-auto">
                 Generate QR Code
@@ -302,7 +306,11 @@ export default function Share() {
                 </p>
               </div>
             )}
-            <p className="text-subtext text-sm mb-4">Scan this QR code to view all your medical reports</p>
+            <p className="text-subtext text-sm mb-4">
+              Scan this QR code to view all your medical reports and emergency
+              details — blood type, allergies, conditions and your emergency
+              contacts
+            </p>
             <p className="text-subtext text-xs mb-4">Link: {qrCode}</p>
             <div className="flex gap-2 justify-center">
               <Button onClick={() => navigator.clipboard.writeText(qrCode).then(() => alert('Link copied!'))}>
