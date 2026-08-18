@@ -58,7 +58,7 @@ User IDs are generated in format `#hosXXX` where:
 | `/api/appointments` | POST, GET, PUT/{id}, DELETE/{id}, PATCH/{id}/status, GET /available-slots/{doctor_id} |
 | `/api/doctors` | POST /doctors, GET /doctors, GET /doctors/me, POST /availability, GET /availability, PUT /availability/{id}, DELETE /availability/{id} |
 
-| `/api/share` | POST /{report_id}, GET /{token}, DELETE /{token} |
+| `/api/share` | POST /{report_id}, GET /{token}, DELETE /{token}, POST /qr-code (whole record, returns 6-digit `pin`), GET /qr-code/{token}?pin= (401 without/with wrong PIN), GET /{token}/lab-analysis |
 
 ### Appointment Workflow
 
