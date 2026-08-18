@@ -117,7 +117,7 @@ void main() {
       await _pumpAt(tester, _patientBackend(), brightness: brightness);
       await _openFromAccount(tester, 'Appointments');
 
-      expect(find.text('Coming up'), findsOneWidget);
+      expect(find.text('Coming soon'), findsOneWidget);
     });
 
     testWidgets('sharing survives 2x text in $theme', (tester) async {
@@ -143,7 +143,7 @@ void main() {
         doctor: true,
       );
 
-      expect(find.text('Waiting on you'), findsOneWidget);
+      expect(find.text('Coming soon'), findsOneWidget);
     });
 
     testWidgets('the availability editor survives 2x text in $theme',
@@ -156,9 +156,7 @@ void main() {
       );
       await openTab(tester, 'Availability');
 
-      // Two windows on one day, one of them paused — the widest row on the
-      // screen, and the one with a switch and two icon buttons beside it.
-      expect(find.text('Paused — nobody can book this'), findsOneWidget);
+      expect(find.text('Coming soon'), findsOneWidget);
     });
   }
 }

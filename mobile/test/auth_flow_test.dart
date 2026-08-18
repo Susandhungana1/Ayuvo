@@ -204,8 +204,8 @@ void main() {
 
     expect(find.text('Availability'), findsOneWidget);
     expect(find.text('Medicines'), findsNothing);
-    // The doctor's inbox, not the patient's appointment list.
-    expect(find.text('Nothing booked yet'), findsOneWidget);
+    // The doctor's inbox tab, now a coming-soon placeholder.
+    expect(find.text('Coming soon'), findsOneWidget);
   });
 
   testWidgets('signing out returns to sign-in', (tester) async {
