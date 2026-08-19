@@ -1,5 +1,5 @@
 # FastAPI
-fastapi==0.115.12
+fastapi==0.141.1
 uvicorn[standard]==0.34.0
 
 # Database
@@ -11,14 +11,14 @@ psycopg2-binary==2.9.10
 boto3==1.35.90
 
 # Auth
-python-jose[cryptography]==3.3.0
+python-jose[cryptography]==3.4.0
 passlib[bcrypt]==1.7.4
 # passlib 1.7.4 (2020) is incompatible with bcrypt >= 4.1: its backend self-test
 # feeds a >72-byte string to bcrypt, which now raises ValueError instead of
 # truncating, crashing the first hash/verify with a 500. Pin the last compatible
 # bcrypt release. Do NOT unpin without also replacing passlib.
 bcrypt==4.0.1
-python-multipart==0.0.20
+python-multipart==0.0.31
 pyotp==2.9.0            # TOTP 2FA
 qrcode[pil]==7.4.2     # QR provisioning image for authenticator apps
 
@@ -32,7 +32,7 @@ sentry-sdk[fastapi]==2.19.2
 # Pillow + pytesseract handle image OCR (pytesseract also needs the `tesseract`
 # system binary at runtime; without it, extraction degrades gracefully to None).
 # PyMuPDF extracts text from PDFs and needs no system packages.
-Pillow==11.3.0
+Pillow==12.3.0
 pytesseract==0.3.13
 PyMuPDF==1.24.14
 
@@ -48,7 +48,7 @@ pywebpush==1.14.1
 tzdata==2024.2
 
 # Utils
-python-dotenv==1.0.1
+python-dotenv==1.2.2
 pydantic==2.10.5
 pydantic-settings==2.7.1
 
