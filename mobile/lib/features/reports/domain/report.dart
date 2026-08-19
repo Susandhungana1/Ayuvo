@@ -65,6 +65,11 @@ abstract class MedicalReport with _$MedicalReport {
     /// The OCR output. **Every list response carries this in full** for every
     /// report — see `BACKEND_NOTES.md` §3.
     @JsonKey(name: 'extracted_text') String? extractedText,
+
+    /// `PENDING` while the server's background OCR runs after an upload;
+    /// `DONE`/`FAILED` once it has. The detail screen uses it to wait for
+    /// lab values instead of showing "none found".
+    @JsonKey(name: 'ocr_status') String? ocrStatus,
     @JsonKey(name: 'document_id') String? documentId,
 
     /// Falls back to the linked document's values when unset server-side.
@@ -85,6 +90,9 @@ abstract class MedicalReport with _$MedicalReport {
   /// it, so the actions that depend on it are hidden rather than offered and
   /// then refused.
   bool get hasText => extractedText?.trim().isNotEmpty ?? false;
+
+  /// Whether the server is still reading the file in the background.
+  bool get isOcrPending => ocrStatus?.toUpperCase() == 'PENDING';
 }
 
 /// One analyte from `GET /api/reports/{id}/lab-analysis`.

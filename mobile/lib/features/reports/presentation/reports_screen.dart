@@ -34,18 +34,19 @@ class ReportsScreen extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () => ref.read(reportsProvider.notifier).refresh(),
         child: switch (reports) {
-          AsyncData(:final value) when value.isEmpty =>
-            _Empty(onAdd: () => showReportUploadSheet(context)),
+          AsyncData(:final value) when value.isEmpty => _Empty(
+            onAdd: () => showReportUploadSheet(context),
+          ),
           AsyncData(:final value) => _Loaded(reports: value),
           AsyncError(:final error) => ListView(
-              padding: AppSpacing.screen,
-              children: [
-                ErrorView(
-                  error: error,
-                  onRetry: () => ref.read(reportsProvider.notifier).refresh(),
-                ),
-              ],
-            ),
+            padding: AppSpacing.screen,
+            children: [
+              ErrorView(
+                error: error,
+                onRetry: () => ref.read(reportsProvider.notifier).refresh(),
+              ),
+            ],
+          ),
           _ => const _Loading(),
         },
       ),
@@ -71,17 +72,17 @@ class _Loaded extends ConsumerWidget {
           Text(
             'Analytes that appear in more than one report. Anything outside '
             'its range is listed first.',
-            style: context.texts.bodySmall
-                ?.copyWith(color: context.colors.onSurfaceVariant),
+            style: context.texts.bodySmall?.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           SizedBox(
-            height: 132,
+            height: 176,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: trends.length,
-              separatorBuilder: (_, _) =>
-                  const SizedBox(width: AppSpacing.md),
+              separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
               itemBuilder: (context, index) =>
                   _TrendCard(series: trends[index]),
             ),
@@ -130,8 +131,9 @@ class _TrendCard extends StatelessWidget {
             children: [
               Text(
                 series.name,
-                style: context.texts.labelSmall
-                    ?.copyWith(color: context.colors.onSurfaceVariant),
+                style: context.texts.labelSmall?.copyWith(
+                  color: context.colors.onSurfaceVariant,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -148,8 +150,9 @@ class _TrendCard extends StatelessWidget {
                   Flexible(
                     child: Text(
                       series.unit,
-                      style: context.texts.bodySmall
-                          ?.copyWith(color: context.colors.onSurfaceVariant),
+                      style: context.texts.bodySmall?.copyWith(
+                        color: context.colors.onSurfaceVariant,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -163,11 +166,15 @@ class _TrendCard extends StatelessWidget {
                 // the word says whether that matters.
                 direction: direction,
               ),
+              const SizedBox(height: AppSpacing.sm),
+              if (series.points.length > 1)
+                SizedBox(height: 36, child: _Sparkline(points: series.points)),
               const Spacer(),
               Text(
                 _changeLine(series),
-                style: context.texts.bodySmall
-                    ?.copyWith(color: context.colors.onSurfaceVariant),
+                style: context.texts.bodySmall?.copyWith(
+                  color: context.colors.onSurfaceVariant,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -189,17 +196,99 @@ class _TrendCard extends StatelessWidget {
     return '$amount ($sign${percent.abs().toStringAsFixed(0)}%) since the first';
   }
 
-  static String _number(double value) =>
-      value == value.roundToDouble() ? '${value.round()}' : value.toStringAsFixed(1);
+  static String _number(double value) => value == value.roundToDouble()
+      ? '${value.round()}'
+      : value.toStringAsFixed(1);
 }
 
-class _ReportCard extends StatelessWidget {
+/// The readings of one analyte as a polyline, so a trend is visible before the
+/// numbers are read. Painted, not a chart package: three lines of path code.
+class _Sparkline extends StatelessWidget {
+  const _Sparkline({required this.points});
+
+  final List<TrendPoint> points;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: Size.infinite,
+      painter: _SparklinePainter(
+        values: [for (final p in points) p.value],
+        color: context.colors.primary,
+        track: context.colors.surfaceContainerHighest,
+      ),
+    );
+  }
+}
+
+class _SparklinePainter extends CustomPainter {
+  _SparklinePainter({
+    required this.values,
+    required this.color,
+    required this.track,
+  });
+
+  final List<double> values;
+  final Color color;
+  final Color track;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.length < 2 || size.isEmpty) return;
+
+    final paint = Paint()
+      ..color = track
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      Offset(0, size.height / 2),
+      Offset(size.width, size.height / 2),
+      paint,
+    );
+
+    var min = values.first;
+    var max = values.first;
+    for (final v in values) {
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+    final span = (max - min) == 0 ? 1.0 : (max - min);
+    final inset = size.height * 0.2;
+    final usable = size.height - inset * 2;
+
+    Offset at(int i) => Offset(
+      size.width * i / (values.length - 1),
+      inset + (1 - (values[i] - min) / span) * usable,
+    );
+
+    final line = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    final path = Path()..moveTo(at(0).dx, at(0).dy);
+    for (var i = 1; i < values.length; i++) {
+      path.lineTo(at(i).dx, at(i).dy);
+    }
+    canvas.drawPath(path, line);
+
+    final dot = Paint()..color = color;
+    canvas.drawCircle(at(values.length - 1), 3, dot);
+  }
+
+  @override
+  bool shouldRepaint(_SparklinePainter oldDelegate) =>
+      oldDelegate.values != values || oldDelegate.color != color;
+}
+
+class _ReportCard extends ConsumerWidget {
   const _ReportCard({required this.report});
 
   final MedicalReport report;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summary = ref.watch(labSummaryProvider(report.id)).valueOrNull;
     final dated = report.dated;
     final origin = [
       if (report.hospital?.trim().isNotEmpty ?? false) report.hospital!.trim(),
@@ -230,8 +319,9 @@ class _ReportCard extends StatelessWidget {
                   ),
                   Text(
                     dated == null ? 'Undated' : MediTime.date(dated),
-                    style: context.texts.bodySmall
-                        ?.copyWith(color: context.colors.onSurfaceVariant),
+                    style: context.texts.bodySmall?.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -239,8 +329,51 @@ class _ReportCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xxs),
                 Text(
                   origin,
-                  style: context.texts.bodySmall
-                      ?.copyWith(color: context.colors.onSurfaceVariant),
+                  style: context.texts.bodySmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              if (report.isOcrPending) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Flexible(
+                      child: Text(
+                        'Reading the file…',
+                        style: context.texts.bodySmall?.copyWith(
+                          color: context.colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ] else if (summary != null && summary.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xxs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.status.cautionContainer,
+                    borderRadius: AppRadius.full,
+                  ),
+                  child: Text(
+                    '${summary.abnormal} outside range · ${summary.names.join(', ')}',
+                    style: context.texts.labelSmall?.copyWith(
+                      color: context.status.caution,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
               const SizedBox(height: AppSpacing.sm),
@@ -255,8 +388,9 @@ class _ReportCard extends StatelessWidget {
               ],
               Text(
                 report.fileName,
-                style: context.texts.bodySmall
-                    ?.copyWith(color: context.colors.onSurfaceVariant),
+                style: context.texts.bodySmall?.copyWith(
+                  color: context.colors.onSurfaceVariant,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -281,7 +415,8 @@ class _Empty extends StatelessWidget {
         EmptyState(
           icon: Icons.description_outlined,
           title: 'No reports yet',
-          message: 'Photograph a printout or upload a PDF. The text is read '
+          message:
+              'Photograph a printout or upload a PDF. The text is read '
               'on the server, lab values are pulled out, and anything that '
               'appears twice starts a trend.',
           actionLabel: 'Add your first report',

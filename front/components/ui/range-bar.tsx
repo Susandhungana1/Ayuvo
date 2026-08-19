@@ -13,6 +13,7 @@ export interface RangeBarProps {
   highLabel?: string;
   className?: string;
   id?: string;
+  markerClassName?: string;
 }
 
 function pct(value: number, min: number, max: number): number {
@@ -30,6 +31,7 @@ export function RangeBar({
   highLabel,
   className,
   id,
+  markerClassName,
 }: RangeBarProps) {
   const markerPct = pct(value, min, max);
   const bandLeft = pct(bandStart, min, max);
@@ -44,7 +46,10 @@ export function RangeBar({
           aria-hidden="true"
         />
         <div
-          className="absolute -top-[4px] w-3.5 h-3.5 rounded-full bg-[var(--color-ink)] ring-2 ring-white dark:ring-[var(--color-card)] transition-all duration-[var(--duration-fast)]"
+          className={cn(
+            "absolute -top-[4px] w-3.5 h-3.5 rounded-full bg-[var(--color-ink)] ring-2 ring-white dark:ring-[var(--color-card)] transition-all duration-[var(--duration-fast)]",
+            markerClassName
+          )}
           style={{ left: `calc(${markerPct}% - 7px)` }}
           aria-hidden="true"
         />

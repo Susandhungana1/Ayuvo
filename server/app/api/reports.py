@@ -1,16 +1,19 @@
 import uuid
 import os
+import asyncio
 from datetime import datetime
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, Request
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
 from app.api.auth import get_current_user
-from app.core.config import get_session, settings
+from app.core.config import get_session, settings, engine
 from app.core import storage
 from app.core.audit import record_access
-from app.core.lab_analysis import analyze_lab_text, summarize_findings
+from app.core.lab_analysis import (
+    REFERENCE_RANGES, analyze_lab_text, apply_overrides, summarize_findings,
+)
 from app.core.ocr import extract_report_text
 from app.models.models import User, MedicalReport, MedicalReportType, MedicalDocument
 
@@ -41,6 +44,7 @@ class ReportResponse(BaseModel):
     file_name: str
     notes: Optional[str]
     extracted_text: Optional[str]
+    ocr_status: Optional[str] = None
     document_id: Optional[str] = None
     doctor_name: Optional[str] = None
     hospital: Optional[str] = None
@@ -98,10 +102,33 @@ def _build_report_response(report: MedicalReport, db: Session) -> ReportResponse
         file_name=report.file_name,
         notes=report.notes,
         extracted_text=report.extracted_text,
+        ocr_status=report.ocr_status,
         document_id=report.document_id,
         doctor_name=doctor_name,
         hospital=hospital
     )
+
+
+def _extract_and_store(report_id: str, content: bytes, file_name: str) -> None:
+    """Run OCR outside the request lifecycle and persist the result, so an
+    upload never blocks on a multi-second Tesseract pass. Opens its own session
+    because the request's transaction is already committed."""
+    try:
+        text = asyncio.run(extract_report_text(content, file_name))
+    except Exception as e:  # noqa: BLE001 — best-effort, never fatal
+        print(f"OCR background error: {e}")
+        text = None
+    try:
+        with Session(engine) as db:
+            report = db.get(MedicalReport, report_id)
+            if report is None:
+                return
+            report.extracted_text = text
+            report.ocr_status = "DONE" if text else "FAILED"
+            db.add(report)
+            db.commit()
+    except Exception as e:  # noqa: BLE001
+        print(f"OCR background store error: {e}")
 
 
 MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -109,6 +136,7 @@ MAX_FILE_SIZE = 10 * 1024 * 1024
 
 @router.post("", response_model=ReportResponse)
 async def create_report(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     report_type: str = Form(...),
     notes: Optional[str] = Form(None),
@@ -124,8 +152,6 @@ async def create_report(
         raise HTTPException(status_code=400, detail="File size exceeds 10MB limit")
     
     file_name = file.filename
-    
-    extracted_text = await extract_report_text(content, file_name)
 
     storage_key = storage.save_file(
         content, original_name=file_name, prefix="reports",
@@ -142,11 +168,13 @@ async def create_report(
         notes=notes,
         hospital=hospital,
         doctor_name=doctor_name,
-        extracted_text=extracted_text
+        ocr_status="PENDING",
     )
     db.add(report)
     db.commit()
     db.refresh(report)
+
+    background_tasks.add_task(_extract_and_store, report.id, content, file_name)
     
     return _build_report_response(report, db)
 
@@ -206,7 +234,8 @@ async def get_lab_trends(
     meta: dict[str, dict] = {}
     for r in reports:
         when = (r.report_date or r.created_at)
-        for f in analyze_lab_text(r.extracted_text):
+        findings = apply_overrides(analyze_lab_text(r.extracted_text), r.lab_overrides)
+        for f in findings:
             grouped.setdefault(f["name"], []).append({
                 "date": when.isoformat() if when else None,
                 "value": f["value"],
@@ -292,7 +321,59 @@ async def get_lab_analysis(
     if not report or report.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Report not found")
 
-    findings = analyze_lab_text(report.extracted_text)
+    findings = apply_overrides(analyze_lab_text(report.extracted_text), report.lab_overrides)
+    summary = summarize_findings(findings)
+    return LabAnalysisResponse(
+        overall=summary["overall"],
+        total=summary["total"],
+        abnormal_count=summary["abnormal_count"],
+        findings=[LabFinding(**f) for f in findings],
+    )
+
+
+class LabOverrideItem(BaseModel):
+    value: float
+    unit: Optional[str] = None
+
+
+class LabOverridesUpdate(BaseModel):
+    overrides: dict[str, LabOverrideItem]
+
+
+@router.put("/{report_id}/lab-values", response_model=LabAnalysisResponse)
+async def update_lab_values(
+    report_id: str,
+    payload: LabOverridesUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    """Correct OCR'd lab values by hand. The parser re-runs over the stored
+    text every time, so the corrections are applied on top of the findings —
+    no re-OCR, and they survive future parser changes."""
+    report = db.get(MedicalReport, report_id)
+    if not report or report.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    for name, item in payload.overrides.items():
+        spec = REFERENCE_RANGES.get(name)
+        if spec is None:
+            raise HTTPException(status_code=400, detail=f"Unknown analyte: {name}")
+        if item.unit is not None:
+            units = {u for u, _, _ in spec[2]}
+            if item.unit not in units:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unit '{item.unit}' is not valid for {name}",
+                )
+
+    report.lab_overrides = {
+        name: item.model_dump(exclude_none=True)
+        for name, item in payload.overrides.items()
+    }
+    db.add(report)
+    db.commit()
+
+    findings = apply_overrides(analyze_lab_text(report.extracted_text), report.lab_overrides)
     summary = summarize_findings(findings)
     return LabAnalysisResponse(
         overall=summary["overall"],

@@ -8,6 +8,7 @@ logic is unit-testable without HTTP.
 """
 
 import io
+import re
 from typing import Optional
 
 from PIL import Image, ImageOps, ImageFilter
@@ -19,6 +20,11 @@ IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".webp")
 # which transcribes tabular lab reports more reliably than the default auto mode
 # that tends to shuffle columns and split value/unit pairs.
 _TESS_CONFIG = "--oem 1 --psm 6"
+
+# Fallback page-segmentation modes tried when the primary pass finds no numbers
+# (a sign the sheet was laid out in a way psm 6 could not read as one block):
+# psm 4 = a single column of text of variable sizes, psm 11 = sparse text.
+_FALLBACK_CONFIGS = ("--oem 1 --psm 4", "--oem 1 --psm 11")
 
 # Upscale anything narrower than this before OCR. Tesseract accuracy falls off on
 # small, low-DPI crops (a typical phone report photo), so we bring it up toward
@@ -44,11 +50,33 @@ def preprocess(image: Image.Image) -> Image.Image:
     return img
 
 
+def _count_numbers(text: str) -> int:
+    """Lab sheets are number-dense; the pass with the most numeric tokens is
+    the one that actually read the value column."""
+    return len(re.findall(r"\d+[.,]?\d*", text or ""))
+
+
+def _best_ocr_pass(image: Image.Image) -> str:
+    """Run the primary psm 6 pass; only if it produces no numbers at all (the
+    block layout failed) retry with the fallback modes and keep the richest
+    result. Common scans therefore pay one pass, garbled tables up to three."""
+    primary = (pytesseract.image_to_string(image, config=_TESS_CONFIG) or "").strip()
+    if _count_numbers(primary) > 0:
+        return primary
+    best, best_count = primary, _count_numbers(primary)
+    for config in _FALLBACK_CONFIGS:
+        alt = (pytesseract.image_to_string(image, config=config) or "").strip()
+        count = _count_numbers(alt)
+        if count > best_count:
+            best, best_count = alt, count
+    return best
+
+
 def ocr_image_bytes(content: bytes) -> Optional[str]:
     """Run preprocessing + Tesseract on raw image bytes. None on any failure."""
     try:
         image = Image.open(io.BytesIO(content))
-        text = pytesseract.image_to_string(preprocess(image), config=_TESS_CONFIG)
+        text = _best_ocr_pass(preprocess(image))
         return text.strip() or None
     except Exception as e:  # noqa: BLE001 — OCR is best-effort, never fatal
         print(f"OCR image error: {e}")

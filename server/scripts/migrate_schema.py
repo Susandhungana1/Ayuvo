@@ -14,6 +14,8 @@ missing, so running it twice is harmless.
     Adds:  users.totp_secret, users.totp_enabled
            users.timezone                    (mobile: the user's own IANA zone)
            medical_reports.storage_key
+           medical_reports.ocr_status        (background OCR state machine)
+           medical_reports.lab_overrides     (user corrections to OCR'd values)
            medical_files.storage_key, medical_files.content_type
            medicines.deleted_at              (caretaker: soft delete)
            share_links.pin_hash              (PIN-protected whole-record shares)
@@ -47,6 +49,8 @@ _ADD_COLUMNS = [
     ("users", "totp_enabled", "BOOLEAN NOT NULL DEFAULT FALSE"),
     ("users", "timezone", "VARCHAR"),
     ("medical_reports", "storage_key", "VARCHAR"),
+    ("medical_reports", "ocr_status", "VARCHAR"),
+    ("medical_reports", "lab_overrides", "JSON"),
     ("medical_files", "storage_key", "VARCHAR"),
     ("medical_files", "content_type", "VARCHAR"),
     # Caretaker: medicine deletes became soft, so the patient can restore what a

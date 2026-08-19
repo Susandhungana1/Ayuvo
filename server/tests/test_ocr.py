@@ -12,6 +12,7 @@ import io
 
 import fitz  # PyMuPDF
 import pytest
+import pytesseract
 from PIL import Image, ImageDraw, ImageFont
 
 import app.core.ocr as ocr
@@ -125,3 +126,50 @@ def test_extract_report_text_pdf_goes_through_pdf_path(monkeypatch):
 
     out = asyncio.run(ocr.extract_report_text(b"x", "r.pdf"))
     assert out == "PLATELETS 250"
+
+
+# --- 3. tabular fallback -----------------------------------------------------
+
+def test_primary_pass_success_does_not_run_fallbacks(monkeypatch):
+    """A normal sheet (numbers found by psm 6) pays exactly one OCR pass."""
+    calls = []
+
+    def fake_tess(image, config):
+        calls.append(config)
+        return "Hemoglobin 13.5 g/dL"
+
+    monkeypatch.setattr(pytesseract, "image_to_string", fake_tess)
+    text = ocr.ocr_image_bytes(_text_image_png("HEMOGLOBIN 13.5"))
+    assert text is not None
+    assert "13.5" in text
+    assert len(calls) == 1
+
+
+def test_fallback_runs_when_primary_finds_no_numbers(monkeypatch):
+    """A tabular sheet psm 6 cannot read (no numbers at all) gets retried with
+    the sparse/column modes, and the richest result wins."""
+    results = iter([
+        "NEUTROPHILS LYMPHOCYTES MONOCYTES",   # psm 6: columns shuffled, no values
+        "Neutrophils 55 %\nLymphocytes 30 %",  # psm 4: single column, readable
+        "nothing useful",                       # psm 11: worse
+    ])
+
+    def fake_tess(image, config):
+        return next(results)
+
+    monkeypatch.setattr(pytesseract, "image_to_string", fake_tess)
+    text = ocr.ocr_image_bytes(_text_image_png("X"))
+    assert text == "Neutrophils 55 %\nLymphocytes 30 %"
+
+
+def test_fallback_keeps_primary_when_fallbacks_are_worse(monkeypatch):
+    """If the retries read nothing, the primary result (even with no numbers)
+    is still kept rather than returning empty."""
+    results = iter(["GARBLED LAYOUT", "", ""])
+
+    def fake_tess(image, config):
+        return next(results)
+
+    monkeypatch.setattr(pytesseract, "image_to_string", fake_tess)
+    text = ocr.ocr_image_bytes(_text_image_png("X"))
+    assert text == "GARBLED LAYOUT"

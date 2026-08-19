@@ -4,6 +4,8 @@
 /// a phone that row does not fit, so the file is opened from a single button.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -27,9 +29,10 @@ class ReportDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Read from the list rather than refetching: `GET /api/reports` already
     // carried every field this screen shows, including the full OCR text.
-    final report = ref.watch(reportsProvider).valueOrNull?.where(
-          (candidate) => candidate.id == reportId,
-        );
+    final report = ref
+        .watch(reportsProvider)
+        .valueOrNull
+        ?.where((candidate) => candidate.id == reportId);
 
     if (report == null || report.isEmpty) {
       // Only reachable if the report was deleted from under this screen.
@@ -73,16 +76,19 @@ class _Detail extends ConsumerWidget {
           _Facts(report: report, dated: dated),
           const SizedBox(height: AppSpacing.lg),
           _Actions(report: report),
-          if (!report.hasText) ...[
+          if (report.isOcrPending) ...[
+            const SizedBox(height: AppSpacing.lg),
+            _OcrPending(report: report),
+          ] else if (!report.hasText) ...[
             const SizedBox(height: AppSpacing.lg),
             const MessageBanner(
               tone: BannerTone.notice,
-              message: 'No text could be read from this file, so the lab '
+              message:
+                  'No text could be read from this file, so the lab '
                   'values are not available for it. The file itself is '
                   'stored and viewable.',
             ),
-          ],
-          if (report.hasText) ...[
+          ] else ...[
             const SizedBox(height: AppSpacing.xl),
             Text('Lab values', style: context.texts.titleLarge),
             const SizedBox(height: AppSpacing.sm),
@@ -92,8 +98,10 @@ class _Detail extends ConsumerWidget {
             const SizedBox(height: AppSpacing.xl),
             _Section(
               title: 'Your notes',
-              child: Text(report.notes!.trim(),
-                  style: context.texts.bodyMedium),
+              child: Text(
+                report.notes!.trim(),
+                style: context.texts.bodyMedium,
+              ),
             ),
           ],
           const SizedBox(height: AppSpacing.xxl),
@@ -228,13 +236,81 @@ class _LabValues extends ConsumerWidget {
     final analysis = ref.watch(labAnalysisProvider(reportId));
 
     return switch (analysis) {
-      AsyncData(:final value) => LabFindingsView(analysis: value),
+      AsyncData(:final value) => LabFindingsView(
+        analysis: value,
+        reportId: reportId,
+      ),
       AsyncError(:final error) => ErrorView(
-          error: error,
-          onRetry: () => ref.invalidate(labAnalysisProvider(reportId)),
-        ),
+        error: error,
+        onRetry: () => ref.invalidate(labAnalysisProvider(reportId)),
+      ),
       _ => const SkeletonCard(lines: 4),
     };
+  }
+}
+
+/// Shown while the server's background OCR is still reading the file: the
+/// report has no text yet, so lab values would be reported as "none found".
+/// Polls the list until the text lands (or the server gives up), then hands
+/// over to the normal rendering.
+class _OcrPending extends ConsumerStatefulWidget {
+  const _OcrPending({required this.report});
+
+  final MedicalReport report;
+
+  @override
+  ConsumerState<_OcrPending> createState() => _OcrPendingState();
+}
+
+class _OcrPendingState extends ConsumerState<_OcrPending> {
+  static const _pollEvery = Duration(seconds: 2);
+  static const _maxPolls = 10;
+
+  int _polls = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(_pollEvery, (_) => _poll());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _poll() {
+    ref.read(reportsProvider.notifier).refresh();
+    _polls += 1;
+    if (_polls >= _maxPolls) _timer?.cancel();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: AppSpacing.card,
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                'Still reading this file — lab values will appear in a '
+                'moment.',
+                style: context.texts.bodyMedium,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

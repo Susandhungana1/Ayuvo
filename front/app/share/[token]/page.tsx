@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/card';
 import { Button } from '@/components/button';
 import ClaimShareButton from '@/components/ClaimShareButton';
+import { LabGauge } from '@/components/ui/lab-gauge';
 import { formatServerDateTime } from '@/lib/datetime';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
@@ -268,12 +269,19 @@ export default function ViewSharedReport() {
                 </div>
                 <div className="space-y-2 max-h-[52vh] overflow-y-auto">
                   {labAnalysis.findings.map((f, i) => (
-                    <div key={i} className="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2">
-                      <div className="min-w-0">
+                    <div key={i} className="flex items-center gap-3 border border-gray-100 rounded-lg px-3 py-2.5">
+                      <div className="min-w-0 flex-1">
                         <p className="font-medium text-text-main text-sm truncate">{f.name}</p>
-                        <p className="text-[11px] text-subtext">{f.category} · Normal {f.reference_range} {f.unit}</p>
+                        <LabGauge
+                          value={f.value}
+                          unit={f.unit}
+                          referenceRange={f.reference_range}
+                          status={f.status}
+                          className="mt-2"
+                        />
+                        <p className="text-[11px] text-subtext mt-1">{f.category} · Normal {f.reference_range} {f.unit}</p>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex flex-col items-end gap-1 shrink-0">
                         <span className="font-semibold text-text-main text-sm">{f.value} <span className="text-xs text-subtext">{f.unit}</span></span>
                         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${STATUS_STYLES[f.status]}`}>{f.status}</span>
                       </div>

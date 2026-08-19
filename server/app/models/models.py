@@ -271,6 +271,16 @@ class MedicalReport(SQLModel, table=True):
     # /trends). The AI-generated summary/formal-report columns were removed.
     extracted_text: Optional[str] = None
 
+    # Lab-value analysis state. ocr_status is PENDING while the background
+    # extraction runs, DONE when extracted_text is ready, FAILED if it yielded
+    # nothing. lab_overrides holds user corrections as
+    # {name: {"value": float, "unit": str?}} — applied on top of OCR findings.
+    ocr_status: Optional[str] = Field(default=None, index=True)
+    lab_overrides: Optional[dict] = Field(
+        default=None, sa_type=JSON,
+        description="User corrections to OCR'd lab values",
+    )
+
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

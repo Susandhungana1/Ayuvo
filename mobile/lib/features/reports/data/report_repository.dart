@@ -79,11 +79,27 @@ class ReportRepository {
   /// share links with it.
   Future<void> remove(String id) => _client.delete<void>('$_base/$id');
 
-  /// `GET /api/reports/{id}/lab-analysis` — 22 analytes parsed out of the OCR
+  /// `GET /api/reports/{id}/lab-analysis` — analytes parsed out of the OCR
   /// text. Returns `NO_DATA` rather than failing when nothing was recognised.
   Future<LabAnalysis> labAnalysis(String id) async {
-    final json =
-        await _client.get<Map<String, dynamic>>('$_base/$id/lab-analysis');
+    final json = await _client.get<Map<String, dynamic>>(
+      '$_base/$id/lab-analysis',
+    );
+    return LabAnalysis.fromJson(json);
+  }
+
+  /// `PUT /api/reports/{id}/lab-values` — correct a mis-OCR'd reading by hand.
+  ///
+  /// `overrides` maps an analyte name (as the server reports it) to its new
+  /// `value` and optional `unit`. The response is the corrected analysis.
+  Future<LabAnalysis> correctValues(
+    String id,
+    Map<String, Map<String, dynamic>> overrides,
+  ) async {
+    final json = await _client.put<Map<String, dynamic>>(
+      '$_base/$id/lab-values',
+      body: {'overrides': overrides},
+    );
     return LabAnalysis.fromJson(json);
   }
 

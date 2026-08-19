@@ -2,6 +2,7 @@
 /// rather than with the list.
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/session/session_controller.dart';
@@ -10,8 +11,8 @@ import '../domain/report.dart';
 
 final reportsProvider =
     AsyncNotifierProvider<ReportsController, List<MedicalReport>>(
-  ReportsController.new,
-);
+      ReportsController.new,
+    );
 
 class ReportsController extends AsyncNotifier<List<MedicalReport>> {
   ReportRepository get _repository => ref.read(reportRepositoryProvider);
@@ -52,7 +53,46 @@ final reportTrendsProvider = FutureProvider<List<TrendSeries>>((ref) async {
 });
 
 /// `GET /api/reports/{id}/lab-analysis`, fetched when the screen is opened.
-final labAnalysisProvider =
-    FutureProvider.autoDispose.family<LabAnalysis, String>(
-  (ref, id) => ref.watch(reportRepositoryProvider).labAnalysis(id),
-);
+final labAnalysisProvider = FutureProvider.autoDispose
+    .family<LabAnalysis, String>(
+      (ref, id) => ref.watch(reportRepositoryProvider).labAnalysis(id),
+    );
+
+/// How many of a report's values are out of range, and which — the chip shown
+/// on the list card. Skipped entirely for reports OCR read nothing from.
+final labSummaryProvider = FutureProvider.autoDispose
+    .family<LabSummary?, String>((ref, id) async {
+      final reports = ref.watch(reportsProvider).valueOrNull ?? const [];
+      MedicalReport? report;
+      for (final candidate in reports) {
+        if (candidate.id == id) {
+          report = candidate;
+          break;
+        }
+      }
+      if (report == null || !report.hasText) return null;
+      final analysis = await ref
+          .watch(reportRepositoryProvider)
+          .labAnalysis(id);
+      if (!analysis.hasData) return null;
+      return LabSummary.from(analysis);
+    });
+
+/// The abnormal readings of one report, for the list card chip.
+@immutable
+class LabSummary {
+  const LabSummary({required this.abnormal, required this.names});
+
+  final int abnormal;
+  final List<String> names;
+
+  factory LabSummary.from(LabAnalysis analysis) => LabSummary(
+    abnormal: analysis.findings.where((f) => !f.isNormal).length,
+    names: [
+      for (final f in analysis.findings)
+        if (!f.isNormal) f.name,
+    ],
+  );
+
+  bool get isNotEmpty => abnormal > 0;
+}

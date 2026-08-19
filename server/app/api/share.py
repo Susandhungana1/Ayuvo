@@ -12,7 +12,7 @@ from app.api.auth import get_current_user
 from app.api.reports import get_report_bytes
 from app.core.config import get_session
 from app.core.audit import record_access
-from app.core.lab_analysis import analyze_lab_text, summarize_findings
+from app.core.lab_analysis import analyze_lab_text, apply_overrides, summarize_findings
 from app.core.ratelimit import limiter, user_key
 from app.models.models import (
     User, MedicalReport, Medicine, ShareLink, EmergencyContact, ClaimedShare,
@@ -735,7 +735,7 @@ async def get_shared_lab_analysis(
 ):
     """Public lab-value analysis for a shared report (no login required)."""
     report = _resolve_shared_report(token, report_id, db)
-    findings = analyze_lab_text(report.extracted_text)
+    findings = apply_overrides(analyze_lab_text(report.extracted_text), report.lab_overrides)
     summary = summarize_findings(findings)
     return {
         "overall": summary["overall"],

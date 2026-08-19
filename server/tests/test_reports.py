@@ -98,3 +98,119 @@ def test_cannot_access_other_users_report(auth_client, client):
         headers={"Authorization": f"Bearer {other_token}"},
     )
     assert resp.status_code == 404
+
+def _with_extracted_text(report_id: str, text: str):
+    """Give a report OCR text directly (the background task would do this)."""
+    with Session(engine) as db:
+        report = db.get(MedicalReport, report_id)
+        report.extracted_text = text
+        report.ocr_status = "DONE"
+        db.add(report)
+        db.commit()
+
+
+# --- background OCR ----------------------------------------------------------
+
+def test_upload_returns_pending_then_background_task_finishes(auth_client):
+    """The response returns immediately with ocr_status PENDING; the extract
+    task runs before the TestClient hands back, and a follow-up read sees the
+    terminal state. A .txt is not an image/PDF, so it resolves to FAILED."""
+    client, _ = auth_client
+    resp = _upload(client)
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["ocr_status"] == "PENDING"
+
+    with Session(engine) as db:
+        report = db.get(MedicalReport, resp.json()["id"])
+        assert report.ocr_status in ("DONE", "FAILED")
+        assert report.extracted_text is None  # txt ignored by the extractor
+
+    listing = client.get("/api/reports")
+    got = next(r for r in listing.json()["reports"] if r["id"] == resp.json()["id"])
+    assert got["ocr_status"] == "FAILED"
+
+
+# --- manual lab-value corrections --------------------------------------------
+
+def test_put_lab_values_corrects_findings_and_persists(auth_client):
+    client, _ = auth_client
+    report_id = _upload(client).json()["id"]
+    _with_extracted_text(
+        report_id, "HEMOGLOBIN 13.5 g/dL\nFasting glucose 98 mg/dL"
+    )
+
+    resp = client.put(
+        f"/api/reports/{report_id}/lab-values",
+        json={"overrides": {"Hemoglobin": {"value": 9.5, "unit": "g/dL"}}},
+    )
+    assert resp.status_code == 200, resp.text
+    hb = next(f for f in resp.json()["findings"] if f["name"] == "Hemoglobin")
+    assert hb["value"] == 9.5
+    assert hb["status"] == "LOW"
+    assert resp.json()["overall"] == "ABNORMAL"
+    assert resp.json()["abnormal_count"] == 1
+
+    # Persisted: a fresh lab-analysis read applies the correction too.
+    again = client.get(f"/api/reports/{report_id}/lab-analysis")
+    hb = next(f for f in again.json()["findings"] if f["name"] == "Hemoglobin")
+    assert hb["value"] == 9.5
+    assert hb["status"] == "LOW"
+
+    # The untouched glucose finding still reads normal.
+    g = next(f for f in again.json()["findings"] if f["name"] == "Glucose (Fasting)")
+    assert g["value"] == 98
+    assert g["status"] == "NORMAL"
+
+
+def test_put_lab_values_validates_analyte_and_unit(auth_client):
+    client, _ = auth_client
+    report_id = _upload(client).json()["id"]
+
+    bad_name = client.put(
+        f"/api/reports/{report_id}/lab-values",
+        json={"overrides": {"Not A Test": {"value": 1}}},
+    )
+    assert bad_name.status_code == 400
+
+    bad_unit = client.put(
+        f"/api/reports/{report_id}/lab-values",
+        json={"overrides": {"Hemoglobin": {"value": 12, "unit": "mmol/L"}}},
+    )
+    assert bad_unit.status_code == 400
+
+
+def test_shared_lab_analysis_honours_corrections(auth_client):
+    client, _ = auth_client
+    report_id = _upload(client).json()["id"]
+    _with_extracted_text(report_id, "HEMOGLOBIN 13.5 g/dL")
+
+    client.put(
+        f"/api/reports/{report_id}/lab-values",
+        json={"overrides": {"Hemoglobin": {"value": 9.5}}},
+    )
+    token = client.post(f"/api/share/{report_id}").json()["token"]
+
+    shared = client.get(f"/api/share/{token}/lab-analysis")
+    assert shared.status_code == 200
+    hb = shared.json()["findings"][0]
+    assert hb["value"] == 9.5
+    assert hb["status"] == "LOW"
+
+
+def test_put_lab_values_requires_ownership(auth_client, client):
+    import uuid
+
+    owner, _ = auth_client
+    report_id = _upload(owner).json()["id"]
+
+    email = f"other_{uuid.uuid4().hex[:8]}@example.com"
+    other_token = client.post(
+        "/api/auth/register",
+        json={"name": "Other", "email": email, "password": "supersecret1"},
+    ).json()["token"]
+    resp = client.put(
+        f"/api/reports/{report_id}/lab-values",
+        headers={"Authorization": f"Bearer {other_token}"},
+        json={"overrides": {"Hemoglobin": {"value": 9.5}}},
+    )
+    assert resp.status_code == 404
