@@ -27,7 +27,7 @@ def _valid_push_endpoint(endpoint: str) -> bool:
     fire at on every reminder tick — an attacker could aim it at cloud
     metadata, an internal service, or a victim's URL to abuse our sending
     identity. So: https only, no credentials in the URL, no IP literals that
-    are not global, no ports beyond 443/standard https.
+    are not global.
     """
     try:
         parsed = urlparse(endpoint)

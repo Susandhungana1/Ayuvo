@@ -326,3 +326,21 @@ def test_reset_email_escapes_user_name(client, monkeypatch):
 
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in sent["html"]
     assert "<script>alert(1)</script>" not in sent["html"]
+
+def test_client_key_prefers_edge_headers_over_peer(client):
+    from types import SimpleNamespace
+
+    from app.core.ratelimit import client_key
+
+    class _Req:
+        def __init__(self, headers):
+            self.headers = headers
+            self.client = SimpleNamespace(host="172.16.0.1")
+
+    assert client_key(_Req({"cf-connecting-ip": "203.0.113.9"})) == "ip:203.0.113.9"
+    assert (
+        client_key(_Req({"x-forwarded-for": "198.51.100.2, 10.0.0.1"}))
+        == "ip:198.51.100.2"
+    )
+    assert client_key(_Req({"x-forwarded-for": "not-an-ip"})) == "ip:172.16.0.1"
+    assert client_key(_Req({})) == "ip:172.16.0.1"
