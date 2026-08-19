@@ -21,6 +21,12 @@ from app.models.models import (
 router = APIRouter()
 
 
+# Wrong-PIN attempts before a whole-record share locks itself for good. The
+# endpoint is public and PIN space is 1M values, so the lockout must live on
+# the link row, not on a per-IP bucket an attacker can rotate away from.
+_MAX_PIN_ATTEMPTS = 10
+
+
 def _hash_pin(token: str, pin: str) -> str:
     """Hash a share PIN keyed by the link's token. The token is already random
     and secret, so the pair is unique per link and the PIN alone leaks nothing."""
@@ -189,13 +195,25 @@ async def access_all_shared_reports(
         raise HTTPException(status_code=410, detail="Share link expired")
 
     if share_link.pin_hash is not None:
+        if share_link.failed_pin_attempts >= _MAX_PIN_ATTEMPTS:
+            raise HTTPException(
+                status_code=410,
+                detail="This share has been locked after too many incorrect PIN attempts.",
+            )
         if not pin:
             raise HTTPException(
                 status_code=401,
                 detail="This health record is PIN-protected. Ask the owner for the 6-digit PIN.",
             )
         if _hash_pin(token, pin) != share_link.pin_hash:
+            share_link.failed_pin_attempts += 1
+            db.add(share_link)
+            db.commit()
             raise HTTPException(status_code=401, detail="Incorrect PIN")
+        if share_link.failed_pin_attempts:
+            share_link.failed_pin_attempts = 0
+            db.add(share_link)
+            db.commit()
         record_access(
             db, "share.view.all.pin_ok",
             subject_id=share_link.user_id, resource_type="ShareLink",
@@ -699,10 +717,13 @@ async def access_shared_report(
     
     return SharedReportWithEmergencyResponse(
         report=report_response,
-        emergency=_get_emergency_info(user, db),
+        # Emergency profile is deliberately absent here: a single-report share
+        # is the sharer's way to hand over ONE consented report, and the
+        # blood-type/allergies/contacts card belongs to the whole-record (QR)
+        # flow only. Sending it would leak the full emergency profile to anyone
+        # holding a one-report link.
         user_name=user.name if user else None,
         user_id=user.id if user else None,
-        user_blood_type=user.blood_type if user else None
     )
 
 
@@ -728,8 +749,10 @@ def _resolve_shared_report(token: str, report_id: Optional[str], db: Session) ->
 
 
 @router.get("/{token}/lab-analysis")
+@limiter.limit("20/hour")
 async def get_shared_lab_analysis(
     token: str,
+    request: Request,
     report_id: Optional[str] = None,
     db: Session = Depends(get_session)
 ):

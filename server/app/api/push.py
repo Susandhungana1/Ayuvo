@@ -2,6 +2,8 @@
 
 from typing import Optional
 from zoneinfo import ZoneInfo
+import asyncio
+import hmac
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
@@ -164,7 +166,9 @@ async def run_tick(x_cron_secret: str = Header(default="")):
     """Deliver any reminders due right now. Meant to be called every minute by an
     external scheduler on hosts that sleep. Guarded by CRON_SECRET; disabled
     (404) when the secret is unset so it is never publicly triggerable."""
-    if not settings.cron_secret or x_cron_secret != settings.cron_secret:
+    if not settings.cron_secret or not hmac.compare_digest(
+        x_cron_secret, settings.cron_secret
+    ):
         raise HTTPException(status_code=404, detail="Not found")
     sent = await run_tick_once()
     return {"ok": True, "sent": sent}

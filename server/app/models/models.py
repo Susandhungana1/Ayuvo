@@ -327,6 +327,10 @@ class ShareLink(SQLModel, table=True):
     # Stored hashed so a leaked DB dump does not hand out working PINs.
     pin_hash: Optional[str] = Field(default=None)
 
+    # Wrong-PIN counter. The QR endpoint is public and the PIN space is only
+    # 1M values, so a lockout lives on the link itself, not on the IP.
+    failed_pin_attempts: int = Field(default=0)
+
     expires_at: datetime
     created_at: datetime = Field(default_factory=datetime.utcnow)
 

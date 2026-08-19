@@ -154,13 +154,15 @@ async def upload_document_file(
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="File size exceeds 10MB limit")
 
+    file_name = storage.safe_filename(file.filename)
+
     storage_key = storage.save_file(
-        content, original_name=file.filename, prefix="documents",
+        content, original_name=file_name, prefix="documents",
         content_type=file.content_type,
     )
 
     medical_file = MedicalFile(
-        name=file.filename,
+        name=file_name,
         file_type="OTHER",
         storage_key=storage_key,
         content_type=file.content_type,
@@ -233,7 +235,7 @@ async def download_document_file(
     elif file.name.lower().endswith('.pdf'):
         content_type = "application/pdf"
     
-    disposition = "inline" if inline else "attachment"
+    inline = bool(inline)
 
     record_access(
         db, "document.file.read",
@@ -245,5 +247,8 @@ async def download_document_file(
     return Response(
         content=data,
         media_type=content_type,
-        headers={"Content-Disposition": f"{disposition}; filename={file.name}"}
+        headers={
+            "Content-Disposition": storage.safe_content_disposition(file.name, inline),
+            "X-Content-Type-Options": "nosniff",
+        }
     )

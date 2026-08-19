@@ -21,11 +21,52 @@ the app still boots without it when you are not using S3.
 
 from __future__ import annotations
 
+import re
 import uuid
 from pathlib import Path
 from typing import Optional
 
 from app.core.config import settings
+
+# Content types we are willing to serve inline in a browser. Anything else —
+# including the client-supplied type of an uploaded file — becomes
+# application/octet-stream, which forces a download and defeats content
+# sniffing. An attacker uploading "report.html" must not get text/html back.
+_SAFE_MEDIA_TYPES = {
+    "application/pdf",
+    "image/gif",
+    "image/heic",
+    "image/heif",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "text/plain",
+}
+
+# Header-hostile characters in a filename. A \r or \n here would let a client
+# inject extra response headers; a double quote would break the parameter.
+_FILENAME_BAD = re.compile(r'[\r\n"\\\x00-\x1f\x7f]')
+
+
+def safe_filename(filename: Optional[str]) -> str:
+    """Sanitize a client-supplied filename for storage and later use in
+    Content-Disposition: strip header-hostile characters and absurd length."""
+    name = _FILENAME_BAD.sub("_", filename or "").strip()[:200]
+    return name or "file"
+
+
+def safe_media_type(requested: Optional[str]) -> str:
+    """Return ``requested`` when it is safe to render inline, else octet-stream."""
+    if requested and requested.lower() in _SAFE_MEDIA_TYPES:
+        return requested.lower()
+    return "application/octet-stream"
+
+
+def safe_content_disposition(filename: Optional[str], inline: bool = True) -> str:
+    """Build a Content-Disposition header value that cannot inject or escape."""
+    name = _FILENAME_BAD.sub("_", filename or "file").strip()[:200] or "file"
+    mode = "inline" if inline else "attachment"
+    return f'{mode}; filename="{name}"'
 
 
 def _safe_ext(original_name: Optional[str]) -> str:

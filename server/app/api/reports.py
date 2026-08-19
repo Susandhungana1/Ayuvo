@@ -151,8 +151,15 @@ async def create_report(
     
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="File size exceeds 10MB limit")
+
+    # The DB column is free text; pin it to the enum so an arbitrary string
+    # (e.g. "<script>") never lands in the record or in later UI rendering.
+    try:
+        MedicalReportType(report_type)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid report type")
     
-    file_name = file.filename
+    file_name = storage.safe_filename(file.filename)
 
     storage_key = storage.save_file(
         content, original_name=file_name, prefix="reports",
@@ -306,9 +313,12 @@ async def download_report_file(
 
     from fastapi.responses import Response
     return Response(
-        media_type=report.file_content_type or "application/octet-stream",
+        media_type=storage.safe_media_type(report.file_content_type),
         content=data,
-        headers={"Content-Disposition": f"inline; filename={report.file_name}"}
+        headers={
+            "Content-Disposition": storage.safe_content_disposition(report.file_name),
+            "X-Content-Type-Options": "nosniff",
+        }
     )
 
 

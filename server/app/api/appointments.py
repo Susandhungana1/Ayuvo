@@ -3,6 +3,8 @@ from datetime import datetime, timezone, timedelta, time
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
+from sqlalchemy import text
+from sqlalchemy import text
 from sqlmodel import Session, select, and_
 from app.api.auth import get_current_user
 from app.core.config import get_session, settings
@@ -209,6 +211,18 @@ async def create_appointment(
     db: Session = Depends(get_session)
 ):
     if appt_data.doctor_id:
+        # Serialize bookings per doctor. is_slot_available locks overlapping
+        # appointment rows FOR UPDATE, but two requests for a *still-empty*
+        # slot have no rows to lock and can both pass the check — this advisory
+        # transaction lock covers exactly the check-then-insert window (released
+        # at commit below). SQLite has no advisory locks; its test runs are
+        # sequential so the FOR UPDATE path still covers them.
+        if db.bind is not None and db.bind.dialect.name == "postgresql":
+            db.exec(
+                text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+                params={"key": f"appt-slot:{appt_data.doctor_id}"},
+            )
+
         doctor = db.get(Doctor, appt_data.doctor_id)
         if not doctor:
             raise HTTPException(status_code=404, detail="Doctor not found")

@@ -465,6 +465,21 @@ async def reset_password(
     token.used = True
     db.add(user)
     db.add(token)
+
+    # A password change must end every existing session: a stolen refresh
+    # token would otherwise keep working for up to 30 days after the victim
+    # resets their password. Revoke the whole family (same sweep the refresh
+    # replay handler performs).
+    members = db.exec(
+        select(RefreshToken).where(
+            RefreshToken.user_id == user.id,
+            RefreshToken.revoked_at.is_(None),
+        )
+    ).all()
+    for member in members:
+        member.revoked_at = datetime.utcnow()
+        db.add(member)
+
     db.commit()
     record_access(db, "auth.reset.completed", actor_id=user.id, request=request)
 

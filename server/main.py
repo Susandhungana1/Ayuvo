@@ -63,6 +63,42 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+class SecurityHeadersMiddleware:
+    """Add the browser-hardening headers every response should carry.
+
+    The API serves no HTML of its own, so a strict CSP belongs to the frontend
+    (which does not set one yet). This layer covers HSTS, sniffing, framing and
+    referrer leakage; headers already set by an endpoint are left untouched.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                message.setdefault("headers", [])
+                existing = {k.lower() for k, _ in message["headers"]}
+                for name, value in (
+                    (b"strict-transport-security",
+                     b"max-age=31536000; includeSubDomains"),
+                    (b"x-content-type-options", b"nosniff"),
+                    (b"x-frame-options", b"SAMEORIGIN"),
+                    (b"referrer-policy", b"strict-origin-when-cross-origin"),
+                ):
+                    if name not in existing:
+                        message["headers"].append((name, value))
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
+
+
+app.add_middleware(SecurityHeadersMiddleware)
+
 from app.api import auth, users, documents, reports, appointments, share, availability, medicines, vitals, emergency, search, timeline, push, care
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])

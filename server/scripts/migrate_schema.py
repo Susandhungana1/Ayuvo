@@ -18,7 +18,8 @@ missing, so running it twice is harmless.
            medical_reports.lab_overrides     (user corrections to OCR'd values)
            medical_files.storage_key, medical_files.content_type
            medicines.deleted_at              (caretaker: soft delete)
-           share_links.pin_hash              (PIN-protected whole-record shares)
+            share_links.pin_hash              (PIN-protected whole-record shares)
+            share_links.failed_pin_attempts   (per-link PIN lockout)
     Drops: medical_reports.result_summary, medical_reports.ai_report_text
            (AI features removed; the AI text is deleted with them)
     Relaxes (so legacy blobs can be moved out): medical_reports.file_content and
@@ -59,6 +60,8 @@ _ADD_COLUMNS = [
     ("medicines", "deleted_at", "TIMESTAMP"),
     # PIN guarding whole-record (QR) shares.
     ("share_links", "pin_hash", "VARCHAR"),
+    # Per-link wrong-PIN counter so the lockout survives the in-memory state.
+    ("share_links", "failed_pin_attempts", "INTEGER NOT NULL DEFAULT 0"),
 ]
 
 # Indexes that belong to columns added above. SQLModel builds these for a fresh

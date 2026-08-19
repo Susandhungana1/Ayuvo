@@ -7,6 +7,7 @@ from sqlmodel import Session, select
 from app.api.auth import get_current_user
 from app.core.config import get_session
 from app.core.audit import record_access
+from app.core.ratelimit import limiter
 from app.models.models import User, EmergencyContact
 
 router = APIRouter()
@@ -147,9 +148,10 @@ async def delete_emergency_contact(
 
 
 @router.get("/public/{user_id}", response_model=EmergencyProfileResponse)
+@limiter.limit("30/hour")
 async def get_public_emergency_profile(
-    user_id: str,
     request: Request,
+    user_id: str,
     db: Session = Depends(get_session),
 ):
     user = db.get(User, user_id)
@@ -167,17 +169,21 @@ async def get_public_emergency_profile(
         .where(EmergencyContact.user_id == user_id)
     ).all()
 
+    # This endpoint is unauthenticated and user ids are sequential, so it is a
+    # scrape target. It must stay minimal: no third-party email addresses, no
+    # account ids — just the fields a paramedic needs. The owner's own signed-in
+    # profile (`GET /api/emergency/profile`) still returns everything.
     return EmergencyProfileResponse(
         blood_type=user.blood_type,
         allergies=user.allergies,
         medical_conditions=user.medical_conditions,
         emergency_contacts=[
             EmergencyContactResponse(
-                id=c.id,
+                id="",
                 name=c.name,
                 relationship=c.relationship,
                 phone=c.phone,
-                email=c.email,
+                email=None,
             )
             for c in contacts
         ],
