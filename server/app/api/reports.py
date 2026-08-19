@@ -135,9 +135,28 @@ def _extract_and_store(report_id: str, content: bytes, file_name: str) -> None:
 MAX_FILE_SIZE = 10 * 1024 * 1024
 
 
+async def _read_upload(request: Request, file: UploadFile) -> bytes:
+    """Read an upload with a hard memory cap.
+
+    `await file.read()` with no argument reads the ENTIRE request body into
+    RAM before the size check below could reject it — a 5 GB "10 MB" upload
+    would OOM this instance. Cap the read at the limit (+1 byte to detect
+    overflow) and reject early when the declared Content-Length already
+    exceeds it (multipart overhead is allowed for).
+    """
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > MAX_FILE_SIZE + 65536:
+        raise HTTPException(status_code=413, detail="File size exceeds 10MB limit")
+    content = await file.read(MAX_FILE_SIZE + 1)
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File size exceeds 10MB limit")
+    return content
+
+
 @router.post("", response_model=ReportResponse)
 async def create_report(
     background_tasks: BackgroundTasks,
+    request: Request,
     file: UploadFile = File(...),
     report_type: str = Form(...),
     notes: Optional[str] = Form(None),
@@ -147,10 +166,7 @@ async def create_report(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
-    content = await file.read()
-    
-    if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="File size exceeds 10MB limit")
+    content = await _read_upload(request, file)
 
     # The DB column is free text; pin it to the enum so an arbitrary string
     # (e.g. "<script>") never lands in the record or in later UI rendering.

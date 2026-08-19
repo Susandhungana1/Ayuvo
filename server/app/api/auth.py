@@ -394,6 +394,11 @@ async def forgot_password(
     # The bare code is included as well as the link: mail clients sometimes
     # mangle or truncate long URLs, and the user may open the mail on a
     # different device, so the reset page also accepts a pasted code.
+    # The user controls their own name; escape it so it can't smuggle HTML
+    # into their inbox (self-XSS) or break the email's markup.
+    import html as _html
+    name_html = _html.escape(user.name, quote=True)
+
     sent = send_email(
         to=user.email,
         subject="Reset your MediStore password",
@@ -408,7 +413,7 @@ async def forgot_password(
             f"your password will stay unchanged.\n"
         ),
         html=(
-            f"<p>Hi {user.name},</p>"
+            f"<p>Hi {name_html},</p>"
             f"<p>We received a request to reset your MediStore password. "
             f"Click the button below to choose a new one (valid for {minutes} minutes):</p>"
             f'<p><a href="{reset_link}" style="display:inline-block;padding:10px 20px;'

@@ -141,6 +141,7 @@ MAX_FILE_SIZE = 10 * 1024 * 1024
 @router.post("/{doc_id}/files", response_model=FileResponse)
 async def upload_document_file(
     doc_id: str,
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session)
@@ -149,10 +150,13 @@ async def upload_document_file(
     if not document or document.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    content = await file.read()
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > MAX_FILE_SIZE + 65536:
+        raise HTTPException(status_code=413, detail="File size exceeds 10MB limit")
+    content = await file.read(MAX_FILE_SIZE + 1)
 
     if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="File size exceeds 10MB limit")
+        raise HTTPException(status_code=413, detail="File size exceeds 10MB limit")
 
     file_name = storage.safe_filename(file.filename)
 

@@ -231,3 +231,98 @@ def test_report_upload_rejects_unknown_report_type(client):
         headers=_auth(owner["token"]),
     )
     assert resp.status_code == 400, resp.text
+
+
+# --- Upload memory cap -------------------------------------------------------
+
+def test_oversize_upload_rejected_without_reading_into_ram(client):
+    owner = _register(client)
+    big = b"x" * (10 * 1024 * 1024 + 1)
+    resp = client.post(
+        "/api/reports",
+        files={"file": ("huge.pdf", big, "application/pdf")},
+        data={"report_type": "BLOOD_TEST"},
+        headers=_auth(owner["token"]),
+    )
+    assert resp.status_code == 413, resp.text
+
+    resp = client.post(
+        f"/api/documents",
+        json={"title": "doc", "document_type": "OTHER"},
+        headers=_auth(owner["token"]),
+    )
+    if resp.status_code == 200:
+        doc_id = resp.json()["id"]
+        resp = client.post(
+            f"/api/documents/{doc_id}/files",
+            files={"file": ("huge.png", big, "image/png")},
+            headers=_auth(owner["token"]),
+        )
+        assert resp.status_code == 413, resp.text
+
+
+# --- Push SSRF guard ---------------------------------------------------------
+
+def test_push_subscribe_rejects_non_https_or_non_global_endpoints(client, monkeypatch):
+    owner = _register(client)
+    monkeypatch.setattr("app.core.config.settings.vapid_public_key", "PUB", raising=False)
+    monkeypatch.setattr("app.core.config.settings.vapid_private_key", "PRIV", raising=False)
+
+    def subscribe(endpoint):
+        return client.post(
+            "/api/push/subscribe",
+            json={"endpoint": endpoint, "keys": {"p256dh": "a", "auth": "b"}},
+            headers=_auth(owner["token"]),
+        )
+
+    for bad in [
+        "http://169.254.169.254/latest/meta-data/",  # cloud metadata
+        "http://127.0.0.1:5432/x",                   # loopback
+        "http://10.0.0.5/private",                   # RFC1918
+        "https://[::1]/x",                           # IPv6 loopback
+        "http://example.com/plain-http",             # cleartext
+        "https://user:pass@example.com/x",           # credentials in URL
+    ]:
+        resp = subscribe(bad)
+        assert resp.status_code == 400, (bad, resp.text)
+
+    ok = subscribe("https://fcm.googleapis.com/fcm/send/abc")
+    assert ok.status_code == 200, ok.text
+
+
+# --- Reset email HTML escaping ------------------------------------------------
+
+def test_reset_email_escapes_user_name(client, monkeypatch):
+    import re
+
+    import app.api.auth as auth_module
+
+    owner = _register(client, name="<script>alert(1)</script>")
+
+    sent = {}
+
+    class _Sent:
+        error = None
+
+    def fake_send_email(to, subject, text, html=None):
+        sent["to"] = to
+        sent["text"] = text
+        sent["html"] = html
+        return _Sent()
+
+    monkeypatch.setattr(auth_module, "send_email", fake_send_email)
+
+    resp = client.post("/api/auth/forgot-password", json={"email": owner["email"]})
+    assert resp.status_code == 200, resp.text
+
+    match = re.search(r"token=([A-Za-z0-9_-]+)", sent.get("text", ""))
+    assert match, "reset email should contain a token link"
+
+    reset = client.post(
+        "/api/auth/reset-password",
+        json={"token": match.group(1), "new_password": "newsecret99"},
+    )
+    assert reset.status_code == 200, reset.text
+
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in sent["html"]
+    assert "<script>alert(1)</script>" not in sent["html"]

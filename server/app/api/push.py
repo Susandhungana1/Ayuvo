@@ -1,14 +1,14 @@
 """Web Push subscription management for medicine reminders."""
 
-from typing import Optional
-from zoneinfo import ZoneInfo
 import asyncio
 import hmac
+import ipaddress
+from typing import Optional
+from urllib.parse import urlparse
+from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
-
-import asyncio
 
 from app.api.auth import get_current_user
 from app.core.config import get_session, settings
@@ -17,6 +17,34 @@ from app.core.webpush import send_push
 from app.models.models import User, PushSubscription
 
 router = APIRouter()
+
+
+def _valid_push_endpoint(endpoint: str) -> bool:
+    """A push endpoint the server is willing to POST reminders to.
+
+    Browsers always register HTTPS endpoints at real push services (FCM,
+    Mozilla autopush, Apple). Anything else is a blind POST the server will
+    fire at on every reminder tick — an attacker could aim it at cloud
+    metadata, an internal service, or a victim's URL to abuse our sending
+    identity. So: https only, no credentials in the URL, no IP literals that
+    are not global, no ports beyond 443/standard https.
+    """
+    try:
+        parsed = urlparse(endpoint)
+        if parsed.scheme != "https":
+            return False
+        if parsed.username or parsed.password:
+            return False
+        host = parsed.hostname or ""
+        if not host:
+            return False
+        try:
+            ip = ipaddress.ip_address(host)
+        except ValueError:
+            return True  # a hostname; DNS rebinding is not solvable here
+        return ip.is_global
+    except Exception:
+        return False
 
 
 class SubscriptionKeys(BaseModel):
@@ -83,6 +111,12 @@ async def subscribe(
     """Register (or refresh) this device's push subscription for the user."""
     if not settings.push_enabled:
         raise HTTPException(status_code=503, detail="Push notifications are not configured")
+
+    if not _valid_push_endpoint(data.endpoint):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid push endpoint: only https push-service endpoints are accepted.",
+        )
 
     # The app sends the browser's IANA zone ("Asia/Kathmandu"); iOS can send a
     # display name ("Nepal Time") that zoneinfo cannot load. Store a canonical
@@ -180,6 +214,8 @@ async def unsubscribe(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session),
 ):
+    if not _valid_push_endpoint(data.endpoint):
+        raise HTTPException(status_code=400, detail="Invalid push endpoint")
     sub = db.exec(
         select(PushSubscription).where(PushSubscription.endpoint == data.endpoint)
     ).first()
