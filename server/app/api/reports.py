@@ -1,6 +1,7 @@
 import uuid
 import os
 import asyncio
+import json
 from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, Request
@@ -366,10 +367,26 @@ async def update_lab_values(
                     detail=f"Unit '{item.unit}' is not valid for {name}",
                 )
 
-    report.lab_overrides = {
+    # Merge into whatever is already stored: clients send only the finding
+    # they corrected, and a bare assignment would silently drop the
+    # corrections made to the other analytes earlier. A fresh dict matters —
+    # the loaded value is the exact object the attribute already holds, so
+    # mutating and re-assigning it in place is a no-op for SQLAlchemy.
+    existing = {}
+    if isinstance(report.lab_overrides, dict):
+        existing = dict(report.lab_overrides)
+    elif isinstance(report.lab_overrides, str):
+        try:
+            parsed = json.loads(report.lab_overrides)
+        except (ValueError, TypeError):
+            parsed = None
+        if isinstance(parsed, dict):
+            existing = parsed
+    existing.update({
         name: item.model_dump(exclude_none=True)
         for name, item in payload.overrides.items()
-    }
+    })
+    report.lab_overrides = existing
     db.add(report)
     db.commit()
 

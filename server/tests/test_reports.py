@@ -162,6 +162,38 @@ def test_put_lab_values_corrects_findings_and_persists(auth_client):
     assert g["status"] == "NORMAL"
 
 
+def test_put_lab_values_merges_across_calls(auth_client):
+    """Clients send only the finding they corrected. Two successive calls must
+    accumulate, not wipe the earlier correction."""
+    client, _ = auth_client
+    report_id = _upload(client).json()["id"]
+    _with_extracted_text(
+        report_id, "HEMOGLOBIN 13.5 g/dL\nPlatelet count 250 x10^9/L"
+    )
+
+    first = client.put(
+        f"/api/reports/{report_id}/lab-values",
+        json={"overrides": {"Hemoglobin": {"value": 9.5}}},
+    )
+    assert first.status_code == 200, first.text
+
+    second = client.put(
+        f"/api/reports/{report_id}/lab-values",
+        json={"overrides": {"Platelets": {"value": 600}}},
+    )
+    assert second.status_code == 200, second.text
+    assert second.json()["abnormal_count"] == 2
+
+    # Both corrections survived the second write.
+    again = client.get(f"/api/reports/{report_id}/lab-analysis")
+    hb = next(f for f in again.json()["findings"] if f["name"] == "Hemoglobin")
+    pl = next(f for f in again.json()["findings"] if f["name"] == "Platelets")
+    assert hb["value"] == 9.5
+    assert hb["status"] == "LOW"
+    assert pl["value"] == 600
+    assert pl["status"] == "HIGH"
+
+
 def test_put_lab_values_validates_analyte_and_unit(auth_client):
     client, _ = auth_client
     report_id = _upload(client).json()["id"]

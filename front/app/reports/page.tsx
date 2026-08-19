@@ -49,6 +49,7 @@ interface LabFinding {
 }
 
 interface LabAnalysis {
+  reportId: string;
   reportName: string;
   overall: string;
   abnormal_count: number;
@@ -190,7 +191,7 @@ export default function Reports() {
 
   const handleLabAnalysis = async (report: Report, retries = 3) => {
     setLabLoading(true);
-    setLabAnalysis({ reportName: report.report_type.replace('_', ' '), overall: '', abnormal_count: 0, findings: [] });
+    setLabAnalysis({ reportId: report.id, reportName: report.report_type.replace('_', ' '), overall: '', abnormal_count: 0, findings: [] });
     try {
       const token = localStorage.getItem('token');
       const res = await apiFetch(`${API_URL}/api/reports/${report.id}/lab-analysis`, {
@@ -212,7 +213,7 @@ export default function Reports() {
           await handleLabAnalysis(report, retries - 1);
           return;
         }
-        setLabAnalysis({ reportName: report.report_type.replace('_', ' '), ...data });
+        setLabAnalysis({ reportId: report.id, reportName: report.report_type.replace('_', ' '), ...data });
       }
     } catch (err) { console.error(err); }
     finally { setLabLoading(false); }
@@ -236,7 +237,7 @@ export default function Reports() {
     setEditError('');
     try {
       const token = localStorage.getItem('token');
-      const reportId = reports.find(r => r.report_type.replace('_', ' ') === labAnalysis.reportName)?.id;
+      const reportId = labAnalysis.reportId;
       if (!reportId) return;
       const res = await apiFetch(`${API_URL}/api/reports/${reportId}/lab-values`, {
         method: 'PUT',

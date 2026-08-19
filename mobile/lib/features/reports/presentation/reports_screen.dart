@@ -112,7 +112,7 @@ class _TrendCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final (tone, statusLabel) = switch (series.latestStatus.toUpperCase()) {
       'HIGH' => (RangeStatus.alert, 'High'),
-      'LOW' => (RangeStatus.alert, 'Low'),
+      'LOW' => (RangeStatus.caution, 'Low'),
       _ => (RangeStatus.ok, 'Normal'),
     };
     final direction = switch (series.direction) {

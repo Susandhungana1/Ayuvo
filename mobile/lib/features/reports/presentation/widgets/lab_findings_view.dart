@@ -191,7 +191,7 @@ class _FindingRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final (tone, direction, label) = switch (finding.status.toUpperCase()) {
       'HIGH' => (RangeStatus.alert, RangeDirection.above, 'High'),
-      'LOW' => (RangeStatus.alert, RangeDirection.below, 'Low'),
+      'LOW' => (RangeStatus.caution, RangeDirection.below, 'Low'),
       _ => (RangeStatus.ok, RangeDirection.within, 'Normal'),
     };
     final bounds = parseRangeLabel(finding.referenceRange);
