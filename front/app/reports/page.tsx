@@ -93,6 +93,7 @@ export default function Reports() {
   const [viewingReport, setViewingReport] = useState<{url: string; name: string} | null>(null);
   const [labAnalysis, setLabAnalysis] = useState<LabAnalysis | null>(null);
   const [labLoading, setLabLoading] = useState(false);
+  const [labPending, setLabPending] = useState(false);
   const [trends, setTrends] = useState<TrendSeries[]>([]);
   const [summaries, setSummaries] = useState<Record<string, ReportSummary>>({});
   const [editing, setEditing] = useState<LabFinding | null>(null);
@@ -191,6 +192,7 @@ export default function Reports() {
 
   const handleLabAnalysis = async (report: Report, retries = 3) => {
     setLabLoading(true);
+    setLabPending(report.ocr_status === 'PENDING');
     setLabAnalysis({ reportId: report.id, reportName: report.report_type.replace('_', ' '), overall: '', abnormal_count: 0, findings: [] });
     try {
       const token = localStorage.getItem('token');
@@ -250,9 +252,10 @@ export default function Reports() {
       });
       if (res.ok) {
         const data = await res.json();
-        setLabAnalysis({ reportName: labAnalysis.reportName, ...data });
+        setLabAnalysis({ reportId: labAnalysis.reportId, reportName: labAnalysis.reportName, ...data });
         setEditing(null);
         loadSummaries(reports);
+        loadTrends().then(setTrends);
       } else {
         const err = await res.json();
         setEditError(err.detail || 'Failed to save');
@@ -622,6 +625,10 @@ export default function Reports() {
                 <Skeleton className="h-12" />
                 <Skeleton className="h-12" />
               </div>
+            ) : labPending ? (
+              <p className="text-on-surface-variant text-center py-8">
+                Still reading this file — lab values will appear in a moment. Try reopening this window in a few seconds.
+              </p>
             ) : labAnalysis.findings.length === 0 ? (
               <p className="text-on-surface-variant text-center py-8">No recognizable lab values found in this report&apos;s text.</p>
             ) : (

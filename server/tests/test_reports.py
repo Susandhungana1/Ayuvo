@@ -210,6 +210,18 @@ def test_put_lab_values_validates_analyte_and_unit(auth_client):
     )
     assert bad_unit.status_code == 400
 
+    # An empty unit means "keep the OCR'd one" — a client that cleared the
+    # unit field must not be rejected, and the stored correction keeps the
+    # parsed unit.
+    _with_extracted_text(report_id, "HEMOGLOBIN 13.5 g/dL")
+    empty_unit = client.put(
+        f"/api/reports/{report_id}/lab-values",
+        json={"overrides": {"Hemoglobin": {"value": 12, "unit": ""}}},
+    )
+    assert empty_unit.status_code == 200
+    hb = next(f for f in empty_unit.json()["findings"] if f["name"] == "Hemoglobin")
+    assert hb["unit"] == "g/dL"
+
 
 def test_shared_lab_analysis_honours_corrections(auth_client):
     client, _ = auth_client

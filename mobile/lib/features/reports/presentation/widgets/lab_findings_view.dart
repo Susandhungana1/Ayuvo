@@ -327,9 +327,13 @@ class _FindingRow extends ConsumerWidget {
 
     try {
       await ref.read(reportRepositoryProvider).correctValues(reportId, {
-        finding.name: {'value': corrected.value, 'unit': corrected.unit},
+        finding.name: {
+          'value': corrected.value,
+          'unit': corrected.unit.isEmpty ? null : corrected.unit,
+        },
       });
       ref.invalidate(labAnalysisProvider(reportId));
+      ref.invalidate(reportTrendsProvider);
       messenger.showSnackBar(
         SnackBar(
           content: Text(

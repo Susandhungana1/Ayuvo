@@ -359,7 +359,7 @@ async def update_lab_values(
         spec = REFERENCE_RANGES.get(name)
         if spec is None:
             raise HTTPException(status_code=400, detail=f"Unknown analyte: {name}")
-        if item.unit is not None:
+        if item.unit:
             units = {u for u, _, _ in spec[2]}
             if item.unit not in units:
                 raise HTTPException(
