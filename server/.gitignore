@@ -3,6 +3,7 @@ node_modules
 __pycache__/
 *.pyc
 .venv/
+venv/
 *.log
 .DS_Store
 src/generated/prisma

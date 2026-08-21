@@ -20,7 +20,7 @@ const _record = {
   'user_name': 'Hari Prasad',
   'user_id': '#hos014',
   'user_blood_type': 'O+',
-  'emergency': {'blood_type': 'O+', 'allergies': null, 'medical_conditions': null, 'emergency_contacts': []},
+  'emergency': {'blood_type': 'O+', 'emergency_contacts': []},
   'reports': [],
   'medicines': [],
 };

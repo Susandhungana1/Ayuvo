@@ -23,7 +23,7 @@ class EmergencyRepository {
 
   static const _base = '/api/emergency';
 
-  /// `GET /api/emergency/profile` — the three fields and every contact.
+  /// `GET /api/emergency/profile` — blood type, name and every contact.
   Future<EmergencyProfile> profile() async {
     final json = await _client.get<Map<String, dynamic>>('$_base/profile');
     return EmergencyProfile.fromJson(json);
@@ -33,21 +33,11 @@ class EmergencyRepository {
   ///
   /// The server writes a field only `if data.x is not None`, so **null means
   /// "leave it alone" and the empty string is how you clear one**. The form
-  /// therefore always sends all three, using `''` for the ones the user
-  /// emptied — otherwise an allergy that has stopped applying can never be
-  /// removed, only added to.
-  Future<EmergencyProfile> save({
-    required String bloodType,
-    required String allergies,
-    required String medicalConditions,
-  }) async {
+  /// therefore always sends the field, using `''` for clearing.
+  Future<EmergencyProfile> save({required String bloodType}) async {
     final json = await _client.put<Map<String, dynamic>>(
       '$_base/profile',
-      body: {
-        'blood_type': bloodType,
-        'allergies': allergies,
-        'medical_conditions': medicalConditions,
-      },
+      body: {'blood_type': bloodType},
     );
     return EmergencyProfile.fromJson(json);
   }
@@ -55,18 +45,11 @@ class EmergencyRepository {
   /// `POST /api/emergency/contacts`.
   Future<EmergencyContact> addContact({
     required String name,
-    required String relationship,
     required String phone,
-    String? email,
   }) async {
     final json = await _client.post<Map<String, dynamic>>(
       '$_base/contacts',
-      body: {
-        'name': name,
-        'relationship': relationship,
-        'phone': phone,
-        'email': ?email,
-      },
+      body: {'name': name, 'phone': phone},
     );
     return EmergencyContact.fromJson(json);
   }

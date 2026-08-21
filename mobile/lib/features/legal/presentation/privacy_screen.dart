@@ -87,7 +87,7 @@ class PrivacyScreen extends StatelessWidget {
           ),
           _Section(
             title: '10. Contact Us',
-            body: 'If you have questions about this Privacy Policy, please contact us at: susandhungana20@gmail.com or visit www.quorlyn.com.np',
+            body: 'If you have questions about this Privacy Policy, please contact us at: quorlytechnologies@gmail.com or visit www.quorlyn.com.np',
           ),
         ],
       ),

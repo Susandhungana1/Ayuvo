@@ -38,7 +38,6 @@ import '../../features/sharing/presentation/shared_record_screen.dart';
 import '../../features/sharing/presentation/shared_report_screen.dart';
 import '../../features/shell/presentation/app_shell.dart';
 import '../../features/shell/presentation/more_screen.dart';
-import '../../features/timeline/presentation/timeline_screen.dart';
 import '../../features/vitals/presentation/vitals_screen.dart';
 import '../session/session_controller.dart';
 import '../session/session_state.dart';
@@ -194,10 +193,6 @@ final _routes = <RouteBase>[
               GoRoute(
                 path: 'emergency',
                 builder: (context, state) => const EmergencyScreen(),
-              ),
-              GoRoute(
-                path: 'timeline',
-                builder: (context, state) => const TimelineScreen(),
               ),
               GoRoute(
                 path: 'search',

@@ -38,7 +38,7 @@ const FAQS = [
   },
   {
     q: 'How do I delete my account and data?',
-    a: 'Contact us at susandhungana20@gmail.com and we will delete your account and associated data. You can also delete individual records, documents, and reports from within the app at any time.',
+    a: 'Contact us at quorlytechnologies@gmail.com and we will delete your account and associated data. You can also delete individual records, documents, and reports from within the app at any time.',
   },
 ];
 

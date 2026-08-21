@@ -104,7 +104,7 @@ export default function RootLayout({
                   name: "MediStore",
                   url: "https://medistore-health.vercel.app",
                   logo: "https://medistore-health.vercel.app/icon-512.png",
-                  email: "susandhungana20@gmail.com",
+                  email: "quorlytechnologies@gmail.com",
                   description: "Personal digital health store — securely manage, track, and share your medical records.",
                 },
                 {

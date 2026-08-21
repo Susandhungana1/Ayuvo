@@ -55,8 +55,6 @@ FakeApi _patientBackend() => FakeApi()
   })
   ..json('GET /api/emergency/profile', {
     'blood_type': 'AB-',
-    'allergies': 'Penicillin, sulfa drugs, latex and shellfish',
-    'medical_conditions': 'Type 2 diabetes, hypertension',
     'emergency_contacts': [emergencyContactRow()],
   })
   ..json('GET /api/appointments', {

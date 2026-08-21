@@ -14,7 +14,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medistore/core/storage/local_store.dart';
 import 'package:medistore/features/care/presentation/caretakers_screen.dart';
 import 'package:medistore/features/shell/presentation/more_screen.dart';
-import 'package:medistore/features/timeline/presentation/timeline_screen.dart';
 
 import 'support/fake_api.dart';
 import 'support/harness.dart';
@@ -86,25 +85,6 @@ FakeApi _backend() => FakeApi()
       },
     ],
   })
-  ..json('GET /api/timeline', {
-    'events': [
-      {
-        'type': 'appointment',
-        'id': 'apt-1',
-        'title': 'Appointment: Cardiology follow-up review',
-        'description': 'Dr Asha Rai at Bir Hospital - CONFIRMED',
-        'date': '2026-08-06 09:14:22',
-      },
-      {
-        'type': 'vital',
-        'id': 'vit-1',
-        'title': 'Vitals Check',
-        'description': 'BP: 120/80, HR: 72, Weight: 70kg, SpO2: 98%',
-        'date': '2026-08-06 03:15:00',
-      },
-    ],
-    'total': 2,
-  })
   ..json('GET /api/search', {
     'query': 'a',
     'results': [
@@ -131,15 +111,6 @@ Future<void> _openFromAccount(WidgetTester tester, String label) async {
 void main() {
   for (final brightness in Brightness.values) {
     final theme = brightness.name;
-
-    testWidgets('the timeline survives 2x text in $theme', (tester) async {
-      await _pumpAt(tester, _backend(), brightness: brightness);
-      await _openFromAccount(tester, 'Timeline');
-
-      // The widest row on the screen: a badge, a time, a long title and a
-      // four-part vitals description.
-      expect(find.text('Vitals Check'), findsOneWidget);
-    });
 
     testWidgets('search survives 2x text in $theme', (tester) async {
       await _pumpAt(tester, _backend(), brightness: brightness);
@@ -199,21 +170,6 @@ void main() {
       await openTab(tester, 'खाता');
 
       expect(find.text('सेटिङ'), findsOneWidget);
-    });
-
-    testWidgets('the timeline survives 2x Devanagari', (tester) async {
-      await _pumpAt(tester, _backend(), brightness: Brightness.light,
-          nepali: true);
-      await openTab(tester, 'खाता');
-      await tapAfterScroll(
-        tester,
-        find.text('समयरेखा'),
-        scrollable: scrollableIn(MoreScreen),
-      );
-
-      expect(find.byType(TimelineScreen), findsOneWidget);
-      // The badge is a translated word beside a formatted time.
-      expect(find.text('नाप'), findsOneWidget);
     });
   });
 

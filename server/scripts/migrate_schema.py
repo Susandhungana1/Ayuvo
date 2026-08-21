@@ -22,6 +22,8 @@ missing, so running it twice is harmless.
             share_links.failed_pin_attempts   (per-link PIN lockout)
     Drops: medical_reports.result_summary, medical_reports.ai_report_text
            (AI features removed; the AI text is deleted with them)
+           emergency_contacts.relationship, emergency_contacts.email
+           (emergency ID simplified: only name + phone are needed)
     Relaxes (so legacy blobs can be moved out): medical_reports.file_content and
            medical_files.content become NULLable.
     Creates: audit_logs table, and the caretaker tables — care_invites,
@@ -72,9 +74,12 @@ _ADD_INDEXES = [
 
 # AI columns removed with the feature: the AI-generated text is deleted, the
 # OCR extracted_text column stays (the offline lab parser reads it).
+# Emergency ID simplified: relationship and email never used in the UI.
 _DROP_COLUMNS = [
     ("medical_reports", "result_summary"),
     ("medical_reports", "ai_report_text"),
+    ("emergency_contacts", "relationship"),
+    ("emergency_contacts", "email"),
 ]
 
 # Legacy blob columns that must become nullable so the backfill can NULL them.

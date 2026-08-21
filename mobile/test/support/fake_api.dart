@@ -218,29 +218,23 @@ Map<String, Object?> shareLinkRow({
 }) => {'token': token, 'report_id': reportId, 'expires_at': expiresAt};
 
 Map<String, Object?> emergencyProfileRow({
+  String? name = 'Ram Shrestha',
   String? bloodType = 'O+',
-  String? allergies = 'Penicillin',
-  String? conditions = 'Type 2 diabetes',
   List<Map<String, Object?>> contacts = const [],
 }) => {
+  'name': name,
   'blood_type': bloodType,
-  'allergies': allergies,
-  'medical_conditions': conditions,
   'emergency_contacts': contacts,
 };
 
 Map<String, Object?> emergencyContactRow({
   String id = 'con-1',
   String name = 'Sita Bahadur',
-  String relationship = 'Wife',
   String phone = '+977 98 1234 5678',
-  String? email,
 }) => {
   'id': id,
   'name': name,
-  'relationship': relationship,
   'phone': phone,
-  'email': email,
 };
 
 Map<String, Object?> documentRow({

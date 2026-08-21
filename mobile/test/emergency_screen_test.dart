@@ -2,7 +2,7 @@
 ///
 /// The assertion that matters most is the one about empty strings: the server
 /// reads `null` as "leave this field as it was", so a form that sends null for
-/// a cleared box makes an allergy that no longer applies impossible to remove.
+/// a cleared box makes a value that no longer applies impossible to remove.
 library;
 
 import 'dart:convert';
@@ -34,13 +34,10 @@ Future<void> openEmergency(WidgetTester tester, FakeApi api) async {
 }
 
 void main() {
-  testWidgets('the card leads with blood type and flags allergies',
-      (tester) async {
+  testWidgets('the card shows blood type', (tester) async {
     await openEmergency(tester, backend());
 
     expect(find.text('O+'), findsOneWidget);
-    expect(find.text('Penicillin'), findsOneWidget);
-    expect(find.text('Type 2 diabetes'), findsOneWidget);
   });
 
   testWidgets('an empty profile warns the share QR would show a blank card',
@@ -48,11 +45,7 @@ void main() {
     await openEmergency(
       tester,
       backend(
-        profile: emergencyProfileRow(
-          bloodType: null,
-          allergies: null,
-          conditions: null,
-        ),
+        profile: emergencyProfileRow(bloodType: null),
       ),
     );
 
@@ -68,7 +61,6 @@ void main() {
   });
 
   testWidgets('a doctor account never reaches this screen', (tester) async {
-    // The router keeps doctors out of /more/*, so Account must not offer it.
     await pumpSignedIn(
       tester,
       FakeApi()
@@ -82,12 +74,12 @@ void main() {
     expect(find.text('Emergency ID'), findsNothing);
   });
 
-  testWidgets('clearing a field sends an empty string, never null',
+  testWidgets('clearing blood type sends an empty string, never null',
       (tester) async {
     final api = backend()
       ..json(
         'PUT /api/emergency/profile',
-        emergencyProfileRow(allergies: '', conditions: 'Type 2 diabetes'),
+        emergencyProfileRow(bloodType: ''),
       );
     await openEmergency(tester, api);
 
@@ -96,21 +88,12 @@ void main() {
       find.widgetWithText(OutlinedButton, 'Edit details'),
       scrollable: scrollableIn(EmergencyScreen),
     );
-
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Allergies'),
-      '',
-    );
-    await settle(tester);
     await tester.tap(find.widgetWithText(FilledButton, 'Save details'));
     await settle(tester);
 
     final body = jsonDecode(api.requestFor('PUT /api/emergency/profile')!.body)
         as Map<String, dynamic>;
-    // Null here would mean "leave it alone" and the allergy would survive.
-    expect(body['allergies'], '');
-    expect(body['blood_type'], 'O+');
-    expect(body['medical_conditions'], 'Type 2 diabetes');
+    expect(body['blood_type'], '');
   });
 
   testWidgets('tapping the selected blood type clears it', (tester) async {
@@ -142,7 +125,7 @@ void main() {
     );
   });
 
-  testWidgets('a contact shows relationship and number, and offers a call',
+  testWidgets('a contact shows name and number, and offers a call',
       (tester) async {
     await openEmergency(
       tester,
@@ -152,12 +135,11 @@ void main() {
     );
 
     expect(find.text('Sita Bahadur'), findsOneWidget);
-    expect(find.text('Wife · +977 98 1234 5678'), findsOneWidget);
+    expect(find.text('+977 98 1234 5678'), findsOneWidget);
     expect(find.byTooltip('Call Sita Bahadur'), findsOneWidget);
   });
 
-  testWidgets('adding a contact sends the three required fields',
-      (tester) async {
+  testWidgets('adding a contact sends the required fields', (tester) async {
     final api = backend()
       ..json('POST /api/emergency/contacts', emergencyContactRow());
     await openEmergency(tester, api);
@@ -173,10 +155,6 @@ void main() {
       'Sita Bahadur',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Relationship'),
-      'Wife',
-    );
-    await tester.enterText(
       find.widgetWithText(TextFormField, 'Phone'),
       '+977 98 1234 5678',
     );
@@ -188,9 +166,7 @@ void main() {
         jsonDecode(api.requestFor('POST /api/emergency/contacts')!.body)
             as Map<String, dynamic>;
     expect(body['name'], 'Sita Bahadur');
-    expect(body['relationship'], 'Wife');
     expect(body['phone'], '+977 98 1234 5678');
-    expect(body.containsKey('email'), isFalse);
     expect(find.text('Sita Bahadur'), findsOneWidget);
   });
 

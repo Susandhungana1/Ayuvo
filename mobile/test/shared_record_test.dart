@@ -14,11 +14,10 @@ const _wholeRecordJson = {
   'user_id': '#hos014',
   'user_blood_type': 'O+',
   'emergency': {
+    'name': 'Hari Prasad',
     'blood_type': 'O+',
-    'allergies': 'Penicillin',
-    'medical_conditions': 'Diabetes',
     'emergency_contacts': [
-      {'name': 'Sita', 'relationship': 'Wife', 'phone': '9812345678'},
+      {'name': 'Sita', 'phone': '9812345678'},
     ],
   },
   'reports': [
@@ -61,8 +60,6 @@ const _singleReportJson = {
   },
   'emergency': {
     'blood_type': 'O+',
-    'allergies': null,
-    'medical_conditions': null,
     'emergency_contacts': [],
   },
   'user_name': 'Hari Prasad',
@@ -80,8 +77,6 @@ void main() {
       expect(record.userBloodType, 'O+');
 
       expect(record.emergency.bloodType, 'O+');
-      expect(record.emergency.allergies, 'Penicillin');
-      expect(record.emergency.medicalConditions, 'Diabetes');
       expect(record.emergency.contacts.single.name, 'Sita');
       expect(record.emergency.hasAnything, isTrue);
 

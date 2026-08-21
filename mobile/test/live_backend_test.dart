@@ -36,8 +36,6 @@ import 'package:medistore/features/search/data/search_repository.dart';
 import 'package:medistore/features/search/domain/search_hit.dart';
 import 'package:medistore/features/sharing/data/share_repository.dart';
 import 'package:medistore/features/sharing/domain/share_link.dart';
-import 'package:medistore/features/timeline/data/timeline_repository.dart';
-import 'package:medistore/features/timeline/domain/timeline_event.dart';
 import 'package:medistore/features/vitals/data/vital_repository.dart';
 
 const _enabled = bool.fromEnvironment('LIVE_BACKEND');
@@ -613,33 +611,20 @@ void main() {
 
     test('emergency: null leaves a field alone, an empty string clears it',
         () async {
-      await emergency.save(
-        bloodType: 'O+',
-        allergies: 'Penicillin',
-        medicalConditions: 'Type 2 diabetes',
-      );
+      await emergency.save(bloodType: 'O+');
 
-      final cleared = await emergency.save(
-        bloodType: 'O+',
-        allergies: '',
-        medicalConditions: 'Type 2 diabetes',
-      );
-      expect(cleared.allergies, isEmpty);
-      expect(cleared.bloodType, 'O+');
+      final cleared = await emergency.save(bloodType: '');
+      expect(cleared.bloodType, isEmpty);
 
-      // The same call with nulls would have left "Penicillin" in place —
-      // proved by reading it back rather than trusting the response body.
-      expect((await emergency.profile()).allergies, isEmpty);
+      expect((await emergency.profile()).bloodType, isEmpty);
     });
 
     test('an emergency contact round-trips and can be removed', () async {
       final contact = await emergency.addContact(
         name: 'Sita Bahadur',
-        relationship: 'Wife',
         phone: '+977 98 1234 5678',
       );
       expect(contact.name, 'Sita Bahadur');
-      expect(contact.email, isNull);
 
       final withContact = await emergency.profile();
       expect(withContact.contacts.map((c) => c.id), contains(contact.id));
@@ -652,11 +637,7 @@ void main() {
         'revoked', () async {
       // The account has an emergency profile by now, so there is something to
       // share; on a genuinely empty one this route answers 400.
-      await emergency.save(
-        bloodType: 'O+',
-        allergies: '',
-        medicalConditions: '',
-      );
+      await emergency.save(bloodType: 'O+');
 
       final grant = await share.shareEverything(window: ShareWindow.hour);
       expect(grant.token, isNotEmpty);
@@ -693,7 +674,6 @@ void main() {
   group('phase 6, signed in', () {
     late ApiClient scoped;
     late MedicineRepository medicines;
-    late TimelineRepository timeline;
     late SearchRepository search;
     late CareRepository care;
     late bool caretakerEnabled;
@@ -708,7 +688,6 @@ void main() {
         );
       scoped.useToken(session.token);
       medicines = MedicineRepository(scoped);
-      timeline = TimelineRepository(scoped);
       search = SearchRepository(scoped);
       care = CareRepository(scoped);
 
@@ -720,64 +699,6 @@ void main() {
     });
 
     tearDownAll(() => scoped.close());
-
-    test('a brand-new account has an empty timeline', () async {
-      final page = await timeline.page();
-
-      expect(page.events, isEmpty);
-      expect(page.total, 0);
-    });
-
-    test('adding a medicine puts a row on the timeline', () async {
-      await medicines.create(
-        name: 'Atorvastatin',
-        dosage: '20 mg',
-        frequency: 'Once daily',
-        startDate: MediTime.dateOnly(DateTime.now()),
-        times: const ['21:00'],
-        notes: 'Live check for the timeline.',
-      );
-
-      final page = await timeline.page();
-
-      expect(page.total, 1);
-      final row = page.events.single;
-      expect(row.kind, TimelineKind.medicine);
-      // The server pre-formats the title; the app strips the prefix so the
-      // badge does not say "Medicine" twice.
-      expect(row.title, 'Medicine: Atorvastatin');
-      expect(row.headline, 'Atorvastatin');
-      // Naive UTC, and recent — a decoder that read it as local would be
-      // hours out in either direction.
-      expect(
-        DateTime.now().difference(row.when!).abs(),
-        lessThan(const Duration(minutes: 5)),
-      );
-    });
-
-    test('the page size is respected and the total is the whole record',
-        () async {
-      for (var i = 0; i < 3; i++) {
-        await medicines.create(
-          name: 'Filler $i',
-          dosage: '1 mg',
-          frequency: 'Once daily',
-          startDate: MediTime.dateOnly(DateTime.now()),
-        );
-      }
-
-      final first = await timeline.page(limit: 2);
-
-      expect(first.events, hasLength(2));
-      expect(first.total, greaterThanOrEqualTo(4));
-      expect(first.hasMore, isTrue);
-
-      final second = await timeline.page(limit: 2, offset: 2);
-      expect(
-        second.events.map((e) => e.id),
-        isNot(anyElement(isIn(first.events.map((e) => e.id)))),
-      );
-    });
 
     test('search finds a medicine by name', () async {
       final results = await search.find('atorvasta');

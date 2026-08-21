@@ -13,9 +13,8 @@ const bloodTypes = <String>['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 @freezed
 abstract class EmergencyProfile with _$EmergencyProfile {
   const factory EmergencyProfile({
+    String? name,
     @JsonKey(name: 'blood_type') String? bloodType,
-    String? allergies,
-    @JsonKey(name: 'medical_conditions') String? medicalConditions,
     @JsonKey(name: 'emergency_contacts')
     @Default(<EmergencyContact>[])
     List<EmergencyContact> contacts,
@@ -27,14 +26,11 @@ abstract class EmergencyProfile with _$EmergencyProfile {
       _$EmergencyProfileFromJson(json);
 
   bool get hasBloodType => bloodType?.trim().isNotEmpty ?? false;
-  bool get hasAllergies => allergies?.trim().isNotEmpty ?? false;
-  bool get hasConditions => medicalConditions?.trim().isNotEmpty ?? false;
 
   /// Whether the card would say anything at all. An empty emergency ID is
   /// worse than none: the all-reports share QR would promise information and
   /// deliver a blank card to whoever scans it.
-  bool get isEmpty =>
-      !hasBloodType && !hasAllergies && !hasConditions && contacts.isEmpty;
+  bool get isEmpty => !hasBloodType && contacts.isEmpty;
 }
 
 @freezed
@@ -42,11 +38,7 @@ abstract class EmergencyContact with _$EmergencyContact {
   const factory EmergencyContact({
     required String id,
     required String name,
-
-    /// Free text — "Wife", "Son", "Neighbour". Not an enum server-side.
-    required String relationship,
     required String phone,
-    String? email,
   }) = _EmergencyContact;
 
   const EmergencyContact._();

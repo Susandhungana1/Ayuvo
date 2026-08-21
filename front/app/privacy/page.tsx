@@ -115,8 +115,8 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-semibold text-[var(--color-ink)] mb-3">10. Contact Us</h2>
             <p>
               If you have questions about this Privacy Policy, please contact us at:{' '}
-              <a href="mailto:susandhungana20@gmail.com" className="text-[var(--color-primary)] hover:underline">
-                susandhungana20@gmail.com
+              <a href="mailto:quorlytechnologies@gmail.com" className="text-[var(--color-primary)] hover:underline">
+                quorlytechnologies@gmail.com
               </a>{' '}
               or visit{' '}
               <a href="https://www.quorlyn.com.np" target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] hover:underline">

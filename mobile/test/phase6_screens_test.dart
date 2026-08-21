@@ -7,7 +7,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medistore/features/care/presentation/caretakers_screen.dart';
 import 'package:medistore/features/search/presentation/search_screen.dart';
 import 'package:medistore/features/shell/presentation/more_screen.dart';
-import 'package:medistore/features/timeline/presentation/timeline_screen.dart';
 
 import 'support/fake_api.dart';
 import 'support/harness.dart';
@@ -16,21 +15,6 @@ import 'support/harness.dart';
 FakeApi backend() => FakeApi()
   ..json('GET /api/medicines', {'medicines': const []})
   ..json('GET /api/vitals', {'vitals': const []});
-
-Map<String, Object?> timelineRow({
-  String type = 'report',
-  String id = 'rep-1',
-  String title = 'Report: bloods.pdf',
-  String? description,
-  String date = '2026-08-06 09:14:22',
-}) =>
-    {
-      'type': type,
-      'id': id,
-      'title': title,
-      'description': description,
-      'date': date,
-    };
 
 Map<String, Object?> searchRow({
   String type = 'report',
@@ -89,98 +73,6 @@ Future<void> openFromAccount(
 }
 
 void main() {
-  group('timeline', () {
-    testWidgets('rows are grouped by day and stop repeating their own type',
-        (tester) async {
-      final api = backend()
-        ..json('GET /api/timeline', {
-          'events': [
-            timelineRow(title: 'Report: bloods.pdf'),
-            timelineRow(
-              type: 'medicine',
-              id: 'med-1',
-              title: 'Medicine: Amlodipine',
-              description: '5 mg - Once daily',
-            ),
-          ],
-          'total': 2,
-        });
-
-      await openFromAccount(tester, api, 'Timeline');
-
-      // The badge says the type; the title should not say it again.
-      expect(find.text('bloods.pdf'), findsOneWidget);
-      expect(find.text('Amlodipine'), findsOneWidget);
-      expect(find.text('REPORT'), findsOneWidget);
-      expect(find.text('MEDICINE'), findsOneWidget);
-      expect(api.unmatched, isEmpty);
-    });
-
-    testWidgets('an empty record explains what would fill it', (tester) async {
-      final api = backend()
-        ..json('GET /api/timeline', {'events': const [], 'total': 0});
-
-      await openFromAccount(tester, api, 'Timeline');
-
-      expect(find.text('Nothing recorded yet'), findsOneWidget);
-    });
-
-    testWidgets('the first page asks for a bounded number of rows',
-        (tester) async {
-      // The server reads every report, medicine, appointment and vital before
-      // it slices, so this is not a cheap call.
-      final api = backend()
-        ..json('GET /api/timeline', {'events': const [], 'total': 0});
-
-      await openFromAccount(tester, api, 'Timeline');
-
-      final request = api.requestFor('GET /api/timeline')!;
-      expect(request.options.uri.queryParameters['limit'], '40');
-      expect(request.options.uri.queryParameters['offset'], '0');
-    });
-
-    testWidgets('Show older asks for the next page and appends it',
-        (tester) async {
-      var page = 0;
-      final api = backend()
-        ..on('GET /api/timeline', (_) {
-          page++;
-          return {
-            'events': [
-              timelineRow(id: 'row-$page', title: 'Report: page$page.pdf'),
-            ],
-            'total': 2,
-          };
-        });
-
-      await openFromAccount(tester, api, 'Timeline');
-      await tapAfterScroll(
-        tester,
-        find.text('Show older'),
-        scrollable: scrollableIn(TimelineScreen),
-      );
-
-      expect(find.text('page1.pdf'), findsOneWidget);
-      expect(find.text('page2.pdf'), findsOneWidget);
-      expect(api.requestFor('GET /api/timeline')!.options.uri
-          .queryParameters['offset'], '1');
-    });
-
-    testWidgets('a row the server could not date is still shown',
-        (tester) async {
-      final api = backend()
-        ..json('GET /api/timeline', {
-          'events': [timelineRow(date: '')],
-          'total': 1,
-        });
-
-      await openFromAccount(tester, api, 'Timeline');
-
-      expect(find.text('Date unknown'), findsOneWidget);
-      expect(find.text('bloods.pdf'), findsOneWidget);
-    });
-  });
-
   group('search', () {
     testWidgets('an empty box explains what is searched', (tester) async {
       await openFromAccount(tester, backend(), 'Search');

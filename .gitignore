@@ -25,3 +25,10 @@ server/.env.*
 __pycache__/
 *.py[cod]
 .vercel
+
+# Dependencies
+node_modules/
+venv/
+.venv/
+server/venv/
+server/.venv/

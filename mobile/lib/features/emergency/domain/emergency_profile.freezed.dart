@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$EmergencyProfile {
 
-@JsonKey(name: 'blood_type') String? get bloodType; String? get allergies;@JsonKey(name: 'medical_conditions') String? get medicalConditions;@JsonKey(name: 'emergency_contacts') List<EmergencyContact> get contacts;
+ String? get name;@JsonKey(name: 'blood_type') String? get bloodType;@JsonKey(name: 'emergency_contacts') List<EmergencyContact> get contacts;
 /// Create a copy of EmergencyProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $EmergencyProfileCopyWith<EmergencyProfile> get copyWith => _$EmergencyProfileCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EmergencyProfile&&(identical(other.bloodType, bloodType) || other.bloodType == bloodType)&&(identical(other.allergies, allergies) || other.allergies == allergies)&&(identical(other.medicalConditions, medicalConditions) || other.medicalConditions == medicalConditions)&&const DeepCollectionEquality().equals(other.contacts, contacts));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EmergencyProfile&&(identical(other.name, name) || other.name == name)&&(identical(other.bloodType, bloodType) || other.bloodType == bloodType)&&const DeepCollectionEquality().equals(other.contacts, contacts));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,bloodType,allergies,medicalConditions,const DeepCollectionEquality().hash(contacts));
+int get hashCode => Object.hash(runtimeType,name,bloodType,const DeepCollectionEquality().hash(contacts));
 
 @override
 String toString() {
-  return 'EmergencyProfile(bloodType: $bloodType, allergies: $allergies, medicalConditions: $medicalConditions, contacts: $contacts)';
+  return 'EmergencyProfile(name: $name, bloodType: $bloodType, contacts: $contacts)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $EmergencyProfileCopyWith<$Res>  {
   factory $EmergencyProfileCopyWith(EmergencyProfile value, $Res Function(EmergencyProfile) _then) = _$EmergencyProfileCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'blood_type') String? bloodType, String? allergies,@JsonKey(name: 'medical_conditions') String? medicalConditions,@JsonKey(name: 'emergency_contacts') List<EmergencyContact> contacts
+ String? name,@JsonKey(name: 'blood_type') String? bloodType,@JsonKey(name: 'emergency_contacts') List<EmergencyContact> contacts
 });
 
 
@@ -65,11 +65,10 @@ class _$EmergencyProfileCopyWithImpl<$Res>
 
 /// Create a copy of EmergencyProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? bloodType = freezed,Object? allergies = freezed,Object? medicalConditions = freezed,Object? contacts = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? name = freezed,Object? bloodType = freezed,Object? contacts = null,}) {
   return _then(_self.copyWith(
-bloodType: freezed == bloodType ? _self.bloodType : bloodType // ignore: cast_nullable_to_non_nullable
-as String?,allergies: freezed == allergies ? _self.allergies : allergies // ignore: cast_nullable_to_non_nullable
-as String?,medicalConditions: freezed == medicalConditions ? _self.medicalConditions : medicalConditions // ignore: cast_nullable_to_non_nullable
+name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String?,bloodType: freezed == bloodType ? _self.bloodType : bloodType // ignore: cast_nullable_to_non_nullable
 as String?,contacts: null == contacts ? _self.contacts : contacts // ignore: cast_nullable_to_non_nullable
 as List<EmergencyContact>,
   ));
@@ -156,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'blood_type')  String? bloodType,  String? allergies, @JsonKey(name: 'medical_conditions')  String? medicalConditions, @JsonKey(name: 'emergency_contacts')  List<EmergencyContact> contacts)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? name, @JsonKey(name: 'blood_type')  String? bloodType, @JsonKey(name: 'emergency_contacts')  List<EmergencyContact> contacts)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EmergencyProfile() when $default != null:
-return $default(_that.bloodType,_that.allergies,_that.medicalConditions,_that.contacts);case _:
+return $default(_that.name,_that.bloodType,_that.contacts);case _:
   return orElse();
 
 }
@@ -177,10 +176,10 @@ return $default(_that.bloodType,_that.allergies,_that.medicalConditions,_that.co
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'blood_type')  String? bloodType,  String? allergies, @JsonKey(name: 'medical_conditions')  String? medicalConditions, @JsonKey(name: 'emergency_contacts')  List<EmergencyContact> contacts)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? name, @JsonKey(name: 'blood_type')  String? bloodType, @JsonKey(name: 'emergency_contacts')  List<EmergencyContact> contacts)  $default,) {final _that = this;
 switch (_that) {
 case _EmergencyProfile():
-return $default(_that.bloodType,_that.allergies,_that.medicalConditions,_that.contacts);case _:
+return $default(_that.name,_that.bloodType,_that.contacts);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -197,10 +196,10 @@ return $default(_that.bloodType,_that.allergies,_that.medicalConditions,_that.co
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'blood_type')  String? bloodType,  String? allergies, @JsonKey(name: 'medical_conditions')  String? medicalConditions, @JsonKey(name: 'emergency_contacts')  List<EmergencyContact> contacts)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? name, @JsonKey(name: 'blood_type')  String? bloodType, @JsonKey(name: 'emergency_contacts')  List<EmergencyContact> contacts)?  $default,) {final _that = this;
 switch (_that) {
 case _EmergencyProfile() when $default != null:
-return $default(_that.bloodType,_that.allergies,_that.medicalConditions,_that.contacts);case _:
+return $default(_that.name,_that.bloodType,_that.contacts);case _:
   return null;
 
 }
@@ -212,12 +211,11 @@ return $default(_that.bloodType,_that.allergies,_that.medicalConditions,_that.co
 @JsonSerializable()
 
 class _EmergencyProfile extends EmergencyProfile {
-  const _EmergencyProfile({@JsonKey(name: 'blood_type') this.bloodType, this.allergies, @JsonKey(name: 'medical_conditions') this.medicalConditions, @JsonKey(name: 'emergency_contacts') final  List<EmergencyContact> contacts = const <EmergencyContact>[]}): _contacts = contacts,super._();
+  const _EmergencyProfile({this.name, @JsonKey(name: 'blood_type') this.bloodType, @JsonKey(name: 'emergency_contacts') final  List<EmergencyContact> contacts = const <EmergencyContact>[]}): _contacts = contacts,super._();
   factory _EmergencyProfile.fromJson(Map<String, dynamic> json) => _$EmergencyProfileFromJson(json);
 
+@override final  String? name;
 @override@JsonKey(name: 'blood_type') final  String? bloodType;
-@override final  String? allergies;
-@override@JsonKey(name: 'medical_conditions') final  String? medicalConditions;
  final  List<EmergencyContact> _contacts;
 @override@JsonKey(name: 'emergency_contacts') List<EmergencyContact> get contacts {
   if (_contacts is EqualUnmodifiableListView) return _contacts;
@@ -239,16 +237,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EmergencyProfile&&(identical(other.bloodType, bloodType) || other.bloodType == bloodType)&&(identical(other.allergies, allergies) || other.allergies == allergies)&&(identical(other.medicalConditions, medicalConditions) || other.medicalConditions == medicalConditions)&&const DeepCollectionEquality().equals(other._contacts, _contacts));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EmergencyProfile&&(identical(other.name, name) || other.name == name)&&(identical(other.bloodType, bloodType) || other.bloodType == bloodType)&&const DeepCollectionEquality().equals(other._contacts, _contacts));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,bloodType,allergies,medicalConditions,const DeepCollectionEquality().hash(_contacts));
+int get hashCode => Object.hash(runtimeType,name,bloodType,const DeepCollectionEquality().hash(_contacts));
 
 @override
 String toString() {
-  return 'EmergencyProfile(bloodType: $bloodType, allergies: $allergies, medicalConditions: $medicalConditions, contacts: $contacts)';
+  return 'EmergencyProfile(name: $name, bloodType: $bloodType, contacts: $contacts)';
 }
 
 
@@ -259,7 +257,7 @@ abstract mixin class _$EmergencyProfileCopyWith<$Res> implements $EmergencyProfi
   factory _$EmergencyProfileCopyWith(_EmergencyProfile value, $Res Function(_EmergencyProfile) _then) = __$EmergencyProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'blood_type') String? bloodType, String? allergies,@JsonKey(name: 'medical_conditions') String? medicalConditions,@JsonKey(name: 'emergency_contacts') List<EmergencyContact> contacts
+ String? name,@JsonKey(name: 'blood_type') String? bloodType,@JsonKey(name: 'emergency_contacts') List<EmergencyContact> contacts
 });
 
 
@@ -276,11 +274,10 @@ class __$EmergencyProfileCopyWithImpl<$Res>
 
 /// Create a copy of EmergencyProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? bloodType = freezed,Object? allergies = freezed,Object? medicalConditions = freezed,Object? contacts = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? name = freezed,Object? bloodType = freezed,Object? contacts = null,}) {
   return _then(_EmergencyProfile(
-bloodType: freezed == bloodType ? _self.bloodType : bloodType // ignore: cast_nullable_to_non_nullable
-as String?,allergies: freezed == allergies ? _self.allergies : allergies // ignore: cast_nullable_to_non_nullable
-as String?,medicalConditions: freezed == medicalConditions ? _self.medicalConditions : medicalConditions // ignore: cast_nullable_to_non_nullable
+name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String?,bloodType: freezed == bloodType ? _self.bloodType : bloodType // ignore: cast_nullable_to_non_nullable
 as String?,contacts: null == contacts ? _self._contacts : contacts // ignore: cast_nullable_to_non_nullable
 as List<EmergencyContact>,
   ));
@@ -293,8 +290,7 @@ as List<EmergencyContact>,
 /// @nodoc
 mixin _$EmergencyContact {
 
- String get id; String get name;/// Free text — "Wife", "Son", "Neighbour". Not an enum server-side.
- String get relationship; String get phone; String? get email;
+ String get id; String get name; String get phone;
 /// Create a copy of EmergencyContact
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -307,16 +303,16 @@ $EmergencyContactCopyWith<EmergencyContact> get copyWith => _$EmergencyContactCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EmergencyContact&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.relationship, relationship) || other.relationship == relationship)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.email, email) || other.email == email));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EmergencyContact&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.phone, phone) || other.phone == phone));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,relationship,phone,email);
+int get hashCode => Object.hash(runtimeType,id,name,phone);
 
 @override
 String toString() {
-  return 'EmergencyContact(id: $id, name: $name, relationship: $relationship, phone: $phone, email: $email)';
+  return 'EmergencyContact(id: $id, name: $name, phone: $phone)';
 }
 
 
@@ -327,7 +323,7 @@ abstract mixin class $EmergencyContactCopyWith<$Res>  {
   factory $EmergencyContactCopyWith(EmergencyContact value, $Res Function(EmergencyContact) _then) = _$EmergencyContactCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String relationship, String phone, String? email
+ String id, String name, String phone
 });
 
 
@@ -344,14 +340,12 @@ class _$EmergencyContactCopyWithImpl<$Res>
 
 /// Create a copy of EmergencyContact
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? relationship = null,Object? phone = null,Object? email = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? phone = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,relationship: null == relationship ? _self.relationship : relationship // ignore: cast_nullable_to_non_nullable
 as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
-as String,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
-as String?,
+as String,
   ));
 }
 
@@ -436,10 +430,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String relationship,  String phone,  String? email)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String phone)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EmergencyContact() when $default != null:
-return $default(_that.id,_that.name,_that.relationship,_that.phone,_that.email);case _:
+return $default(_that.id,_that.name,_that.phone);case _:
   return orElse();
 
 }
@@ -457,10 +451,10 @@ return $default(_that.id,_that.name,_that.relationship,_that.phone,_that.email);
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String relationship,  String phone,  String? email)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String phone)  $default,) {final _that = this;
 switch (_that) {
 case _EmergencyContact():
-return $default(_that.id,_that.name,_that.relationship,_that.phone,_that.email);case _:
+return $default(_that.id,_that.name,_that.phone);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -477,10 +471,10 @@ return $default(_that.id,_that.name,_that.relationship,_that.phone,_that.email);
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String relationship,  String phone,  String? email)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String phone)?  $default,) {final _that = this;
 switch (_that) {
 case _EmergencyContact() when $default != null:
-return $default(_that.id,_that.name,_that.relationship,_that.phone,_that.email);case _:
+return $default(_that.id,_that.name,_that.phone);case _:
   return null;
 
 }
@@ -492,15 +486,12 @@ return $default(_that.id,_that.name,_that.relationship,_that.phone,_that.email);
 @JsonSerializable()
 
 class _EmergencyContact extends EmergencyContact {
-  const _EmergencyContact({required this.id, required this.name, required this.relationship, required this.phone, this.email}): super._();
+  const _EmergencyContact({required this.id, required this.name, required this.phone}): super._();
   factory _EmergencyContact.fromJson(Map<String, dynamic> json) => _$EmergencyContactFromJson(json);
 
 @override final  String id;
 @override final  String name;
-/// Free text — "Wife", "Son", "Neighbour". Not an enum server-side.
-@override final  String relationship;
 @override final  String phone;
-@override final  String? email;
 
 /// Create a copy of EmergencyContact
 /// with the given fields replaced by the non-null parameter values.
@@ -515,16 +506,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EmergencyContact&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.relationship, relationship) || other.relationship == relationship)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.email, email) || other.email == email));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EmergencyContact&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.phone, phone) || other.phone == phone));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,relationship,phone,email);
+int get hashCode => Object.hash(runtimeType,id,name,phone);
 
 @override
 String toString() {
-  return 'EmergencyContact(id: $id, name: $name, relationship: $relationship, phone: $phone, email: $email)';
+  return 'EmergencyContact(id: $id, name: $name, phone: $phone)';
 }
 
 
@@ -535,7 +526,7 @@ abstract mixin class _$EmergencyContactCopyWith<$Res> implements $EmergencyConta
   factory _$EmergencyContactCopyWith(_EmergencyContact value, $Res Function(_EmergencyContact) _then) = __$EmergencyContactCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String relationship, String phone, String? email
+ String id, String name, String phone
 });
 
 
@@ -552,14 +543,12 @@ class __$EmergencyContactCopyWithImpl<$Res>
 
 /// Create a copy of EmergencyContact
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? relationship = null,Object? phone = null,Object? email = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? phone = null,}) {
   return _then(_EmergencyContact(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,relationship: null == relationship ? _self.relationship : relationship // ignore: cast_nullable_to_non_nullable
 as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
-as String,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
-as String?,
+as String,
   ));
 }
 

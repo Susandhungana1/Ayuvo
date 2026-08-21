@@ -39,7 +39,7 @@ class FaqScreen extends StatelessWidget {
     ),
     (
       q: 'How do I delete my account and data?',
-      a: 'Contact us at susandhungana20@gmail.com and we will delete your account and associated data. You can also delete individual records, documents, and reports from within the app at any time.',
+      a: 'Contact us at quorlytechnologies@gmail.com and we will delete your account and associated data. You can also delete individual records, documents, and reports from within the app at any time.',
     ),
   ];
 
@@ -103,7 +103,7 @@ class FaqScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xl),
           Text(
-            'Still have questions? Write to us at susandhungana20@gmail.com',
+            'Still have questions? Write to us at quorlytechnologies@gmail.com',
             style: textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

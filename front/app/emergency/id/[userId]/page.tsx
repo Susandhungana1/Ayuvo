@@ -9,15 +9,12 @@ import { API_URL } from '@/lib/api';
 interface EmergencyContact {
   id: string;
   name: string;
-  relationship: string;
   phone: string;
-  email: string | null;
 }
 
 interface EmergencyProfile {
+  name: string | null;
   blood_type: string | null;
-  allergies: string | null;
-  medical_conditions: string | null;
   emergency_contacts: EmergencyContact[];
 }
 
@@ -29,8 +26,6 @@ export default function PublicEmergencyId() {
 
   useEffect(() => {
     if (!userId) return;
-    // Next.js decodes the route param, so userId here is the raw id (e.g.
-    // "#hos013"); re-encode it for the API path.
     fetch(`${API_URL}/api/emergency/public/${encodeURIComponent(userId)}`)
       .then(async (res) => {
         if (!res.ok) throw new Error('not found');
@@ -58,9 +53,8 @@ export default function PublicEmergencyId() {
             )}
             {status === 'ok' && profile && (
               <>
+                <Row label="Name" value={profile.name || 'Not set'} />
                 <Row label="Blood Type" value={profile.blood_type || 'Not set'} highlight />
-                <Row label="Allergies" value={profile.allergies || 'None listed'} />
-                <Row label="Conditions" value={profile.medical_conditions || 'None listed'} />
 
                 <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #fca5a5' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#b91c1c', letterSpacing: 1, marginBottom: 8 }}>
@@ -72,7 +66,7 @@ export default function PublicEmergencyId() {
                     profile.emergency_contacts.map((c) => (
                       <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0' }}>
                         <span style={{ fontSize: 13 }}>
-                          <strong>{c.name}</strong> <span style={{ opacity: 0.75 }}>({c.relationship})</span>
+                          <strong>{c.name}</strong>
                         </span>
                         <a href={`tel:${c.phone}`} style={{ fontSize: 13, fontWeight: 700, color: '#dc2626', textDecoration: 'none', whiteSpace: 'nowrap' }}>
                           {c.phone}

@@ -115,7 +115,7 @@ class _WholeRecordCardState extends ConsumerState<_WholeRecordCard> {
             // the next-of-kin phone number.
             Text(
               'One link showing every report, every medicine, and your '
-              'emergency details — blood type, allergies, conditions and your '
+              'emergency details — blood type and your '
               'contacts. Anyone with the link can read it, with no sign-in.',
               style: context.texts.bodyMedium,
             ),

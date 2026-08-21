@@ -27,35 +27,19 @@ class EmergencyController extends AsyncNotifier<EmergencyProfile> {
     state = await AsyncValue.guard(_repository.profile);
   }
 
-  /// All three fields go every time, empty string for the ones being cleared —
-  /// the server reads null as "leave it alone", so there is no other way to
-  /// remove an allergy that no longer applies.
-  Future<EmergencyProfile> save({
-    required String bloodType,
-    required String allergies,
-    required String medicalConditions,
-  }) async {
-    final saved = await _repository.save(
-      bloodType: bloodType,
-      allergies: allergies,
-      medicalConditions: medicalConditions,
-    );
+  /// Blood type goes every time, empty string for clearing — the server reads
+  /// null as "leave it alone", so there is no other way to remove a value.
+  Future<EmergencyProfile> save({required String bloodType}) async {
+    final saved = await _repository.save(bloodType: bloodType);
     state = AsyncData(saved);
     return saved;
   }
 
   Future<EmergencyContact> addContact({
     required String name,
-    required String relationship,
     required String phone,
-    String? email,
   }) async {
-    final contact = await _repository.addContact(
-      name: name,
-      relationship: relationship,
-      phone: phone,
-      email: email,
-    );
+    final contact = await _repository.addContact(name: name, phone: phone);
     final current = state.valueOrNull ?? const EmergencyProfile();
     state = AsyncData(
       current.copyWith(contacts: [...current.contacts, contact]),

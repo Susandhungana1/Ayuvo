@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { apiFetch, API_URL } from '@/lib/api';
+import { listLinks, CareLink } from '@/lib/care';
 
 
 
@@ -33,6 +34,10 @@ interface Medicine {
   start_date: string;
   end_date?: string;
   taking_times?: string;
+  /** Set when this medicine belongs to a linked patient (caretaker view). */
+  patient_name?: string;
+  /** User id of the linked patient, needed for the intake API. */
+  patient_id?: string;
 }
 
 function parseTimes(tt?: string): string[] {
@@ -129,22 +134,29 @@ function stopAlarmTone() {
   toneStop = null;
 }
 
-async function showAlarm(med: { id: string; name: string; dosage: string }, time: string, tag: string) {
+async function showAlarm(
+  med: { id: string; name: string; dosage: string; patient_name?: string; patient_id?: string },
+  time: string,
+  tag: string,
+) {
   const title = "💊 Medicine Reminder";
+  const body = med.patient_name
+    ? `${med.patient_name}: Time to take ${med.name} (${med.dosage})`
+    : `Time to take ${med.name} (${med.dosage})`;
   const options: NotificationOptions & {
     actions?: { action: string; title: string }[];
     vibrate?: number[];
     renotify?: boolean;
     requireInteraction?: boolean;
   } = {
-    body: `Time to take ${med.name} (${med.dosage})`,
+    body,
     icon: "/icon-192.png",
     badge: "/icon-192.png",
     tag,
     renotify: true,
-    requireInteraction: true, // stays on screen until the user acts
+    requireInteraction: true,
     vibrate: [400, 200, 400, 200, 400],
-    data: { medId: med.id, name: med.name, dosage: med.dosage, time },
+    data: { medId: med.id, name: med.name, dosage: med.dosage, time, patient_name: med.patient_name, patient_id: med.patient_id },
     actions: [
       { action: "taken", title: "✓ Taken" },
       { action: "snooze", title: `Snooze ${SNOOZE_MINUTES}m` },
@@ -169,11 +181,17 @@ async function showAlarm(med: { id: string; name: string; dosage: string }, time
   }
 }
 
-async function recordIntake(medId: string, time: string, status: "taken" | "snoozed") {
+async function recordIntake(
+  medId: string,
+  time: string,
+  status: "taken" | "snoozed",
+  patientId?: string,
+) {
   try {
     const token = localStorage.getItem("token");
     if (!token) return;
-    await apiFetch(`${API_URL}/api/medicines/${medId}/intake`, {
+    const qs = patientId ? `?patient_id=${encodeURIComponent(patientId)}` : "";
+    await apiFetch(`${API_URL}/api/medicines/${medId}/intake${qs}`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ scheduled_time: time, status }),
@@ -271,25 +289,58 @@ export function MedicineAlarm() {
       return;
     }
     try {
+      // Fetch the user's own medicines.
       const res = await apiFetch(`${API_URL}/api/medicines`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      let allMeds: Medicine[] = [];
       if (res.ok) {
         const data = await res.json();
-        medsRef.current = data.medicines || [];
+        allMeds = data.medicines || [];
       }
+
+      // If the user is a caretaker, also fetch linked patients' medicines so
+      // in-app alarms fire for them too.  Server Web Push already handles
+      // closed-app reminders for caretakers; this covers the open/background
+      // case where the service worker notification alone isn't enough.
+      try {
+        const links: CareLink[] = await listLinks("caretaker");
+        const patientMeds = await Promise.all(
+          links.map(async (link) => {
+            const r = await apiFetch(
+              `${API_URL}/api/medicines?patient_id=${encodeURIComponent(link.user_id)}`,
+              { headers: { Authorization: `Bearer ${token}` } },
+            );
+            if (!r.ok) return [] as Medicine[];
+            const d = await r.json();
+            return (d.medicines || []).map((m: Medicine) => ({
+              ...m,
+              patient_name: link.name,
+              patient_id: link.user_id,
+            }));
+          }),
+        );
+        for (const batch of patientMeds) allMeds.push(...batch);
+      } catch {
+        /* care feature unavailable or disabled — own medicines still work */
+      }
+
+      medsRef.current = allMeds;
     } catch {
       /* keep previous list */
     }
   }, []);
 
-  const fireAlarm = useCallback((med: Medicine, time: string, key: string) => {
-    const today = todayStr(new Date());
-    const notified = loadNotified(today);
-    notified.add(key);
-    saveNotified(today, notified);
-    showAlarm(med, time, key);
-  }, []);
+  const fireAlarm = useCallback(
+    (med: Medicine, time: string, key: string) => {
+      const today = todayStr(new Date());
+      const notified = loadNotified(today);
+      notified.add(key);
+      saveNotified(today, notified);
+      showAlarm(med, time, key);
+    },
+    [],
+  );
 
   const checkNow = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -322,12 +373,12 @@ export function MedicineAlarm() {
       if (msg.type !== "medicine-alarm-action") return;
 
       stopAlarmTone();
-      const { action, medId, time, name, dosage } = msg;
+      const { action, medId, time, name, dosage, patient_name, patient_id } = msg;
 
       if (action === "taken") {
-        recordIntake(medId, time, "taken");
+        recordIntake(medId, time, "taken", patient_id);
       } else if (action === "snooze") {
-        recordIntake(medId, time, "snoozed");
+        recordIntake(medId, time, "snoozed", patient_id);
         // Re-alarm after the snooze window (client-side; lost if app is closed).
         const timerKey = `${medId}-${time}`;
         const existing = snoozeTimers.current.get(timerKey);
@@ -335,7 +386,11 @@ export function MedicineAlarm() {
         const timer = setTimeout(
           () => {
             snoozeTimers.current.delete(timerKey);
-            showAlarm({ id: medId, name, dosage }, time, `${medId}-${time}-snooze-${Date.now()}`);
+            showAlarm(
+              { id: medId, name, dosage, patient_name, patient_id },
+              time,
+              `${medId}-${time}-snooze-${Date.now()}`,
+            );
           },
           SNOOZE_MINUTES * 60 * 1000,
         );

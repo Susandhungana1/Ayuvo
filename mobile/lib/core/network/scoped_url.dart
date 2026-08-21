@@ -10,7 +10,7 @@
 ///
 /// **Scope.** A care link grants medicines and nothing else — list, create,
 /// update, delete, restore, intake, interactions, audit. Never vitals, reports,
-/// documents, timeline, search or the AI chat. If you are reaching for
+/// documents, search or the AI chat. If you are reaching for
 /// `patientId` outside `features/medicines`, the answer is no.
 library;
 

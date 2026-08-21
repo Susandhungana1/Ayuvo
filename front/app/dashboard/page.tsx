@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   FileText, CalendarDays, Pill, Activity, FolderOpen, Share2,
-  HeartPulse, History, Users, Inbox, CalendarClock, Clock, type LucideIcon,
+  HeartPulse, Users, Inbox, CalendarClock, Clock, type LucideIcon,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { PeopleICareFor } from '@/components/people-i-care-for';
@@ -23,8 +23,7 @@ const links: DashboardLink[] = [
   { href: '/vitals', title: 'Vital Signs', desc: 'Track BP, heart rate, weight, blood sugar', icon: Activity },
   { href: '/documents', title: 'Documents', desc: 'Upload and manage medical documents', icon: FolderOpen },
   { href: '/share', title: 'Share Records', desc: 'Securely share your medical data', icon: Share2 },
-  { href: '/emergency', title: 'Emergency ID', desc: 'Blood type, allergies, emergency contacts', icon: HeartPulse },
-  { href: '/timeline', title: 'Timeline', desc: 'Chronological view of all health events', icon: History },
+  { href: '/emergency', title: 'Emergency ID', desc: 'Blood type and emergency contacts', icon: HeartPulse },
   { href: '/settings/caretakers', title: 'Caretakers', desc: 'Let someone help manage your medicines', icon: Users },
   { href: '/shared-with-me', title: 'Shared with me', desc: 'Records others shared that you saved', icon: Inbox },
 ];

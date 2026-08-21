@@ -5,7 +5,7 @@
 /// instant with no marker saying so:
 ///
 ///     "2026-08-06 09:14:22.841913"   medicines.created_at, vitals.measured_at,
-///                                    intake.recorded_at, timeline.date
+///                                    intake.recorded_at
 ///     "2026-08-07T09:14:22"          share.expires_at
 ///
 /// `DateTime.parse` reads those as **local**, which in Asia/Kathmandu is 5h45m

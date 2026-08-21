@@ -361,9 +361,7 @@ class EmergencyContact(SQLModel, table=True):
     user_id: str = Field(foreign_key="users.id", index=True)
 
     name: str
-    relationship: str
     phone: str
-    email: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

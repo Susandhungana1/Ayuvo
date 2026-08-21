@@ -45,14 +45,12 @@ const STATUS_STYLES: Record<string, string> = {
 
 interface EmergencyContact {
   name: string;
-  relationship: string;
   phone: string;
 }
 
 interface EmergencyInfo {
+  name: string | null;
   blood_type: string | null;
-  allergies: string | null;
-  medical_conditions: string | null;
   emergency_contacts: EmergencyContact[];
 }
 
@@ -177,7 +175,7 @@ export default function ViewSharedReport() {
           </div>
         </div>
 
-        {emergency && (emergency.blood_type || emergency.allergies || emergency.medical_conditions || emergency.emergency_contacts.length > 0) && (
+        {emergency && (emergency.blood_type || emergency.emergency_contacts.length > 0) && (
           <Card className="p-4 sm:p-6 mb-6 border-2 border-red-200 bg-red-50">
             <div className="flex items-center gap-2 mb-4">
               <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -192,18 +190,6 @@ export default function ViewSharedReport() {
                   <p className="text-xl font-bold text-red-800 mt-1">{emergency.blood_type}</p>
                 </div>
               )}
-              {emergency.allergies && (
-                <div className="bg-white rounded-lg p-3 border border-red-200">
-                  <p className="text-xs text-red-600 font-medium uppercase tracking-wider">Allergies</p>
-                  <p className="text-sm font-medium text-gray-800 mt-1">{emergency.allergies}</p>
-                </div>
-              )}
-              {emergency.medical_conditions && (
-                <div className="bg-white rounded-lg p-3 border border-red-200">
-                  <p className="text-xs text-red-600 font-medium uppercase tracking-wider">Medical Conditions</p>
-                  <p className="text-sm font-medium text-gray-800 mt-1">{emergency.medical_conditions}</p>
-                </div>
-              )}
             </div>
             {emergency.emergency_contacts.length > 0 && (
               <div>
@@ -211,7 +197,7 @@ export default function ViewSharedReport() {
                 <div className="space-y-2">
                   {emergency.emergency_contacts.map((c, i) => (
                     <div key={i} className="bg-white rounded-lg p-3 border border-red-200 flex justify-between items-center">
-                      <span className="font-medium text-gray-800 text-sm">{c.name} ({c.relationship})</span>
+                      <span className="font-medium text-gray-800 text-sm">{c.name}</span>
                       <span className="text-sm text-red-700 font-medium">{c.phone}</span>
                     </div>
                   ))}

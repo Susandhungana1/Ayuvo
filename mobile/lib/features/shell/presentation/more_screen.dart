@@ -40,12 +40,6 @@ class MoreScreen extends ConsumerWidget {
           subtitle: l10n.moreDocumentsBlurb,
         ),
         _Destination(
-          route: Routes.timeline,
-          icon: Icons.timeline_outlined,
-          title: l10n.navTimeline,
-          subtitle: l10n.moreTimelineBlurb,
-        ),
-        _Destination(
           route: Routes.search,
           icon: Icons.search,
           title: l10n.navSearch,

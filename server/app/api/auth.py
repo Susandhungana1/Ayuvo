@@ -403,29 +403,91 @@ async def forgot_password(
         to=user.email,
         subject="Reset your MediStore password",
         text=(
-            f"Hi {user.name},\n\n"
-            f"We received a request to reset your MediStore password. "
-            f"Open the link below to choose a new one (valid for {minutes} minutes):\n\n"
-            f"{reset_link}\n\n"
-            f"If the link doesn't work, open {reset_page} and paste this code:\n\n"
-            f"{raw_token}\n\n"
-            f"If you didn't request this, you can safely ignore this email — "
-            f"your password will stay unchanged.\n"
+            f"Hi {user.name},\n"
+            f"\n"
+            f"We received a request to reset the password for your MediStore account.\n"
+            f"Click the link below to choose a new password. This link is valid for\n"
+            f"{minutes} minutes.\n"
+            f"\n"
+            f"  {reset_link}\n"
+            f"\n"
+            f"If the button above doesn't work, copy and paste the link into your\n"
+            f"browser's address bar.\n"
+            f"\n"
+            f"Alternatively, open the reset page and paste this code:\n"
+            f"\n"
+            f"  Reset page:  {reset_page}\n"
+            f"\n"
+            f"{raw_token}\n"
+            f"\n"
+            f"If you didn't request a password reset, you can safely ignore this\n"
+            f"email. Your password will remain unchanged.\n"
+            f"\n"
+            f"--\n"
+            f"MediStore  |  Your Digital Health Store\n"
         ),
         html=(
-            f"<p>Hi {name_html},</p>"
-            f"<p>We received a request to reset your MediStore password. "
-            f"Click the button below to choose a new one (valid for {minutes} minutes):</p>"
-            f'<p><a href="{reset_link}" style="display:inline-block;padding:10px 20px;'
-            f'background:#2563eb;color:#fff;border-radius:8px;text-decoration:none">'
-            f"Reset password</a></p>"
-            f"<p>Or copy this link into your browser:<br>{reset_link}</p>"
-            f'<p>If the link doesn\'t work, open <a href="{reset_page}">{reset_page}</a> '
-            f"and paste this code:</p>"
-            f'<p style="font-family:monospace;background:#f3f4f6;padding:10px 14px;'
-            f'border-radius:6px;word-break:break-all">{raw_token}</p>'
-            f"<p>If you didn't request this, you can safely ignore this email — "
-            f"your password will stay unchanged.</p>"
+            f"<!DOCTYPE html>"
+            f"<html><head><meta charset=\"utf-8\"></head>"
+            f"<body style=\"margin:0;padding:0;background:#f4f6f8;font-family:Arial,Helvetica,sans-serif;\">"
+            f"<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f4f6f8;padding:40px 0;\">"
+            f"<tr><td align=\"center\">"
+            f"<table width=\"480\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#ffffff;"
+            f"border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);\">"
+            # Header
+            f"<tr><td style=\"background:#1a56db;padding:28px 32px;text-align:center;\">"
+            f"<h1 style=\"margin:0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:0.5px;\">"
+            f"MediStore</h1>"
+            f"<p style=\"margin:6px 0 0;color:#bfdbfe;font-size:13px;\">Your Digital Health Store</p>"
+            f"</td></tr>"
+            # Body
+            f"<tr><td style=\"padding:36px 32px 24px;\">"
+            f"<p style=\"margin:0 0 20px;color:#1f2937;font-size:16px;\">Hi {name_html},</p>"
+            f"<p style=\"margin:0 0 20px;color:#4b5563;font-size:15px;line-height:1.6;\">"
+            f"We received a request to reset the password for your MediStore account. "
+            f"Click the button below to choose a new password.</p>"
+            # Button
+            f'<table cellpadding="0" cellspacing="0" style="margin:0 0 28px;"><tr>'
+            f'<td><a href="{reset_link}" style="display:inline-block;padding:14px 32px;'
+            f"background:#1a56db;color:#ffffff;font-size:15px;font-weight:600;"
+            f'text-decoration:none;border-radius:8px;">Reset Password</a></td>'
+            f"</tr></table>"
+            # Expiry note
+            f'<p style="margin:0 0 24px;color:#6b7280;font-size:13px;">'
+            f"This link expires in <strong>{minutes} minutes</strong>.</p>"
+            # Divider
+            f'<table width="100%" cellpadding="0" cellspacing="0">'
+            f'<tr><td style="border-top:1px solid #e5e7eb;"></td></tr></table>'
+            # Fallback section
+            f'<p style="margin:24px 0 12px;color:#4b5563;font-size:14px;line-height:1.6;">'
+            f"If the button doesn't work, copy and paste this link into your browser:</p>"
+            f'<p style="margin:0 0 20px;padding:10px 14px;background:#f9fafb;border:1px solid #e5e7eb;'
+            f'border-radius:6px;word-break:break-all;font-family:monospace;font-size:13px;color:#374151;">'
+            f"{reset_link}</p>"
+            # Code section
+            f'<p style="margin:0 0 8px;color:#4b5563;font-size:14px;line-height:1.6;">'
+            f"Or open the reset page and paste this code:</p>"
+            f'<table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">'
+            f'<tr><td style="padding:8px 14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;'
+            f'font-family:monospace;font-size:13px;color:#374151;word-break:break-all;">'
+            f"{raw_token}</td></tr></table>"
+            # Divider
+            f'<table width="100%" cellpadding="0" cellspacing="0">'
+            f'<tr><td style="border-top:1px solid #e5e7eb;"></td></tr></table>'
+            # Ignore notice
+            f'<p style="margin:24px 0 0;color:#6b7280;font-size:13px;line-height:1.5;">'
+            f"If you didn't request a password reset, you can safely ignore this email. "
+            f"Your password will remain unchanged.</p>"
+            f"</td></tr>"
+            # Footer
+            f'<tr><td style="background:#f9fafb;padding:20px 32px;text-align:center;'
+            f'border-top:1px solid #e5e7eb;">'
+            f'<p style="margin:0;color:#9ca3af;font-size:12px;">'
+            f"MediStore &mdash; Your Digital Health Store</p>"
+            f"</td></tr>"
+            f"</table>"
+            f"</td></tr></table>"
+            f"</body></html>"
         ),
     )
     if not sent:

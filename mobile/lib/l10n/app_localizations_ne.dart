@@ -42,9 +42,6 @@ class AppL10nNe extends AppL10n {
   String get navEmergency => 'आपतकालीन आईडी';
 
   @override
-  String get navTimeline => 'समयरेखा';
-
-  @override
   String get navSearch => 'खोज';
 
   @override
@@ -71,12 +68,7 @@ class AppL10nNe extends AppL10n {
       'खाता नबनाई डाक्टरले तपाईंको रेकर्ड हेर्न सक्ने लिंक';
 
   @override
-  String get moreEmergencyBlurb =>
-      'रगतको समूह, एलर्जी र कसलाई फोन गर्ने — QR भित्र';
-
-  @override
-  String get moreTimelineBlurb =>
-      'तपाईंले राख्नुभएको सबै कुरा, नयाँदेखि क्रमैसँग';
+  String get moreEmergencyBlurb => 'रगतको समूह र कसलाई फोन गर्ने — QR भित्र';
 
   @override
   String get moreSearchBlurb => 'रिपोर्ट, औषधि वा भ्रमण नामबाट खोज्नुहोस्';
@@ -216,48 +208,6 @@ class AppL10nNe extends AppL10n {
   @override
   String get settingsRemindersTestFailed =>
       'परीक्षण सम्झना मिलाउन सकिएन। MediStore का लागि सूचना अनुमति जाँच गर्नुहोस्।';
-
-  @override
-  String get timelineTitle => 'समयरेखा';
-
-  @override
-  String get timelineSubtitle => 'तपाईंको रेकर्डको सबै कुरा, नयाँदेखि क्रमैसँग';
-
-  @override
-  String get timelineEmptyTitle => 'अहिलेसम्म केही छैन';
-
-  @override
-  String get timelineEmptyBody =>
-      'रिपोर्ट राख्नुहोस्, औषधि थप्नुहोस् वा नाप लिनुहोस् — यहाँ क्रमैसँग देखिन्छ।';
-
-  @override
-  String timelineEventCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count वटा',
-      one: '१ वटा',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get timelineLoadMore => 'पुराना हेर्नुहोस्';
-
-  @override
-  String get timelineAllLoaded => 'यत्ति नै हो — पूरै रेकर्ड।';
-
-  @override
-  String get timelineTypeReport => 'रिपोर्ट';
-
-  @override
-  String get timelineTypeMedicine => 'औषधि';
-
-  @override
-  String get timelineTypeAppointment => 'अपोइन्टमेन्ट';
-
-  @override
-  String get timelineTypeVital => 'नाप';
 
   @override
   String get searchTitle => 'खोज';

@@ -13,22 +13,18 @@ import '../../../core/time/medi_time.dart';
 class SharedEmergencyContact {
   const SharedEmergencyContact({
     required this.name,
-    required this.relationship,
     required this.phone,
   });
 
   final String name;
-  final String relationship;
   final String phone;
 }
 
-/// The emergency card of a shared record: blood type, allergies, conditions,
-/// and who to call.
+/// The emergency card of a shared record: blood type and who to call.
 class SharedEmergency {
   const SharedEmergency({
+    this.name,
     this.bloodType,
-    this.allergies,
-    this.medicalConditions,
     this.contacts = const [],
   });
 
@@ -36,31 +32,25 @@ class SharedEmergency {
     final contactsJson =
         json['emergency_contacts'] as List<dynamic>? ?? const [];
     return SharedEmergency(
+      name: json['name'] as String?,
       bloodType: json['blood_type'] as String?,
-      allergies: json['allergies'] as String?,
-      medicalConditions: json['medical_conditions'] as String?,
       contacts: [
         for (final c in contactsJson)
           if (c is Map)
             SharedEmergencyContact(
               name: (c['name'] as String?) ?? '',
-              relationship: (c['relationship'] as String?) ?? '',
               phone: (c['phone'] as String?) ?? '',
             ),
       ],
     );
   }
 
+  final String? name;
   final String? bloodType;
-  final String? allergies;
-  final String? medicalConditions;
   final List<SharedEmergencyContact> contacts;
 
   bool get hasAnything =>
-      (bloodType?.trim().isNotEmpty ?? false) ||
-      (allergies?.trim().isNotEmpty ?? false) ||
-      (medicalConditions?.trim().isNotEmpty ?? false) ||
-      contacts.isNotEmpty;
+      (bloodType?.trim().isNotEmpty ?? false) || contacts.isNotEmpty;
 }
 
 /// One report row inside a shared record.

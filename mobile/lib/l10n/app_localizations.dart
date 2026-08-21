@@ -163,12 +163,6 @@ abstract class AppL10n {
   /// **'Emergency ID'**
   String get navEmergency;
 
-  /// No description provided for @navTimeline.
-  ///
-  /// In en, this message translates to:
-  /// **'Timeline'**
-  String get navTimeline;
-
   /// No description provided for @navSearch.
   ///
   /// In en, this message translates to:
@@ -220,14 +214,8 @@ abstract class AppL10n {
   /// No description provided for @moreEmergencyBlurb.
   ///
   /// In en, this message translates to:
-  /// **'Blood type, allergies and who to call, behind a QR'**
+  /// **'Blood type and who to call, behind a QR'**
   String get moreEmergencyBlurb;
-
-  /// No description provided for @moreTimelineBlurb.
-  ///
-  /// In en, this message translates to:
-  /// **'Everything you have recorded, newest first'**
-  String get moreTimelineBlurb;
 
   /// No description provided for @moreSearchBlurb.
   ///
@@ -468,72 +456,6 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Could not schedule a test reminder. Check that notifications are allowed for MediStore.'**
   String get settingsRemindersTestFailed;
-
-  /// No description provided for @timelineTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Timeline'**
-  String get timelineTitle;
-
-  /// No description provided for @timelineSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Everything on your record, newest first'**
-  String get timelineSubtitle;
-
-  /// No description provided for @timelineEmptyTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Nothing recorded yet'**
-  String get timelineEmptyTitle;
-
-  /// No description provided for @timelineEmptyBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Upload a report, add a medicine or take a reading, and it shows up here in order.'**
-  String get timelineEmptyBody;
-
-  /// No description provided for @timelineEventCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 entry} other{{count} entries}}'**
-  String timelineEventCount(int count);
-
-  /// No description provided for @timelineLoadMore.
-  ///
-  /// In en, this message translates to:
-  /// **'Show older'**
-  String get timelineLoadMore;
-
-  /// No description provided for @timelineAllLoaded.
-  ///
-  /// In en, this message translates to:
-  /// **'That is the whole record.'**
-  String get timelineAllLoaded;
-
-  /// No description provided for @timelineTypeReport.
-  ///
-  /// In en, this message translates to:
-  /// **'Report'**
-  String get timelineTypeReport;
-
-  /// No description provided for @timelineTypeMedicine.
-  ///
-  /// In en, this message translates to:
-  /// **'Medicine'**
-  String get timelineTypeMedicine;
-
-  /// No description provided for @timelineTypeAppointment.
-  ///
-  /// In en, this message translates to:
-  /// **'Appointment'**
-  String get timelineTypeAppointment;
-
-  /// No description provided for @timelineTypeVital.
-  ///
-  /// In en, this message translates to:
-  /// **'Reading'**
-  String get timelineTypeVital;
 
   /// No description provided for @searchTitle.
   ///

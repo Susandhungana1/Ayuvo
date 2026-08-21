@@ -1,8 +1,8 @@
 /// The card someone reads when you cannot answer them.
 ///
 /// Written for the reader, not the owner: blood type first and largest, then
-/// allergies, then conditions, then who to phone. These details also ride
-/// along with the all-reports share QR on the web app.
+/// who to phone. These details also ride along with the all-reports share QR
+/// on the web app.
 library;
 
 import 'package:flutter/material.dart';
@@ -138,56 +138,10 @@ class _Card extends StatelessWidget {
                 profile.bloodType!.trim(),
                 style: context.numerals.numericLarge,
               ),
-              const SizedBox(height: AppSpacing.md),
             ],
-            if (profile.hasAllergies) ...[
-              _Block(
-                label: 'Allergies',
-                value: profile.allergies!.trim(),
-                emphasise: true,
-              ),
-              const SizedBox(height: AppSpacing.md),
-            ],
-            if (profile.hasConditions)
-              _Block(
-                label: 'Conditions',
-                value: profile.medicalConditions!.trim(),
-              ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _Block extends StatelessWidget {
-  const _Block({
-    required this.label,
-    required this.value,
-    this.emphasise = false,
-  });
-
-  final String label;
-  final String value;
-
-  /// Allergies get the error colour. It is the one field on this card where
-  /// missing it does immediate harm, and a chip would make it look optional.
-  final bool emphasise;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: context.texts.bodySmall),
-        Text(
-          value,
-          style: context.texts.bodyLarge?.copyWith(
-            color: emphasise ? context.colors.error : null,
-            fontWeight: emphasise ? FontWeight.w600 : null,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -201,7 +155,7 @@ class _ContactRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
       title: Text(contact.name),
-      subtitle: Text('${contact.relationship} · ${contact.phone}'),
+      subtitle: Text(contact.phone),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -222,8 +176,6 @@ class _ContactRow extends ConsumerWidget {
 
   Future<void> _call(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
-    // Strip the spaces and dashes people type; `tel:` wants digits, `+` and
-    // nothing else.
     final digits = contact.phone.replaceAll(RegExp(r'[^\d+]'), '');
     final launched = digits.isEmpty
         ? false
@@ -291,8 +243,6 @@ class _DetailsSheet extends ConsumerStatefulWidget {
 }
 
 class _DetailsSheetState extends ConsumerState<_DetailsSheet> {
-  late final TextEditingController _allergies;
-  late final TextEditingController _conditions;
   String? _bloodType;
 
   bool _busy = false;
@@ -301,18 +251,8 @@ class _DetailsSheetState extends ConsumerState<_DetailsSheet> {
   @override
   void initState() {
     super.initState();
-    _allergies = TextEditingController(text: widget.profile.allergies ?? '');
-    _conditions =
-        TextEditingController(text: widget.profile.medicalConditions ?? '');
     final blood = widget.profile.bloodType?.trim();
     _bloodType = (blood?.isNotEmpty ?? false) ? blood : null;
-  }
-
-  @override
-  void dispose() {
-    _allergies.dispose();
-    _conditions.dispose();
-    super.dispose();
   }
 
   Future<void> _save() async {
@@ -322,12 +262,8 @@ class _DetailsSheetState extends ConsumerState<_DetailsSheet> {
     });
 
     try {
-      // Empty strings, never nulls: the server reads null as "leave it as it
-      // was", so a null here would make clearing a field impossible.
       await ref.read(emergencyProfileProvider.notifier).save(
             bloodType: _bloodType ?? '',
-            allergies: _allergies.text.trim(),
-            medicalConditions: _conditions.text.trim(),
           );
       if (mounted) Navigator.of(context).pop();
     } catch (error) {
@@ -363,37 +299,11 @@ class _DetailsSheetState extends ConsumerState<_DetailsSheet> {
                 ChoiceChip(
                   label: Text(type),
                   selected: type == _bloodType,
-                  // Tapping the selected one clears it — the alternative is a
-                  // ninth "don't know" chip that means the same thing.
                   onSelected: (selected) => setState(
                     () => _bloodType = selected ? type : null,
                   ),
                 ),
             ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TextFormField(
-            controller: _allergies,
-            textCapitalization: TextCapitalization.sentences,
-            minLines: 2,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: 'Allergies',
-              hintText: 'Penicillin, peanuts, latex',
-              alignLabelWithHint: true,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          TextFormField(
-            controller: _conditions,
-            textCapitalization: TextCapitalization.sentences,
-            minLines: 2,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: 'Conditions',
-              hintText: 'Type 1 diabetes, epilepsy',
-              alignLabelWithHint: true,
-            ),
           ),
         ],
       ),
@@ -418,9 +328,7 @@ class _ContactSheet extends ConsumerStatefulWidget {
 class _ContactSheetState extends ConsumerState<_ContactSheet> {
   final _form = GlobalKey<FormState>();
   final _name = TextEditingController();
-  final _relationship = TextEditingController();
   final _phone = TextEditingController();
-  final _email = TextEditingController();
 
   bool _busy = false;
   Object? _error;
@@ -428,9 +336,7 @@ class _ContactSheetState extends ConsumerState<_ContactSheet> {
   @override
   void dispose() {
     _name.dispose();
-    _relationship.dispose();
     _phone.dispose();
-    _email.dispose();
     super.dispose();
   }
 
@@ -444,9 +350,7 @@ class _ContactSheetState extends ConsumerState<_ContactSheet> {
     try {
       await ref.read(emergencyProfileProvider.notifier).addContact(
             name: _name.text.trim(),
-            relationship: _relationship.text.trim(),
             phone: _phone.text.trim(),
-            email: _email.text.trim().isEmpty ? null : _email.text.trim(),
           );
       if (mounted) Navigator.of(context).pop();
     } catch (error) {
@@ -483,31 +387,12 @@ class _ContactSheetState extends ConsumerState<_ContactSheet> {
             ),
             const SizedBox(height: AppSpacing.md),
             TextFormField(
-              controller: _relationship,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Relationship',
-                hintText: 'Wife, son, neighbour',
-              ),
-              validator: (value) => (value == null || value.trim().isEmpty)
-                  ? 'It tells whoever calls how to explain themselves.'
-                  : null,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextFormField(
               controller: _phone,
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(labelText: 'Phone'),
               validator: (value) => (value == null || value.trim().isEmpty)
                   ? 'A contact without a number cannot be reached.'
                   : null,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextFormField(
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
-              decoration:
-                  const InputDecoration(labelText: 'Email (optional)'),
             ),
           ],
         ),

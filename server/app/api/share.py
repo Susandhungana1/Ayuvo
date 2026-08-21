@@ -79,14 +79,12 @@ class MedicineShareResponse(BaseModel):
 
 class EmergencyContactShare(BaseModel):
     name: str
-    relationship: str
     phone: str
 
 
 class EmergencyShareResponse(BaseModel):
+    name: Optional[str] = None
     blood_type: Optional[str] = None
-    allergies: Optional[str] = None
-    medical_conditions: Optional[str] = None
     emergency_contacts: List[EmergencyContactShare] = []
 
 
@@ -149,7 +147,7 @@ async def create_all_reports_share_link(
         select(EmergencyContact).where(EmergencyContact.user_id == current_user.id)
     ).all()
 
-    if not reports and not medicines and not emergency_contacts and not current_user.blood_type and not current_user.allergies and not current_user.medical_conditions:
+    if not reports and not medicines and not emergency_contacts and not current_user.blood_type:
         raise HTTPException(status_code=400, detail="Nothing to share")
 
     token = secrets.token_urlsafe(32)
@@ -295,11 +293,10 @@ def _get_emergency_info(user: User, db: Session) -> EmergencyShareResponse:
         select(EmergencyContact).where(EmergencyContact.user_id == user.id)
     ).all()
     return EmergencyShareResponse(
+        name=user.name,
         blood_type=user.blood_type,
-        allergies=user.allergies,
-        medical_conditions=user.medical_conditions,
         emergency_contacts=[
-            EmergencyContactShare(name=c.name, relationship=c.relationship, phone=c.phone)
+            EmergencyContactShare(name=c.name, phone=c.phone)
             for c in contacts
         ],
     )

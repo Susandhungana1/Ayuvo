@@ -30,10 +30,8 @@ const _wholeRecordJson = {
   'user_name': 'Hari Prasad',
   'emergency': {
     'blood_type': 'O+',
-    'allergies': null,
-    'medical_conditions': null,
     'emergency_contacts': [
-      {'name': 'Sita', 'relationship': 'Wife', 'phone': '9812345678'},
+      {'name': 'Sita', 'phone': '9812345678'},
     ],
   },
   'reports': [
@@ -117,8 +115,6 @@ void main() {
         },
         'emergency': {
           'blood_type': 'O+',
-          'allergies': null,
-          'medical_conditions': null,
           'emergency_contacts': [],
         },
         'user_name': 'Hari Prasad',

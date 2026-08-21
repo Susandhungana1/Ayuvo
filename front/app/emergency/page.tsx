@@ -14,15 +14,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 interface EmergencyContact {
   id: string;
   name: string;
-  relationship: string;
   phone: string;
-  email: string | null;
 }
 
 interface EmergencyProfile {
+  name: string | null;
   blood_type: string | null;
-  allergies: string | null;
-  medical_conditions: string | null;
   emergency_contacts: EmergencyContact[];
 }
 
@@ -43,8 +40,8 @@ export default function Emergency() {
   const [profile, setProfile] = useState<EmergencyProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [showContactForm, setShowContactForm] = useState(false);
-  const [contactForm, setContactForm] = useState({ name: '', relationship: '', phone: '', email: '' });
-  const [profileForm, setProfileForm] = useState({ blood_type: '', allergies: '', medical_conditions: '' });
+  const [contactForm, setContactForm] = useState({ name: '', phone: '' });
+  const [profileForm, setProfileForm] = useState({ blood_type: '' });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -57,8 +54,6 @@ export default function Emergency() {
           setProfile(data);
           setProfileForm({
             blood_type: data.blood_type || '',
-            allergies: data.allergies || '',
-            medical_conditions: data.medical_conditions || '',
           });
         }
       } catch (err) { console.error(err);
@@ -79,8 +74,6 @@ export default function Emergency() {
         },
         body: JSON.stringify({
           blood_type: profileForm.blood_type || null,
-          allergies: profileForm.allergies || null,
-          medical_conditions: profileForm.medical_conditions || null,
         })
       });
       if (res.ok) {
@@ -111,7 +104,7 @@ export default function Emergency() {
       if (res.ok) {
         setProfile(await fetchProfile());
         setShowContactForm(false);
-        setContactForm({ name: '', relationship: '', phone: '', email: '' });
+        setContactForm({ name: '', phone: '' });
       } else {
         const err = await res.json();
         alert(err.detail || 'Failed to add contact');
@@ -139,12 +132,13 @@ export default function Emergency() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Skeleton className="h-9 w-72 mb-lg" />
           <Skeleton className="h-56 mb-lg" />
-          <Skeleton className="h-40 mb-lg" />
           <Skeleton className="h-40" />
         </div>
       </div>
     );
   }
+
+  const displayName = profile?.name || 'Your Name';
 
   return (
     <div className="min-h-screen bg-surface">
@@ -154,32 +148,23 @@ export default function Emergency() {
         </div>
 
         <Card className="mb-lg">
-          <h2 className="text-lg sm:text-xl font-display font-semibold text-on-surface mb-lg">Medical Information</h2>
+          <h2 className="text-lg sm:text-xl font-display font-semibold text-on-surface mb-lg">Blood Type</h2>
           <form onSubmit={handleSaveProfile} className="space-y-lg">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-lg">
-              <div>
-                <label className="text-sm font-semibold text-on-surface block mb-xs">Blood Type</label>
-                <select value={profileForm.blood_type} onChange={e => setProfileForm({ ...profileForm, blood_type: e.target.value })}
-                  className={SELECT_CLASS}>
-                  <option value="">Select</option>
-                  <option value="A+">A+</option>
-                  <option value="A-">A-</option>
-                  <option value="B+">B+</option>
-                  <option value="B-">B-</option>
-                  <option value="AB+">AB+</option>
-                  <option value="AB-">AB-</option>
-                  <option value="O+">O+</option>
-                  <option value="O-">O-</option>
-                </select>
-              </div>
-              <Input label="Allergies" name="allergies" value={profileForm.allergies}
-                onChange={e => setProfileForm({ ...profileForm, allergies: e.target.value })}
-                placeholder="e.g., Peanuts, Penicillin" />
-              <Input label="Medical Conditions" name="conditions" value={profileForm.medical_conditions}
-                onChange={e => setProfileForm({ ...profileForm, medical_conditions: e.target.value })}
-                placeholder="e.g., Asthma, Diabetes" />
+            <div className="max-w-xs">
+              <select value={profileForm.blood_type} onChange={e => setProfileForm({ ...profileForm, blood_type: e.target.value })}
+                className={SELECT_CLASS}>
+                <option value="">Select</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+              </select>
             </div>
-            <Button type="submit">Save Medical Info</Button>
+            <Button type="submit">Save</Button>
           </form>
         </Card>
 
@@ -201,13 +186,8 @@ export default function Emergency() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
                 <Input label="Full Name" name="name" value={contactForm.name}
                   onChange={e => setContactForm({ ...contactForm, name: e.target.value })} required />
-                <Input label="Relationship" name="rel" value={contactForm.relationship}
-                  onChange={e => setContactForm({ ...contactForm, relationship: e.target.value })} required
-                  placeholder="Spouse, Parent, Sibling" />
                 <Input label="Phone Number" name="phone" value={contactForm.phone}
                   onChange={e => setContactForm({ ...contactForm, phone: e.target.value })} required />
-                <Input label="Email (optional)" name="email" type="email" value={contactForm.email}
-                  onChange={e => setContactForm({ ...contactForm, email: e.target.value })} />
               </div>
               <Button type="submit">Add Contact</Button>
             </form>
@@ -221,8 +201,7 @@ export default function Emergency() {
                 <div key={c.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-sm p-lg bg-outline/10 rounded-md">
                   <div className="min-w-0">
                     <p className="font-medium text-on-surface truncate">{c.name}</p>
-                    <p className="text-sm text-on-surface-variant truncate">{c.relationship} | {c.phone}</p>
-                    {c.email && <p className="text-sm text-on-surface-variant truncate">{c.email}</p>}
+                    <p className="text-sm text-on-surface-variant truncate">{c.phone}</p>
                   </div>
                   <button onClick={() => handleDeleteContact(c.id)} className="text-alert text-sm hover:underline self-start sm:self-auto">Remove</button>
                 </div>
@@ -233,10 +212,6 @@ export default function Emergency() {
 
         <Card className="mb-lg">
           <h2 className="text-lg sm:text-xl font-display font-semibold text-on-surface mb-lg">Preview - Emergency ID Card</h2>
-          {/* Emergency ID is a mock printed card: keep it a fixed high-contrast
-              light-red card with dark-red text in BOTH light and dark themes.
-              Colors are inline so they never depend on inherited theme tokens
-              or the global .dark utility overrides. */}
           <div className="p-lg sm:p-xl rounded-md max-w-md mx-auto" style={{ backgroundColor: '#fef2f2', border: '2px solid #fca5a5', color: '#7f1d1d' }}>
             <div className="text-center mb-lg">
               <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-xs" style={{ backgroundColor: '#fee2e2' }}>
@@ -245,25 +220,23 @@ export default function Emergency() {
                 </svg>
               </div>
               <h3 className="text-lg font-bold" style={{ color: '#991b1b' }}>EMERGENCY MEDICAL ID</h3>
+              <p className="text-sm font-semibold mt-xs" style={{ color: '#991b1b' }}>{displayName}</p>
             </div>
             <div className="space-y-sm text-sm" style={{ color: '#7f1d1d' }}>
               <div className="flex justify-between"><span className="font-medium">Blood Type:</span> <span className="font-bold" style={{ color: '#b91c1c' }}>{profileForm.blood_type || 'Not set'}</span></div>
-              <div className="flex justify-between"><span className="font-medium">Allergies:</span> <span>{profileForm.allergies || 'None listed'}</span></div>
-              <div className="flex justify-between"><span className="font-medium">Conditions:</span> <span>{profileForm.medical_conditions || 'None listed'}</span></div>
             </div>
             {profile && profile.emergency_contacts.length > 0 && (
               <div className="mt-lg pt-lg" style={{ borderTop: '1px solid #fca5a5' }}>
                 <p className="text-xs font-medium mb-sm" style={{ color: '#b91c1c' }}>EMERGENCY CONTACTS</p>
                 {profile.emergency_contacts.map(c => (
-                  <p key={c.id} className="text-xs" style={{ color: '#7f1d1d' }}>{c.name} ({c.relationship}): {c.phone}</p>
+                  <p key={c.id} className="text-xs" style={{ color: '#7f1d1d' }}>{c.name}: {c.phone}</p>
                 ))}
               </div>
             )}
           </div>
           <p className="text-xs text-on-surface-variant text-center mt-lg">
-            These details (blood type, allergies, conditions and your contacts)
-            ride along with your all-reports QR — generate it under Share
-            Records and anyone who scans it sees them.
+            These details ride along with your all-reports QR — generate it
+            under Share Records and anyone who scans it sees them.
           </p>
         </Card>
       </div>

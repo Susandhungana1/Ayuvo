@@ -14,25 +14,20 @@ router = APIRouter()
 
 
 class EmergencyProfileResponse(BaseModel):
+    name: Optional[str] = None
     blood_type: Optional[str]
-    allergies: Optional[str]
-    medical_conditions: Optional[str]
     emergency_contacts: List["EmergencyContactResponse"]
 
 
 class EmergencyContactCreate(BaseModel):
     name: str
-    relationship: str
     phone: str
-    email: Optional[str] = None
 
 
 class EmergencyContactResponse(BaseModel):
     id: str
     name: str
-    relationship: str
     phone: str
-    email: Optional[str]
 
 
 @router.get("/profile", response_model=EmergencyProfileResponse)
@@ -46,16 +41,13 @@ async def get_emergency_profile(
     ).all()
 
     return EmergencyProfileResponse(
+        name=current_user.name,
         blood_type=current_user.blood_type,
-        allergies=current_user.allergies,
-        medical_conditions=current_user.medical_conditions,
         emergency_contacts=[
             EmergencyContactResponse(
                 id=c.id,
                 name=c.name,
-                relationship=c.relationship,
                 phone=c.phone,
-                email=c.email,
             )
             for c in contacts
         ],
@@ -64,8 +56,6 @@ async def get_emergency_profile(
 
 class EmergencyProfileUpdate(BaseModel):
     blood_type: Optional[str] = None
-    allergies: Optional[str] = None
-    medical_conditions: Optional[str] = None
 
 
 @router.put("/profile", response_model=EmergencyProfileResponse)
@@ -76,10 +66,6 @@ async def update_emergency_profile(
 ):
     if data.blood_type is not None:
         current_user.blood_type = data.blood_type
-    if data.allergies is not None:
-        current_user.allergies = data.allergies
-    if data.medical_conditions is not None:
-        current_user.medical_conditions = data.medical_conditions
     current_user.updated_at = datetime.utcnow()
 
     db.add(current_user)
@@ -92,16 +78,13 @@ async def update_emergency_profile(
     ).all()
 
     return EmergencyProfileResponse(
+        name=current_user.name,
         blood_type=current_user.blood_type,
-        allergies=current_user.allergies,
-        medical_conditions=current_user.medical_conditions,
         emergency_contacts=[
             EmergencyContactResponse(
                 id=c.id,
                 name=c.name,
-                relationship=c.relationship,
                 phone=c.phone,
-                email=c.email,
             )
             for c in contacts
         ],
@@ -117,9 +100,7 @@ async def create_emergency_contact(
     contact = EmergencyContact(
         user_id=current_user.id,
         name=data.name,
-        relationship=data.relationship,
         phone=data.phone,
-        email=data.email,
     )
     db.add(contact)
     db.commit()
@@ -127,9 +108,7 @@ async def create_emergency_contact(
     return EmergencyContactResponse(
         id=contact.id,
         name=contact.name,
-        relationship=contact.relationship,
         phone=contact.phone,
-        email=contact.email,
     )
 
 
@@ -174,16 +153,13 @@ async def get_public_emergency_profile(
     # account ids — just the fields a paramedic needs. The owner's own signed-in
     # profile (`GET /api/emergency/profile`) still returns everything.
     return EmergencyProfileResponse(
+        name=user.name,
         blood_type=user.blood_type,
-        allergies=user.allergies,
-        medical_conditions=user.medical_conditions,
         emergency_contacts=[
             EmergencyContactResponse(
                 id="",
                 name=c.name,
-                relationship=c.relationship,
                 phone=c.phone,
-                email=None,
             )
             for c in contacts
         ],

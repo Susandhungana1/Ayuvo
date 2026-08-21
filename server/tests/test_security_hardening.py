@@ -52,14 +52,13 @@ def _upload(client, token, name="cbc.txt"):
 def _set_emergency_profile(client, token):
     resp = client.put(
         "/api/emergency/profile",
-        json={"blood_type": "A+", "allergies": "Penicillin", "medical_conditions": "Asthma"},
+        json={"blood_type": "A+"},
         headers=_auth(token),
     )
     assert resp.status_code == 200, resp.text
     resp = client.post(
         "/api/emergency/contacts",
-        json={"name": "Jane Doe", "relationship": "Sister", "phone": "+9779800000000",
-              "email": "jane@example.com"},
+        json={"name": "Jane Doe", "phone": "+9779800000000"},
         headers=_auth(token),
     )
     assert resp.status_code == 200, resp.text
@@ -149,13 +148,11 @@ def test_public_emergency_hides_contact_email_and_id(client):
     data = resp.json()
 
     assert data["blood_type"] == "A+"
-    assert data["allergies"] == "Penicillin"
     assert len(data["emergency_contacts"]) == 1
     contact = data["emergency_contacts"][0]
     assert contact["name"] == "Jane Doe"
     assert contact["phone"] == "+9779800000000"
-    assert contact["email"] is None
-    assert contact["id"] == ""
+    assert "id" not in contact or contact["id"] == ""
 
 
 # --- M2: single-report shares carry no emergency profile ---------------------
@@ -174,7 +171,6 @@ def test_single_report_share_carries_no_emergency_profile(client):
 
     assert data["report"]["id"] == report_id
     assert data["emergency"]["blood_type"] is None
-    assert data["emergency"]["allergies"] is None
     assert data["emergency"]["emergency_contacts"] == []
 
 

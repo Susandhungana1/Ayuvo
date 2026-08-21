@@ -43,14 +43,14 @@ class ContactScreen extends StatelessWidget {
               ),
               title: const Text('Email'),
               subtitle: const Text(
-                'susandhungana20@gmail.com',
+                'quorlytechnologies@gmail.com',
                 style: TextStyle(fontSize: 13),
               ),
               onTap: () async {
                 final messenger = ScaffoldMessenger.of(context);
                 final opened = await launchUrl(
                   Uri.parse(
-                    'mailto:susandhungana20@gmail.com'
+                    'mailto:quorlytechnologies@gmail.com'
                     '?subject=MediStore support',
                   ),
                   mode: LaunchMode.externalApplication,

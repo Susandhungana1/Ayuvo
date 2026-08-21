@@ -42,7 +42,6 @@ abstract final class Routes {
   static const appointments = '/more/appointments';
   static const share = '/more/share';
   static const emergency = '/more/emergency';
-  static const timeline = '/more/timeline';
   static const search = '/more/search';
   static const nearby = '/more/nearby';
   static const caretakers = '/more/caretakers';

@@ -42,9 +42,6 @@ class AppL10nEn extends AppL10n {
   String get navEmergency => 'Emergency ID';
 
   @override
-  String get navTimeline => 'Timeline';
-
-  @override
   String get navSearch => 'Search';
 
   @override
@@ -71,11 +68,7 @@ class AppL10nEn extends AppL10n {
       'Links that let a doctor read your record without an account';
 
   @override
-  String get moreEmergencyBlurb =>
-      'Blood type, allergies and who to call, behind a QR';
-
-  @override
-  String get moreTimelineBlurb => 'Everything you have recorded, newest first';
+  String get moreEmergencyBlurb => 'Blood type and who to call, behind a QR';
 
   @override
   String get moreSearchBlurb => 'Find a report, a medicine or a visit by name';
@@ -216,48 +209,6 @@ class AppL10nEn extends AppL10n {
   @override
   String get settingsRemindersTestFailed =>
       'Could not schedule a test reminder. Check that notifications are allowed for MediStore.';
-
-  @override
-  String get timelineTitle => 'Timeline';
-
-  @override
-  String get timelineSubtitle => 'Everything on your record, newest first';
-
-  @override
-  String get timelineEmptyTitle => 'Nothing recorded yet';
-
-  @override
-  String get timelineEmptyBody =>
-      'Upload a report, add a medicine or take a reading, and it shows up here in order.';
-
-  @override
-  String timelineEventCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count entries',
-      one: '1 entry',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get timelineLoadMore => 'Show older';
-
-  @override
-  String get timelineAllLoaded => 'That is the whole record.';
-
-  @override
-  String get timelineTypeReport => 'Report';
-
-  @override
-  String get timelineTypeMedicine => 'Medicine';
-
-  @override
-  String get timelineTypeAppointment => 'Appointment';
-
-  @override
-  String get timelineTypeVital => 'Reading';
 
   @override
   String get searchTitle => 'Search';

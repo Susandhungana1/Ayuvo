@@ -50,17 +50,13 @@ class SharedEmergencyCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           if (emergency.bloodType?.trim().isNotEmpty ?? false)
             _Row(label: 'Blood type', value: emergency.bloodType!),
-          if (emergency.allergies?.trim().isNotEmpty ?? false)
-            _Row(label: 'Allergies', value: emergency.allergies!),
-          if (emergency.medicalConditions?.trim().isNotEmpty ?? false)
-            _Row(label: 'Conditions', value: emergency.medicalConditions!),
           if (emergency.contacts.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
             Text('Emergency contacts', style: context.texts.labelMedium),
             const SizedBox(height: AppSpacing.xxs),
             for (final contact in emergency.contacts)
               Text(
-                '${contact.name} (${contact.relationship}) · ${contact.phone}',
+                '${contact.name} · ${contact.phone}',
                 style: context.texts.bodySmall,
               ),
           ],

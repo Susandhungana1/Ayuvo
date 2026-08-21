@@ -257,7 +257,7 @@ export default function Share() {
                 <h3 className="text-base sm:text-lg font-semibold text-text-main">Share All Reports via QR Code</h3>
                 <p className="text-subtext text-xs sm:text-sm mt-1">
                   Generate a QR code that contains all your medical reports plus
-                  your emergency details (blood type, allergies, conditions and
+                  your emergency details (blood type and
                   emergency contacts)
                 </p>
               </div>
@@ -308,7 +308,7 @@ export default function Share() {
             )}
             <p className="text-subtext text-sm mb-4">
               Scan this QR code to view all your medical reports and emergency
-              details — blood type, allergies, conditions and your emergency
+              details — blood type and your emergency
               contacts
             </p>
             <p className="text-subtext text-xs mb-4">Link: {qrCode}</p>

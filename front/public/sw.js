@@ -53,6 +53,7 @@ self.addEventListener("push", (event) => {
       name: data.name,
       dosage: data.dosage,
       time: data.time,
+      patient_name: data.patient_name,
     },
     actions: [
       { action: "taken", title: "✓ Taken" },
@@ -84,6 +85,8 @@ self.addEventListener("notificationclick", (event) => {
         time: data.time,
         name: data.name,
         dosage: data.dosage,
+        patient_name: data.patient_name,
+        patient_id: data.patient_id,
       };
 
       for (const client of clientList) client.postMessage(payload);

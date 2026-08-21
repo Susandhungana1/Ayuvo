@@ -111,21 +111,22 @@ export default function CaretakersSettings() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
 
-  const load = useCallback(async () => {
+  // Single source of truth for loading care data. Used by the initial mount
+  // (via useEffect) and by handleRestore / "Try again".  When called from the
+  // mount effect, the caller passes a RefObject whose `.current` flips to
+  // `true` on cleanup — this prevents setting state on an unmounted component
+  // without duplicating the entire loading body.
+  const load = useCallback(async (cancelledRef?: React.RefObject<boolean>) => {
     try {
       const [linkRows, auditRows] = await Promise.all([
         listLinks('patient'),
         listAudit().catch(() => [] as AuditEntry[]),
       ]);
+      if (cancelledRef?.current) return;
       setLinks(linkRows);
-      // Only a caretaker's activity is interesting here; the patient's own
-      // edits are already visible on the medicines page.
       setAudit(auditRows.filter((e) => e.by_caretaker));
       setBlocked(null);
 
-      // Restore a code issued before the user navigated away. If a caretaker
-      // has appeared since it was issued, it has been redeemed — showing it
-      // would invite the patient to read out a code that no longer works.
       const stored = readStoredInvite();
       if (stored) {
         if (linkRows.length > stored.linkCount) {
@@ -136,18 +137,8 @@ export default function CaretakersSettings() {
         }
       }
     } catch (err) {
-      // Name the actual cause. Reporting every failure as "not available on
-      // your account" is misleading when the server is simply unreachable, and
-      // gives no hint of what to do about it.
+      if (cancelledRef?.current) return;
       if (err instanceof SessionExpired) {
-        // The token in this browser is dead — held here, the page can only
-        // offer a "Try again" that fails identically every time. care.ts has
-        // already cleared it, so signing in is both the fix and the only
-        // thing to do; go straight there.
-        //
-        // Stay on the spinner until the route changes. `finally` drops
-        // `loading` either way, and without this the empty caretaker list
-        // flashes up for a frame on its way out.
         setRedirecting(true);
         router.replace(LOGIN_URL);
       } else if (err instanceof CareFeatureOff) {
@@ -166,7 +157,7 @@ export default function CaretakersSettings() {
         });
       }
     } finally {
-      setLoading(false);
+      if (!cancelledRef?.current) setLoading(false);
     }
   }, [router]);
 
@@ -175,69 +166,10 @@ export default function CaretakersSettings() {
       router.replace(LOGIN_URL);
       return;
     }
-    let cancelled = false;
-    (async () => {
-      try {
-        const [linkRows, auditRows] = await Promise.all([
-          listLinks('patient'),
-          listAudit().catch(() => [] as AuditEntry[]),
-        ]);
-        if (cancelled) return;
-        setLinks(linkRows);
-        // Only a caretaker's activity is interesting here; the patient's own
-        // edits are already visible on the medicines page.
-        setAudit(auditRows.filter((e) => e.by_caretaker));
-        setBlocked(null);
-
-        // Restore a code issued before the user navigated away. If a caretaker
-        // has appeared since it was issued, it has been redeemed — showing it
-        // would invite the patient to read out a code that no longer works.
-        const stored = readStoredInvite();
-        if (stored) {
-          if (linkRows.length > stored.linkCount) {
-            writeStoredInvite(null);
-            setInvite(null);
-          } else {
-            setInvite({ code: stored.code, expires_at: stored.expires_at });
-          }
-        }
-      } catch (err) {
-        // Name the actual cause. Reporting every failure as "not available on
-        // your account" is misleading when the server is simply unreachable, and
-        // gives no hint of what to do about it.
-        if (cancelled) return;
-        if (err instanceof SessionExpired) {
-          // The token in this browser is dead — held here, the page can only
-          // offer a "Try again" that fails identically every time. care.ts has
-          // already cleared it, so signing in is both the fix and the only
-          // thing to do; go straight there.
-          //
-          // Stay on the spinner until the route changes. `finally` drops
-          // `loading` either way, and without this the empty caretaker list
-          // flashes up for a frame on its way out.
-          setRedirecting(true);
-          router.replace(LOGIN_URL);
-        } else if (err instanceof CareFeatureOff) {
-          setBlocked({
-            title: 'Caretakers is switched off',
-            detail:
-              'This server has the caretaker feature disabled. It needs CARETAKER_ENABLED=true to be set on the API.',
-          });
-        } else {
-          setBlocked({
-            title: "Couldn't load caretakers",
-            detail:
-              err instanceof Error
-                ? `${err.message.replace(/\.?$/, '.')} Check that the API is reachable, then reload.`
-                : 'The API could not be reached. Check your connection and reload.',
-          });
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [router]);
+    const cancelled = { current: false };
+    load(cancelled as React.RefObject<boolean>);
+    return () => { cancelled.current = true; };
+  }, [load, router]);
 
   const handleIssue = async () => {
     setIssuing(true);

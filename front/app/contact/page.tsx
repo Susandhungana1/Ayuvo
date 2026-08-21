@@ -43,12 +43,12 @@ export default function Contact() {
               Send us a message and we&apos;ll respond as soon as possible.
             </p>
             <a
-              href="mailto:susandhungana20@gmail.com"
+              href="mailto:quorlytechnologies@gmail.com"
               className="text-primary hover:underline font-medium mb-6 break-all"
             >
-              susandhungana20@gmail.com
+              quorlytechnologies@gmail.com
             </a>
-            <a href="mailto:susandhungana20@gmail.com" className="mt-auto">
+            <a href="mailto:quorlytechnologies@gmail.com" className="mt-auto">
               <Button>Write to us</Button>
             </a>
           </Card>

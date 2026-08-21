@@ -5,7 +5,7 @@
  * value — and serialises it with `str(dt)` or bare Pydantic ISO, so it arrives
  * with no `Z` and no offset:
  *
- *     "2026-08-06 09:14:22.841913"   vitals, timeline, search
+ *     "2026-08-06 09:14:22.841913"   vitals, search
  *     "2026-08-07T09:14:22"          share link expiry
  *
  * `new Date(...)` reads both of those as *local* time, which in Asia/Kathmandu

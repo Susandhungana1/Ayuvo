@@ -211,6 +211,7 @@ def _payload(med: Medicine, patient_name: str, slot: str, day: str, recipient: R
         "time": slot,
         "tag": f"{med.id}-{slot}-{day}-{recipient.user_id}",
         "forSelf": recipient.is_self,
+        "patient_name": patient_name if not recipient.is_self else None,
     }
 
 
