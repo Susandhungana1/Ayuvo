@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, API_URL } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
@@ -9,7 +9,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { KeptByOthers } from '@/components/kept-by-others';
 import { formatServerDateTime, hasExpired } from '@/lib/datetime';
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
+
 
 interface Report {
   id: string;

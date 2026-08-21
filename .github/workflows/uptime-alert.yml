@@ -1,0 +1,58 @@
+name: Uptime Alert
+
+# The keep-alive job proves GitHub can reach the API, but its failures are
+# silent unless someone watches the Actions tab. This job is the actual alarm:
+# it checks the production /health endpoint from a different vantage point on a
+# schedule and opens a GitHub issue the moment the API stops answering.
+#
+# Health is more than "server is up": /health also reports the database check
+# and feature-flag state, so a DB outage or a flag that failed to deploy is
+# caught here too. See the endpoint's own comments in server/main.py.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # every 15 minutes (GitHub's practical minimum)
+  workflow_dispatch: {}      # manual trigger from the Actions tab
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: uptime-alert
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check /health
+        env:
+          BASE_URL: ${{ vars.HEALTHCHECK_URL || 'https://medistore-api-vwyr.onrender.com' }}
+        run: |
+          set -uo pipefail
+          code="$(curl -sS -o /tmp/out -w '%{http_code}' --max-time 60 "$BASE_URL/health" || echo 000)"
+          echo "HTTP $code"
+          cat /tmp/out
+          if [ "$code" != "200" ]; then
+            echo "Health check failed with HTTP $code"
+            exit 1
+          fi
+
+      - name: Open alert issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Don't spam one issue per failed check — only open a new one when
+          # no alert for the same title is already open.
+          open=$(gh issue list --state open --search 'Uptime alert' --json number --jq 'length' 2>/dev/null || echo 0)
+          if [ "$open" = "0" ]; then
+            gh issue create \
+              --title "Uptime alert: /health returned non-200" \
+              --body "The production health endpoint at $BASE_URL failed a scheduled check. Investigate the service on Render (medistore-api) and the DB connection on Supabase. This issue stays open until the API recovers." \
+              || echo "Could not create issue."
+          else
+            echo "An uptime alert issue is already open — not creating a duplicate."
+          fi

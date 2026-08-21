@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
-import { apiFetch, clearSession } from '@/lib/api';
+import { apiFetch, clearSession, API_URL } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
+import { TwoFactorAuth } from '@/components/two-factor-auth';
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
+
 
 export default function Settings() {
   const router = useRouter();
@@ -64,6 +65,10 @@ export default function Settings() {
         <h1 className="text-3xl font-display font-bold text-on-surface mb-8">
           {t('nav.settings')}
         </h1>
+
+        <TwoFactorAuth />
+
+        <div className="h-8" />
 
         <Card className="p-lg border-l-4 border-l-[var(--color-alert)]">
           <h2 className="text-lg font-display font-semibold text-on-surface mb-2">

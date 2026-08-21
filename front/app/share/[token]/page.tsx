@@ -7,8 +7,9 @@ import { Button } from '@/components/button';
 import ClaimShareButton from '@/components/ClaimShareButton';
 import { LabGauge } from '@/components/ui/lab-gauge';
 import { formatServerDateTime } from '@/lib/datetime';
+import { API_URL } from '@/lib/api';
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
+
 
 interface SharedReport {
   id: string;

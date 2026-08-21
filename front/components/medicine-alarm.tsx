@@ -16,9 +16,9 @@
  */
 
 import { useCallback, useEffect, useRef } from "react";
-import { apiFetch } from '@/lib/api';
+import { apiFetch, API_URL } from '@/lib/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3001";
+
 
 const SNOOZE_MINUTES = 10;
 const POLL_MEDICINES_MS = 5 * 60 * 1000; // refetch medicines every 5 min

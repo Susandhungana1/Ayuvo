@@ -6,8 +6,9 @@ import { Card } from '@/components/card';
 import { Button } from '@/components/button';
 import ClaimShareButton from '@/components/ClaimShareButton';
 import { formatPlainDate, formatServerDateTime } from '@/lib/datetime';
+import { API_URL } from '@/lib/api';
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
+
 
 interface Report {
   id: string;

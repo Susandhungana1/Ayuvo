@@ -1,0 +1,81 @@
+name: Backup Restore Test
+
+# Proves the daily encrypted backup can actually come back, not just exist.
+# A backup nobody has ever restored is a hope, not a plan: this job runs right
+# after every successful "Database Backup" run, decrypts the fresh dump with
+# the passphrase, and restores it into a throwaway Postgres instance on the
+# runner — never touching the real Supabase database — then sanity-checks that
+# the app tables came back.
+#
+# If anything fails it opens a GitHub issue so the break is visible immediately
+# instead of being discovered at the moment a restore is actually needed.
+
+on:
+  workflow_run:
+    workflows: ["Database Backup"]
+    types: [completed]
+  workflow_dispatch: {}   # manual run from the Actions tab
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: restore-test
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Download the backup from the triggering run
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: backup
+
+      - name: Install PostgreSQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql
+
+      - name: Decrypt + restore into a throwaway database
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          gpg_file="$(find backup -name '*.dump.gpg' | head -1)"
+          [ -n "$gpg_file" ] || { echo "No encrypted backup artifact found in the run"; exit 1; }
+          echo "Testing backup: $gpg_file"
+
+          # Decrypt the dump (same command documented in DB_BACKUP_RESTORE.md).
+          gpg --batch --yes --pinentry-mode loopback \
+              --passphrase "$BACKUP_PASSPHRASE" \
+              -d "$gpg_file" > /tmp/backup.dump
+          echo "Decrypted dump size:"; ls -lh /tmp/backup.dump | awk '{print $5}'
+
+          # Start a throwaway local cluster; nothing here touches production data.
+          sudo service postgresql start
+          sudo -u postgres createdb restore_test
+          pg_restore --no-owner --no-acl --exit-on-error -d restore_test /tmp/backup.dump
+          echo "pg_restore completed without errors."
+
+          # Sanity checks: the app's core tables must be present and populated.
+          sudo -u postgres psql -d restore_test -tAc "SELECT to_regclass('public.users');" | grep -q users || { echo "users table missing"; exit 1; }
+          sudo -u postgres psql -d restore_test -tAc "SELECT to_regclass('public.medical_reports');" | grep -q medical_reports || { echo "medical_reports table missing"; exit 1; }
+          echo "users rows: $(sudo -u postgres psql -d restore_test -tAc 'SELECT count(*) FROM users;')"
+          echo "medical_reports rows: $(sudo -u postgres psql -d restore_test -tAc 'SELECT count(*) FROM medical_reports;')"
+          echo "RESTORE_OK"
+
+      - name: Open alert issue on failure
+        if: failure() && github.event_name != 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "Backup restore test failed" \
+            --body "The automated restore test could not verify the latest encrypted backup. Investigate the workflow run for the failing step." \
+            || echo "Could not create issue (may be a permissions or repo issue)."

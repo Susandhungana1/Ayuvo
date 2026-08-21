@@ -25,9 +25,10 @@ Cannot hold real patient data until these are done.
 Status & runbook: see [PHASE0.md](PHASE0.md).
 - [x] **Move files off Postgres** — env-driven storage layer (`local`/`s3`), blobs now
       stored by key; backfill script `scripts/migrate_blobs_to_storage.py`.
-- [~] **Cloud Postgres + automated backups** — DB **live on Supabase** (session pooler,
-      schema migrated, end-to-end verified); remaining: enable daily backups + test
-      restore (free tier has none — Pro or `pg_dump` cron; ops, see PHASE0.md).
+- [x] **Cloud Postgres + automated backups** — DB **live on Supabase** (session pooler,
+      schema migrated, end-to-end verified); **daily encrypted backups** via
+      `.github/workflows/db-backup.yml` + **automated restore test** via
+      `.github/workflows/restore-test.yml`.
 - [~] **HTTPS + real domain + secrets management** — secrets done (no secrets in code, prod
       fail-fast in `config.py`); remaining: TLS proxy + domain for the API host (ops).
 - [x] **Encryption at rest & in transit** — Supabase encrypts DB + Storage at rest (AES-256);
@@ -39,7 +40,8 @@ Status & runbook: see [PHASE0.md](PHASE0.md).
 - [x] **Automated tests + CI** — pytest (auth, 2FA, report CRUD, storage, audit) +
       GitHub Actions (`.github/workflows/ci.yml`).
 - [x] **Error monitoring + uptime** — Sentry wired (`SENTRY_DSN`, no PII) + `GET /health`
-      DB-readiness probe; remaining: set DSN + external uptime check (ops).
+      DB-readiness probe + automated uptime alert (`.github/workflows/uptime-alert.yml`);
+      remaining: set DSN in the Render environment.
 
 ## Phase 1 — Mobile app
 - [ ] **Wrap frontend with Capacitor** (recommended) — reuse existing Next.js UI, target iOS + Android.

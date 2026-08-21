@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, API_URL } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { FileText, Pill, CalendarDays, Activity, Pin, History } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatServerDate, formatServerTimeOfDay } from '@/lib/datetime';
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
+
 
 interface TimelineEvent {
   type: string;

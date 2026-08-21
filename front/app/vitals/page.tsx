@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, API_URL } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { Activity, X, Plus, Info, Thermometer, Heart, Droplets, Wind, Scale, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,7 @@ import {
 } from 'recharts';
 import { formatServerDate, formatServerDateTime } from '@/lib/datetime';
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
+
 
 interface VitalSign {
   id: string;

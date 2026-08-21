@@ -7,8 +7,9 @@ import { Input } from '@/components/input';
 import { Card } from '@/components/card';
 import { Logo } from '@/components/Logo';
 import Link from 'next/link';
+import { API_URL } from '@/lib/api';
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
+
 
 /** Accept either a bare code or a whole reset URL — people often copy the
  *  entire link out of the email rather than just the token. */

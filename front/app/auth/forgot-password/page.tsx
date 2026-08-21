@@ -6,8 +6,9 @@ import { Input } from '@/components/input';
 import { Card } from '@/components/card';
 import { Logo } from '@/components/Logo';
 import Link from 'next/link';
+import { API_URL } from '@/lib/api';
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
+
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');

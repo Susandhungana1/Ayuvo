@@ -6,10 +6,10 @@ import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import { Card } from '@/components/card';
 import { Logo } from '@/components/Logo';
-import { storeSession } from '@/lib/api';
+import { API_URL, storeSession } from '@/lib/api';
 import Link from 'next/link';
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
+
 
 export default function Login() {
   const router = useRouter();

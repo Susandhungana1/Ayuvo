@@ -67,9 +67,11 @@ best-effort and never break the user request.
   all Phase 0 columns). Blob backfill ran (no legacy blobs — fresh DB).
 - End-to-end verified: register → upload → object in Supabase Storage → DB blob
   empty → download identical → audit row written → clean delete.
-- **Remaining (ops):** enable **automated daily backups + test a restore**.
-  Supabase free tier does *not* include managed PITR/daily backups — either
-  upgrade to Pro (daily backups / PITR) or schedule a `pg_dump` cron to a bucket.
+- **Automated daily backups + restore test — DONE:** `.github/workflows/db-backup.yml`
+  runs a nightly encrypted `pg_dump` (AES-256 GPG) to GitHub artifacts + the Supabase
+  storage bucket, and `.github/workflows/restore-test.yml` restores every backup into a
+  throwaway Postgres on a runner and sanity-checks the app tables — so a restore is
+  proven continuously, not hoped for.
 
 ## ✅ Encryption at rest & in transit — Done
 - **At rest:** Supabase encrypts Postgres storage and the Storage bucket by
@@ -81,10 +83,13 @@ best-effort and never break the user request.
 
 ## ◻ Ops runbook (still needs infrastructure — not code)
 
-### Automated backups (Postgres)
-- Supabase free tier lacks managed daily backups. Either upgrade to **Pro**
-  (daily backups + 7-day PITR) or run a scheduled `pg_dump` to object storage.
-- **Test a restore at least once** before go-live.
+### Automated backups (Postgres) — DONE
+- `.github/workflows/db-backup.yml` — nightly encrypted `pg_dump` (GPG AES-256)
+  stored as a 90-day GitHub artifact + best-effort copy to the Supabase storage
+  bucket.
+- `.github/workflows/restore-test.yml` — after every successful backup, decrypts
+  and restores into a throwaway Postgres and sanity-checks the app tables, and
+  opens an issue on failure.
 
 ### HTTPS + real domain (API host)
 - Put the API behind a TLS-terminating platform (Render, Railway, Fly.io) or
@@ -93,9 +98,12 @@ best-effort and never break the user request.
   `CORS_ORIGINS=https://your-frontend-domain` (the app refuses to boot in
   production without a real JWT_SECRET and a non-`*` CORS allowlist).
 
-### Uptime monitoring
-- Point an external check (UptimeRobot / BetterStack / Pingdom free tier) at
-  `GET /health` and alert on non-200.
+### Uptime monitoring — DONE
+- `.github/workflows/uptime-alert.yml` checks `GET /health` every 15 minutes
+  from GitHub and opens a GitHub issue the moment it stops answering (covers
+  DB-down and misconfigured deploys, not just a live server).
+- Optional extra: point an external checker (UptimeRobot / BetterStack free
+  tier) at the same endpoint for sub-5-minute visibility.
 
 ### Error monitoring
 - Set `SENTRY_DSN` on the host to activate Sentry (already wired in `main.py`).

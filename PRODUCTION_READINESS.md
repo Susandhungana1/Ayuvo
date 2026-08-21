@@ -1,65 +1,63 @@
 # Production Readiness Audit — MediStore
 
+Last reviewed: 2026-08-20. This file tracks what used to be blockers; the
+sections below reflect the *current* state of each platform.
+
 ## Web Frontend (Vercel)
 
-### BLOCKERS
+### RESOLVED (previously blockers)
 
-| # | Issue | File | Fix |
-|---|-------|------|-----|
-| 1 | **9 security vulnerabilities** (1 critical, 6 high) — Next.js 16.2.1 has SSRF, DoS, cache confusion CVEs | `front/package.json` | Run `cd front && npm audit fix --force` to upgrade Next.js to 16.3.1+ |
-| 2 | **No `.env` or `.env.example`** — app silently falls back to `http://127.0.0.1:3001` if `NEXT_PUBLIC_API_URL` is missing | `front/` | Create `front/.env.example` with `NEXT_PUBLIC_API_URL=` |
-| 3 | **No `robots.txt`** — search engines will index all routes including sensitive ones | `front/public/` | Add `front/public/robots.txt` |
-| 4 | **No `sitemap.xml`** — no SEO crawl structure | `front/public/` | Add `front/public/sitemap.xml` |
+| # | Issue | Status |
+|---|-------|--------|
+| 1 | **9 security vulnerabilities** (Next.js 16.2.1 SSRF/DoS/cache-confusion CVEs) | Fixed — deps upgraded (see commit "Security: upgrade vulnerable deps"); `npm audit` clean |
+| 2 | **No `.env.example`** | Fixed — `front/.env.example` exists with `NEXT_PUBLIC_API_URL` |
+| 3 | **No `robots.txt`** | Fixed — `front/public/robots.txt` exists |
+| 4 | **No `sitemap.xml`** | Fixed — `front/public/sitemap.xml` exists |
+| 5 | **No Open Graph / Twitter metadata** | Fixed — `front/app/layout.tsx` exports `openGraph` + `twitter` metadata |
+| 6 | **No `engines` field** | Fixed — `package.json` pins `"node": ">=18"` |
 
-### SHOULD FIX
+### RESOLVED (previously should-fix)
 
-| # | Issue | File | Fix |
-|---|-------|------|-----|
-| 5 | **No Open Graph / Twitter card metadata** — social sharing shows no preview | `front/app/layout.tsx` | Add `openGraph` and `twitter` to `metadata` export |
-| 6 | **No `engines` field** in package.json — Node version not pinned | `front/package.json` | Add `"engines": { "node": ">=18" }` |
-| 7 | **28 `console.error` calls** — acceptable but noisy in production | Various pages | Consider a logger abstraction that strips in production |
+| # | Issue | Status |
+|---|-------|--------|
+| 7 | **No Content-Security-Policy** | Fixed — nonce-based CSP added via `front/middleware.ts` (applied in production; `next dev` is skipped so HMR is unaffected) |
 
 ### ALREADY GOOD
 
 - TypeScript compiles with zero errors
-- Build produces 33 pages successfully
 - No hardcoded secrets
-- No `console.log` statements
-- Service worker properly configured (offline support, push notifications)
-- PWA manifest generated from `app/manifest.ts`
-- All required icons exist (192, 512, maskable, apple-touch-icon)
-- `offline.html` exists
-- No TODO/FIXME/HACK comments
+- Service worker + PWA manifest + offline shell + push notifications
+- All required icons (192, 512, maskable, apple-touch-icon)
+- Single source for the API base URL (`lib/api.ts` exports `API_URL`; every page imports it — no more inline `process.env` copies)
 
 ---
 
 ## Mobile App (Play Store)
 
-### BLOCKERS
+### RESOLVED (previously blockers)
 
-| # | Issue | File | Fix |
-|---|-------|------|-----|
-| 1 | **Release signed with debug key** — Play Store will reject | `mobile/android/app/build.gradle.kts:37` | Create a release keystore, add `signingConfigs` block, use it for release builds. See [Android signing guide](https://developer.android.com/studio/publish/app-signing#sign-up) |
-| 2 | **No adaptive icons** — no `mipmap-anydpi-v26/` directory. Play Store requires adaptive icons for Android 8+ | `mobile/android/app/src/main/res/` | Generate `ic_launcher_foreground.png` + `ic_launcher_background.png` + XML definitions in `mipmap-anydpi-v26/` |
+| # | Issue | Status |
+|---|-------|--------|
+| 1 | **Release signed with debug key** | Fixed — `mobile/android/app/build.gradle.kts` defines a `release` signing config reading `key.properties`; the keystore + properties are local-only (gitignored), so CI/built release APKs are signed with the real key |
+| 2 | **No adaptive icons** | Fixed — `mipmap-anydpi-v26/ic_launcher.xml` + `ic_launcher_round.xml` reference vector foreground (medical cross) and background (brand cyan) drawables |
+| 5 | **No ProGuard keep rules** | Fixed — `proguard-rules.pro` keeps Flutter/notification/map classes; release build runs R8 (`isMinifyEnabled` + `isShrinkResources`) |
 
-### SHOULD FIX
+### STILL OPEN
 
-| # | Issue | File | Fix |
-|---|-------|------|-----|
-| 3 | **Default white splash screen** — no branding | `mobile/android/app/src/main/res/drawable/launch_background.xml` | Add `flutter_native_splash` package or custom drawable with MediStore logo |
-| 4 | **`file_picker: ^12.0.0-beta.7`** — beta dependency in production | `mobile/pubspec.yaml:46` | Upgrade to stable release when available, or pin with known-good version |
-| 5 | **No ProGuard keep rules** — third-party libs may break if R8 strips needed classes | `mobile/android/app/` | Add `proguard-rules.pro` with keep rules for packages like `com.google.android.gms`, `io.flutter.embedding` |
+| # | Issue | Fix |
+|---|-------|-----|
+| 3 | **`file_picker: ^12.0.0-beta.7`** — beta dependency in production | Upgrade to stable when available |
+
+(The splash screen is already branded — cyan background + medical cross in
+`launch_background.xml`.)
 
 ### ALREADY GOOD
 
 - No hardcoded secrets or API keys
-- API URL configurable via `--dart-define=API_BASE_URL=...`
-- Cleartext traffic blocked in release builds (only allowed in debug)
-- All permissions justified (INTERNET, POST_NOTIFICATIONS, RECEIVE_BOOT_COMPLETED, LOCATION)
-- No `print()` calls — all use `debugPrint` (stripped in release)
-- No TODO/FIXME in Dart code
-- Font assets all present and correctly referenced
-- Application ID consistent across all configs (`com.medistore.medistore`)
+- API URL configurable via `--dart-define=API_BASE_URL=...` (single source in `lib/core/config/env.dart`)
+- Cleartext traffic blocked in release builds
+- All permissions justified
+- No `print()` calls; fonts referenced correctly; application ID consistent
 
 ---
 
@@ -67,49 +65,31 @@
 
 ### ALREADY GOOD
 
-- All 218 tests pass
+- All tests pass (218 tests on SQLite in CI)
 - Soft-deleted medicines filtered in all endpoints
-- Share endpoints now filter `deleted_at IS NULL`
-- JWT auth properly implemented
+- JWT auth + refresh rotation + 2FA (TOTP) endpoints
 - Feature flags visible at `/health`
+- Hardening headers + rate limiting + audit log + storage off-Postgres
 
-### MONITORING
+### MONITORING (RESOLVED)
 
-- No automated health check alerts configured
-- No error tracking (Sentry, etc.) — recommend adding for production
-
----
-
-## Quick Fix Commands
-
-```bash
-# 1. Fix frontend vulnerabilities
-cd front && npm audit fix --force
-
-# 2. Create .env.example
-echo "NEXT_PUBLIC_API_URL=" > front/.env.example
-
-# 3. Add robots.txt
-cat > front/public/robots.txt << 'EOF'
-User-agent: *
-Allow: /
-Disallow: /api/
-Disallow: /auth/
-EOF
-
-# 4. Mobile: Generate release keystore
-keytool -genkey -v -keystore ~/medistore-release.keystore \
-  -alias medistore -keyalg RSA -keysize 2048 -validity 10000
-```
+- Automated **uptime alert** — `.github/workflows/uptime-alert.yml` checks
+  `/health` every 15 min and opens a GitHub issue on failure (covers DB-down
+  and misconfigured deploys, not just "server is up").
+- **Automated restore test** — `.github/workflows/restore-test.yml` runs after
+  every successful backup, decrypts and restores the dump into a throwaway
+  Postgres on the runner and sanity-checks the app tables, opening an issue on
+  failure.
+- Sentry wired (DSN must still be set in the deployed environment).
 
 ---
 
-## Priority Order
+## Remaining before launch
 
-1. **Mobile: Create release signing keystore** — blocker for Play Store
-2. **Mobile: Generate adaptive icons** — blocker for Play Store
-3. **Frontend: `npm audit fix`** — security vulnerabilities
-4. **Frontend: Add `robots.txt`** — prevent indexing of sensitive routes
-5. **Frontend: Add Open Graph metadata** — social sharing previews
-6. **Mobile: Custom splash screen** — branding
-7. **Frontend: Add `sitemap.xml`** — SEO
+1. **Verify the two new workflows run** — trigger the restore test manually
+   (`workflow_dispatch`) after the next backup and confirm it passes.
+2. **Set `SENTRY_DSN`** in the Render environment.
+3. **Confirm the CSP works on the deployed site** — load a logged-in page in a
+   browser and check the console for CSP violations (nothing should appear).
+4. **Set a branded mobile splash** — already branded (cyan + cross); polish
+   pass only.

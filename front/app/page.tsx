@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, API_URL } from '@/lib/api';
+import { analyzeBP, analyzeHR, analyzeSugar, analyzeTemp, analyzeSpO2, type VitalBand } from '@/lib/status';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/button';
@@ -9,8 +10,6 @@ import { Card } from '@/components/card';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer
 } from 'recharts';
-
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
 interface Medicine {
   id: string;
@@ -36,44 +35,50 @@ interface VitalSign {
   measured_at: string;
 }
 
-function analyzeBP(s: number, d: number) {
-  if (s < 90 || d < 60) return { status: 'Low', color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200' };
-  if (s <= 120 && d <= 80) return { status: 'Normal', color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200' };
-  if (s <= 129 && d <= 80) return { status: 'Elevated', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' };
-  if (s <= 139 || d <= 89) return { status: 'Stage 1', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200' };
-  if (s <= 179 || d <= 119) return { status: 'Stage 2', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' };
-  return { status: 'Crisis', color: 'text-red-800', bg: 'bg-red-100', border: 'border-red-300' };
-}
+// Band classification lives in lib/status.ts — the same engine as /vitals.
+// This page only maps its output (level + label) onto this page's chip
+// colours, so a threshold change is edited once, not twice.
+const BAND_STYLES: Record<string, Record<string, { color: string; bg: string; border: string }>> = {
+  bp: {
+    Low: { color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200' },
+    Normal: { color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200' },
+    Elevated: { color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' },
+    'Stage 1': { color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200' },
+    'Stage 2': { color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' },
+    Crisis: { color: 'text-red-800', bg: 'bg-red-100', border: 'border-red-300' },
+  },
+  hr: {
+    Low: { color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200' },
+    Normal: { color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200' },
+    Elevated: { color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' },
+    High: { color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' },
+  },
+  sugar: {
+    Low: { color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200' },
+    Normal: { color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200' },
+    Prediabetic: { color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' },
+    High: { color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200' },
+    'Very High': { color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' },
+  },
+  temp: {
+    Hypothermia: { color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' },
+    Low: { color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200' },
+    Normal: { color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200' },
+    'Mild Fever': { color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' },
+    Fever: { color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200' },
+    'High Fever': { color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' },
+  },
+  spo2: {
+    Normal: { color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200' },
+    'Mild Low': { color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' },
+    Low: { color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200' },
+    Critical: { color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' },
+  },
+};
 
-function analyzeHR(hr: number) {
-  if (hr < 60) return { status: 'Low', color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200' };
-  if (hr <= 100) return { status: 'Normal', color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200' };
-  if (hr <= 120) return { status: 'Elevated', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' };
-  return { status: 'High', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' };
-}
-
-function analyzeSugar(g: number) {
-  if (g < 70) return { status: 'Low', color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200' };
-  if (g <= 100) return { status: 'Normal', color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200' };
-  if (g <= 125) return { status: 'Prediabetic', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' };
-  if (g <= 180) return { status: 'High', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200' };
-  return { status: 'Very High', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' };
-}
-
-function analyzeTemp(t: number) {
-  if (t < 35) return { status: 'Hypothermia', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' };
-  if (t < 36) return { status: 'Low', color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200' };
-  if (t <= 37.2) return { status: 'Normal', color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200' };
-  if (t <= 38) return { status: 'Mild Fever', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' };
-  if (t <= 39) return { status: 'Fever', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200' };
-  return { status: 'High Fever', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' };
-}
-
-function analyzeSpO2(o: number) {
-  if (o >= 95) return { status: 'Normal', color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200' };
-  if (o >= 90) return { status: 'Mild Low', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' };
-  if (o >= 80) return { status: 'Low', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200' };
-  return { status: 'Critical', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' };
+function chip(key: keyof typeof BAND_STYLES, band: VitalBand) {
+  const style = BAND_STYLES[key][band.label] ?? { color: 'text-gray-700', bg: 'bg-gray-50', border: 'border-gray-200' };
+  return { status: band.label, ...style };
 }
 
 export default function Home() {
@@ -208,51 +213,66 @@ export default function Home() {
                 </div>
               ) : latestVital ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {latestVital.blood_pressure_systolic && latestVital.blood_pressure_diastolic && (
-                    <div className={`bg-white rounded-xl p-5 border ${analyzeBP(latestVital.blood_pressure_systolic, latestVital.blood_pressure_diastolic).border}`}>
-                      <p className="text-xs text-gray-400 font-medium mb-1">Blood Pressure</p>
-                      <p className="text-xl font-bold text-text-main">{latestVital.blood_pressure_systolic}/{latestVital.blood_pressure_diastolic}</p>
-                      <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded ${analyzeBP(latestVital.blood_pressure_systolic, latestVital.blood_pressure_diastolic).bg} ${analyzeBP(latestVital.blood_pressure_systolic, latestVital.blood_pressure_diastolic).color}`}>
-                        {analyzeBP(latestVital.blood_pressure_systolic, latestVital.blood_pressure_diastolic).status}
-                      </span>
-                    </div>
-                  )}
-                  {latestVital.heart_rate && (
-                    <div className={`bg-white rounded-xl p-5 border ${analyzeHR(latestVital.heart_rate).border}`}>
-                      <p className="text-xs text-gray-400 font-medium mb-1">Heart Rate</p>
-                      <p className="text-xl font-bold text-text-main">{latestVital.heart_rate}</p>
-                      <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded ${analyzeHR(latestVital.heart_rate).bg} ${analyzeHR(latestVital.heart_rate).color}`}>
-                        {analyzeHR(latestVital.heart_rate).status}
-                      </span>
-                    </div>
-                  )}
-                  {latestVital.blood_sugar && (
-                    <div className={`bg-white rounded-xl p-5 border ${analyzeSugar(latestVital.blood_sugar).border}`}>
-                      <p className="text-xs text-gray-400 font-medium mb-1">Blood Sugar</p>
-                      <p className="text-xl font-bold text-text-main">{Math.round(latestVital.blood_sugar)}</p>
-                      <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded ${analyzeSugar(latestVital.blood_sugar).bg} ${analyzeSugar(latestVital.blood_sugar).color}`}>
-                        {analyzeSugar(latestVital.blood_sugar).status}
-                      </span>
-                    </div>
-                  )}
-                  {latestVital.temperature && (
-                    <div className={`bg-white rounded-xl p-5 border ${analyzeTemp(latestVital.temperature).border}`}>
-                      <p className="text-xs text-gray-400 font-medium mb-1">Temperature</p>
-                      <p className="text-xl font-bold text-text-main">{latestVital.temperature.toFixed(1)}°C</p>
-                      <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded ${analyzeTemp(latestVital.temperature).bg} ${analyzeTemp(latestVital.temperature).color}`}>
-                        {analyzeTemp(latestVital.temperature).status}
-                      </span>
-                    </div>
-                  )}
-                  {latestVital.oxygen_saturation && (
-                    <div className={`bg-white rounded-xl p-5 border ${analyzeSpO2(latestVital.oxygen_saturation).border}`}>
-                      <p className="text-xs text-gray-400 font-medium mb-1">SpO2</p>
-                      <p className="text-xl font-bold text-text-main">{latestVital.oxygen_saturation}%</p>
-                      <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded ${analyzeSpO2(latestVital.oxygen_saturation).bg} ${analyzeSpO2(latestVital.oxygen_saturation).color}`}>
-                        {analyzeSpO2(latestVital.oxygen_saturation).status}
-                      </span>
-                    </div>
-                  )}
+                  {latestVital.blood_pressure_systolic && latestVital.blood_pressure_diastolic && (() => {
+                    const bp = chip('bp', analyzeBP(latestVital.blood_pressure_systolic, latestVital.blood_pressure_diastolic));
+                    return (
+                      <div className={`bg-white rounded-xl p-5 border ${bp.border}`}>
+                        <p className="text-xs text-gray-400 font-medium mb-1">Blood Pressure</p>
+                        <p className="text-xl font-bold text-text-main">{latestVital.blood_pressure_systolic}/{latestVital.blood_pressure_diastolic}</p>
+                        <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded ${bp.bg} ${bp.color}`}>
+                          {bp.status}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                  {latestVital.heart_rate && (() => {
+                    const hr = chip('hr', analyzeHR(latestVital.heart_rate));
+                    return (
+                      <div className={`bg-white rounded-xl p-5 border ${hr.border}`}>
+                        <p className="text-xs text-gray-400 font-medium mb-1">Heart Rate</p>
+                        <p className="text-xl font-bold text-text-main">{latestVital.heart_rate}</p>
+                        <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded ${hr.bg} ${hr.color}`}>
+                          {hr.status}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                  {latestVital.blood_sugar && (() => {
+                    const sg = chip('sugar', analyzeSugar(latestVital.blood_sugar));
+                    return (
+                      <div className={`bg-white rounded-xl p-5 border ${sg.border}`}>
+                        <p className="text-xs text-gray-400 font-medium mb-1">Blood Sugar</p>
+                        <p className="text-xl font-bold text-text-main">{Math.round(latestVital.blood_sugar)}</p>
+                        <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded ${sg.bg} ${sg.color}`}>
+                          {sg.status}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                  {latestVital.temperature && (() => {
+                    const t = chip('temp', analyzeTemp(latestVital.temperature));
+                    return (
+                      <div className={`bg-white rounded-xl p-5 border ${t.border}`}>
+                        <p className="text-xs text-gray-400 font-medium mb-1">Temperature</p>
+                        <p className="text-xl font-bold text-text-main">{latestVital.temperature.toFixed(1)}°C</p>
+                        <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded ${t.bg} ${t.color}`}>
+                          {t.status}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                  {latestVital.oxygen_saturation && (() => {
+                    const o = chip('spo2', analyzeSpO2(latestVital.oxygen_saturation));
+                    return (
+                      <div className={`bg-white rounded-xl p-5 border ${o.border}`}>
+                        <p className="text-xs text-gray-400 font-medium mb-1">SpO2</p>
+                        <p className="text-xl font-bold text-text-main">{latestVital.oxygen_saturation}%</p>
+                        <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded ${o.bg} ${o.color}`}>
+                          {o.status}
+                        </span>
+                      </div>
+                    );
+                  })()}
                   {latestVital.weight && (
                     <div className="bg-white rounded-xl p-5 border border-gray-100">
                       <p className="text-xs text-gray-400 font-medium mb-1">Weight</p>

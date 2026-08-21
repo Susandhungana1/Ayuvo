@@ -62,6 +62,12 @@ export const viewport: Viewport = {
   themeColor: "#0E7490",
 };
 
+// CSP nonces are per-request: Next.js stamps them onto inline RSC payload
+// scripts during SSR by reading the CSP request header. Statically-prerendered
+// pages are built without any request headers, so they would ship scripts
+// with no nonce and our strict script-src policy would block them.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{
