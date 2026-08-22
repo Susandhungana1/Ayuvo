@@ -136,7 +136,7 @@ def test_tick_query_count_does_not_grow_with_patient_count(client, monkeypatch):
 
 
 def test_idle_tick_issues_one_query_per_table(client, monkeypatch):
-    """Medicines, users and push devices: one batched SELECT each, no more."""
+    """Medicines, users, push devices and FCM tokens: one batched SELECT each, no more."""
     _quiet_push(monkeypatch)
     _nothing_due(monkeypatch)
     _make_patient(client, ["03:21"])
@@ -148,8 +148,9 @@ def test_idle_tick_issues_one_query_per_table(client, monkeypatch):
     assert len(counted.matching("from medicines")) == 1
     assert len(counted.matching("from users")) == 1
     assert len(counted.matching("from push_subscriptions")) == 1
-    # Three statements total: no stragglers, and nothing per-patient.
-    assert len(counted.statements) == 3, counted.statements
+    assert len(counted.matching("from fcm_tokens")) == 1
+    # Four statements total: no stragglers, and nothing per-patient.
+    assert len(counted.statements) == 4, counted.statements
 
 
 def test_batched_timezone_matches_the_single_patient_lookup(client, monkeypatch):

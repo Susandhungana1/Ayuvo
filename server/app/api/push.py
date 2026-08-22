@@ -1,4 +1,4 @@
-"""Web Push subscription management for medicine reminders."""
+"""Web Push and FCM subscription management for medicine reminders."""
 
 import asyncio
 import hmac
@@ -14,7 +14,7 @@ from app.api.auth import get_current_user
 from app.core.config import get_session, settings
 from app.core.reminder_scheduler import run_tick_once
 from app.core.webpush import send_push
-from app.models.models import User, PushSubscription
+from app.models.models import User, PushSubscription, FcmToken
 
 router = APIRouter()
 
@@ -223,3 +223,56 @@ async def unsubscribe(
         db.delete(sub)
         db.commit()
     return {"message": "unsubscribed"}
+
+
+# ---------------------------------------------------------------------------
+# FCM device tokens (mobile apps)
+# ---------------------------------------------------------------------------
+
+class FcmTokenRequest(BaseModel):
+    token: str
+
+
+@router.post("/fcm")
+async def register_fcm_token(
+    data: FcmTokenRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """Store an FCM device token so the reminder scheduler can push to it."""
+    existing = db.exec(
+        select(FcmToken).where(
+            FcmToken.token == data.token,
+            FcmToken.user_id == current_user.id,
+        )
+    ).first()
+    if existing:
+        existing.timezone = current_user.timezone or "UTC"
+        db.add(existing)
+    else:
+        db.add(FcmToken(
+            user_id=current_user.id,
+            token=data.token,
+            timezone=current_user.timezone or "UTC",
+        ))
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/fcm/remove")
+async def remove_fcm_token(
+    data: FcmTokenRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """Remove an FCM device token (on sign-out)."""
+    token = db.exec(
+        select(FcmToken).where(
+            FcmToken.token == data.token,
+            FcmToken.user_id == current_user.id,
+        )
+    ).first()
+    if token:
+        db.delete(token)
+        db.commit()
+    return {"ok": True}

@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     vapid_private_key: str = ""
     vapid_subject: str = "mailto:admin@medistore.app"  # contact for push services
 
+    # --- Firebase Cloud Messaging (mobile push) ---
+    # Path to the Firebase service account JSON key file. Leave blank to
+    # disable FCM delivery (mobile reminders fall back to local-only).
+    firebase_service_account_path: str = ""
+
     # Shared secret that lets an external scheduler drive the reminder tick via
     # POST /api/push/run-tick (X-Cron-Secret header). On a free host that sleeps,
     # a 1-min cron hitting this endpoint both WAKES the instance and delivers due

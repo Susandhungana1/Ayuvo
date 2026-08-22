@@ -30,8 +30,9 @@ from sqlmodel import Session, select
 
 from app.core import doses
 from app.core.config import engine, settings
+from app.core.fcm import fcm_available, send_fcm
 from app.core.webpush import push_available, send_push
-from app.models.models import CareLink, Medicine, PushSubscription, ReminderDelivery, User
+from app.models.models import CareLink, FcmToken, Medicine, PushSubscription, ReminderDelivery, User
 
 logger = logging.getLogger("medicine_reminders")
 
@@ -146,18 +147,18 @@ def _claim(
 
 
 def _deliver(
-    db: Session, subs: list[PushSubscription], payload: dict, row: ReminderDelivery
+    db: Session,
+    subs: list[PushSubscription],
+    fcm_tokens: list[FcmToken],
+    payload: dict,
+    row: ReminderDelivery,
 ) -> bool:
     """Push to every device the recipient has, recording the outcome.
 
-    [subs] is the recipient's pre-loaded subscription list — loading it here
-    would cost one `push_subscriptions` query per (dose, recipient) pair, which
-    is the N+1 Sentry flags on every tick.
-
-    A failure for one recipient never aborts the others: the exception is
-    captured onto their own ledger row and the loop moves on.
+    [subs] is the recipient's pre-loaded Web Push subscription list.
+    [fcm_tokens] is the recipient's pre-loaded FCM device tokens.
     """
-    if not subs:
+    if not subs and not fcm_tokens:
         row.status = "skipped"
         row.error = "no push subscription"
         db.add(row)
@@ -166,6 +167,7 @@ def _deliver(
 
     sent = False
     errors: list[str] = []
+
     for sub in subs:
         try:
             result = send_push(sub.endpoint, sub.p256dh, sub.auth, payload)
@@ -178,9 +180,24 @@ def _deliver(
         else:
             errors.append(result.error or "unknown")
             if result.gone:
-                # 404/410 — the browser dropped this subscription for good.
                 try:
                     db.delete(sub)
+                except Exception:
+                    pass
+
+    for fcm in fcm_tokens:
+        try:
+            result = send_fcm(fcm.token, payload)
+        except Exception as exc:
+            errors.append(str(exc))
+            continue
+        if result.ok:
+            sent = True
+        else:
+            errors.append(result.error or "unknown")
+            if result.invalid_token:
+                try:
+                    db.delete(fcm)
                 except Exception:
                     pass
 
@@ -290,19 +307,7 @@ def _run_tick() -> int:
         return 0
 
     sent_count = 0
-    # expire_on_commit=False is what makes the batching hold. Every delivery
-    # commits (the ledger row), and the default would expire every instance in
-    # the session — so the next patient's preloaded Medicine and User would be
-    # silently re-fetched one primary key at a time, rebuilding the N+1 this
-    # function exists to remove. Nothing here needs to observe another
-    # transaction's writes mid-tick: the working set is loaded once up front and
-    # *is* the definition of this tick. `_eligible_for` issues its own SELECT
-    # each time, so the dedupe check is unaffected.
     with Session(engine, expire_on_commit=False) as db:
-        # Patients are those who own medicines. Anyone without medicines has
-        # nothing to fire, caretaker or not — so loading the medicines *is* the
-        # patient lookup, and the per-patient re-query afterwards was buying
-        # rows this already has.
         meds_by_patient: dict[str, list[Medicine]] = {}
         for med in db.exec(
             select(Medicine).where(
@@ -317,7 +322,6 @@ def _run_tick() -> int:
 
         users_by_id = _users_by_id(db, patient_ids)
 
-        # Load caretaker links if enabled
         care_links = (
             list(
                 db.exec(
@@ -331,13 +335,11 @@ def _run_tick() -> int:
             else []
         )
 
-        # Recipients span patients and their non-muted caretakers; their push
-        # devices are all needed. Load them in ONE query (not two: one for
-        # timezone + one for delivery). We then derive the newest-per-user
-        # in-memory from this same result.
         recipient_ids = set(patient_ids) | {
             link.caretaker_id for link in care_links if link.notify
         }
+
+        # Web Push subscriptions
         subs_by_user: dict[str, list[PushSubscription]] = {}
         if recipient_ids:
             for sub in db.exec(
@@ -347,12 +349,21 @@ def _run_tick() -> int:
             ).all():
                 subs_by_user.setdefault(sub.user_id, []).append(sub)
 
-        # newest_sub maps user_id -> their most recent PushSubscription (for tz)
         newest_sub: dict[str, PushSubscription] = {}
         for user_id, subs_list in subs_by_user.items():
             newest_sub[user_id] = max(
                 subs_list, key=lambda s: s.created_at or datetime.min
             )
+
+        # FCM device tokens (mobile apps)
+        fcm_by_user: dict[str, list[FcmToken]] = {}
+        if recipient_ids:
+            for fcm in db.exec(
+                select(FcmToken).where(
+                    FcmToken.user_id.in_(recipient_ids)  # type: ignore[attr-defined]
+                )
+            ).all():
+                fcm_by_user.setdefault(fcm.user_id, []).append(fcm)
 
         links_by_patient: dict[str, list[CareLink]] = {}
         for link in care_links:
@@ -366,8 +377,10 @@ def _run_tick() -> int:
                     meds=meds_by_patient[patient_id],
                     user=users_by_id.get(patient_id),
                     subs=subs_by_user.get(patient_id, []),
+                    fcm_tokens=fcm_by_user.get(patient_id, []),
                     links=links_by_patient.get(patient_id, []),
                     subs_by_user=subs_by_user,
+                    fcm_by_user=fcm_by_user,
                 )
             except Exception:
                 logger.exception("reminder tick failed for patient %s", patient_id)
@@ -383,16 +396,12 @@ def _tick_patient(
     meds: list[Medicine],
     user: User | None,
     subs: list[PushSubscription],
+    fcm_tokens: list[FcmToken],
     links: list[CareLink],
     subs_by_user: dict[str, list[PushSubscription]],
+    fcm_by_user: dict[str, list[FcmToken]],
 ) -> int:
-    """Fire this patient's due doses.
-
-    [meds], [user], [subs], [links], [subs_by_user] arrive pre-loaded from the
-    caller's batched queries rather than being fetched here — see _run_tick.
-    Everything below the `if not due` return is on the rare path (a dose
-    actually being due), so it stays lazy.
-    """
+    """Fire this patient's due doses."""
     now = doses.local_now(_patient_timezone(user, subs))
     today = now.strftime("%Y-%m-%d")
 
@@ -414,8 +423,6 @@ def _tick_patient(
         mins = doses.minutes_of_day(slot)
         if mins is None:
             continue
-        # The dose slot itself, in the patient's local zone — the send time may
-        # be up to GRACE_MINUTES later, but the slot is what identifies it.
         scheduled_for = datetime.combine(
             now.date(), datetime.min.time()
         ).replace(hour=mins // 60, minute=mins % 60)
@@ -433,10 +440,11 @@ def _tick_patient(
                 scheduled_for=scheduled_for,
             )
             if row is None:
-                continue  # already delivered on an earlier tick
+                continue
             if _deliver(
                 db,
                 subs_by_user.get(recipient.user_id, []),
+                fcm_by_user.get(recipient.user_id, []),
                 _payload(med, patient_name, slot, today, recipient),
                 row,
             ):

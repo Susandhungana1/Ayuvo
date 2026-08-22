@@ -48,6 +48,9 @@ dependencies:
   printing: ^5.15.0
   pdf: ^3.13.0
   path_provider: ^2.1.6
+  # Firebase Cloud Messaging for reliable push reminders.
+  firebase_core: ^3.13.0
+  firebase_messaging: ^15.2.0
   # Browser APIs (localStorage, Notification, PushManager, ServiceWorker) for
   # the web build. Present transitively already; declared so the web-only files
   # that import it can lint cleanly.

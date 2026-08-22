@@ -118,3 +118,9 @@ services:
       # deleted, so re-enabling restores them.
       - key: CARETAKER_ENABLED
         value: "true"
+      # Firebase Cloud Messaging — path to the service-account JSON inside the
+      # Docker image. The file is COPYed by the Dockerfile; this just tells the
+      # Python code where to find it. Add this key by hand in the Render
+      # dashboard too (see comment at top of file).
+      - key: FIREBASE_SERVICE_ACCOUNT_PATH
+        value: "serviceAccountKey.json"

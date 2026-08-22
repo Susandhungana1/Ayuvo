@@ -54,3 +54,6 @@ pydantic-settings==2.7.1
 
 # Testing
 pytest==8.3.4
+
+# Firebase Cloud Messaging (mobile push reminders)
+firebase-admin>=6.5.0

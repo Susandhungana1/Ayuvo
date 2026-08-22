@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/l10n/context_l10n.dart';
+import '../../../core/notifications/fcm_service.dart';
 import '../../../core/notifications/reminder_sync.dart';
 import '../../../core/notifications/reminders.dart';
 import '../../../core/theme/app_tokens.dart';
@@ -39,6 +40,10 @@ class AppShell extends ConsumerWidget {
     // creating the push subscription stays the first awaited call of the
     // user's tap (iOS revokes the gesture token at any earlier await).
     ref.read(remindersProvider).initialise();
+
+    // Register FCM for reliable background reminders. The server can then
+    // push dose reminders even when the app is fully killed.
+    ref.read(fcmServiceProvider).register();
 
     return Scaffold(
       body: shell,

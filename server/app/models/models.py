@@ -229,6 +229,18 @@ class PushSubscription(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utcnow)
 
 
+class FcmToken(SQLModel, table=True):
+    """An FCM device token for mobile push delivery."""
+
+    __tablename__ = "fcm_tokens"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
+    token: str = Field(unique=True)
+    timezone: str = "UTC"
+    created_at: datetime = Field(default_factory=utcnow)
+
+
 class MedicalFile(SQLModel, table=True):
     __tablename__ = "medical_files"
 

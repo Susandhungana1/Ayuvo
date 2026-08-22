@@ -32,3 +32,7 @@ venv/
 .venv/
 server/venv/
 server/.venv/
+
+# Firebase — secrets that must not be committed
+server/serviceAccountKey.json
+mobile/android/app/google-services.json
