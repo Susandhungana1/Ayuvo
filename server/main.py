@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
@@ -154,6 +155,10 @@ async def health():
     # the flag's state, which is not a secret.
     from app.core.fcm import fcm_available
 
+    # Brief FCM diagnostics (non-sensitive — just confirms the env var arrived).
+    _fb_creds = os.environ.get("FIREBASE_CREDENTIALS", "")
+    _fb_path = settings.firebase_service_account_path
+
     return Response(
         content=json.dumps({
             "status": "ok",
@@ -163,6 +168,11 @@ async def health():
             "doctor_confirms_bookings": settings.doctor_confirms_bookings,
             "frontend_url": settings.frontend_url,
             "fcm": fcm_available(),
+            "fcm_debug": {
+                "env_var_set": bool(_fb_creds),
+                "env_var_length": len(_fb_creds),
+                "file_path": _fb_path or None,
+            },
         }),
         media_type="application/json",
         status_code=200 if db_ok else 503,
