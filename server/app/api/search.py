@@ -1,10 +1,11 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 from sqlmodel import Session, select, or_
 
 from app.api.auth import get_current_user
 from app.core.config import get_session
+from app.core.ratelimit import limiter
 from app.models.models import User, MedicalReport, Medicine, MedicalDocument
 
 router = APIRouter()
@@ -25,7 +26,9 @@ class SearchResponse(BaseModel):
 
 
 @router.get("", response_model=SearchResponse)
+@limiter.limit("60/hour")
 async def search(
+    request: Request,
     q: str = Query(default="", min_length=1),
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=200),

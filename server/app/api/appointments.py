@@ -1,12 +1,13 @@
 import httpx
 from datetime import datetime, timezone, timedelta, time
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, field_validator
 from sqlalchemy import text
 from sqlmodel import Session, select, and_
 from app.api.auth import get_current_user
 from app.core.config import get_session, settings
+from app.core.ratelimit import limiter
 from app.core.time import utcnow
 from app.models.models import User, Appointment, Doctor, DoctorAvailability, AppointmentStatus, DayOfWeek
 
@@ -206,7 +207,9 @@ def is_slot_available(db: Session, doctor_id: str, appointment_date: datetime, d
 
 
 @router.post("", response_model=AppointmentResponse)
+@limiter.limit("20/hour")
 async def create_appointment(
+    request: Request,
     appt_data: AppointmentCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session)

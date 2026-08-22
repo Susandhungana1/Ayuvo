@@ -14,3 +14,8 @@ src/upload
 # Local object storage (STORAGE_BACKEND=local) — never commit patient files
 /storage/
 storage/
+
+# Firebase & signing secrets — NEVER commit
+serviceAccountKey.json
+*.jks
+key.properties

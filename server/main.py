@@ -53,7 +53,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # deploys. Scoped to our own project's subdomains — NOT all of *.vercel.app — so
 # renaming or redeploying the frontend never silently breaks API calls, without
 # hand-editing CORS_ORIGINS on Render each time.
-VERCEL_ORIGIN_REGEX = r"^https://(medistore-health|medistore-share[\w-]*|front[\w-]*)\.vercel\.app$"
+VERCEL_ORIGIN_REGEX = r"^https://(medistore-health|medistore-share[\w-]*|front-medistore-app|front-git-[\w-]*susan[\w-]*|front-five-woad-12)\.vercel\.app$"
 
 app.add_middleware(
     CORSMiddleware,

@@ -13,6 +13,7 @@ from app.api.auth import get_current_user
 from app.core.config import get_session, settings, engine
 from app.core import storage
 from app.core.audit import record_access
+from app.core.ratelimit import limiter
 from app.core.lab_analysis import (
     REFERENCE_RANGES, analyze_lab_text, apply_overrides, summarize_findings,
 )
@@ -167,6 +168,7 @@ async def _read_upload(request: Request, file: UploadFile) -> bytes:
 
 
 @router.post("", response_model=ReportResponse)
+@limiter.limit("20/hour")
 async def create_report(
     background_tasks: BackgroundTasks,
     request: Request,

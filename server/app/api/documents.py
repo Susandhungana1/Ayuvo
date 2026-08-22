@@ -8,6 +8,7 @@ from app.api.auth import get_current_user
 from app.core.config import get_session
 from app.core import storage
 from app.core.audit import record_access
+from app.core.ratelimit import limiter
 from app.models.models import User, MedicalDocument, MedicalFile
 
 router = APIRouter()
@@ -58,7 +59,9 @@ class FileResponse(BaseModel):
 
 
 @router.post("", response_model=DocumentResponse)
+@limiter.limit("30/hour")
 async def create_document(
+    request: Request,
     doc_data: DocumentCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session)
@@ -145,6 +148,7 @@ MAX_FILE_SIZE = 10 * 1024 * 1024
 
 
 @router.post("/{doc_id}/files", response_model=FileResponse)
+@limiter.limit("30/hour")
 async def upload_document_file(
     doc_id: str,
     request: Request,

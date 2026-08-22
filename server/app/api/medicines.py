@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
@@ -8,6 +8,7 @@ from app.api.auth import get_current_user
 from app.core.care import resolve_medicine_scope, utc_iso
 from app.core.config import get_session
 from app.core.drug_interactions import check_interactions
+from app.core.ratelimit import limiter
 from app.core.time import utcnow
 from app.models.models import User, Medicine, MedicineAudit, MedicineIntakeLog
 
@@ -296,7 +297,9 @@ async def list_intake_log(
 
 
 @router.post("", response_model=MedicineResponse)
+@limiter.limit("60/hour")
 async def create_medicine(
+    request: Request,
     data: MedicineCreate,
     patient_id: PatientScope = Query(default=None),
     current_user: User = Depends(get_current_user),
