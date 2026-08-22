@@ -14,6 +14,7 @@
 library;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -25,45 +26,37 @@ import '../session/session_controller.dart';
 /// or method), and must be registered before any FCM subscription.
 @pragma('vm:entry-point')
 Future<void> fcmBackgroundHandler(RemoteMessage message) async {
-  // Background handlers run in a separate isolate. No Riverpod, no shared
-  // state — just enough to let the OS show the notification that FCM already
-  // carries in its payload.
   debugPrint('FCM background message: ${message.messageId}');
 }
 
 /// Manages the FCM lifecycle: token, foreground messages, and server
-/// registration.
+/// registration. No-ops on web where Firebase is not initialized.
 class FcmService {
   FcmService(this._client);
 
   final ApiClient _client;
-  final _messaging = FirebaseMessaging.instance;
   bool _registered = false;
 
   /// Called once after sign-in. Requests permission (Android 13+ / iOS),
   /// obtains the token, and registers it with the server.
   Future<void> register() async {
-    if (_registered) return;
+    if (_registered || kIsWeb) return;
 
-    // Request permission. On Android 13+ this shows the system dialog;
-    // on iOS it shows the alert; on older Android it's a no-op that returns
-    // 'authorized'.
-    final settings = await _messaging.requestPermission(
+    final messaging = FirebaseMessaging.instance;
+
+    final settings = await messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
     );
     debugPrint('FCM permission: ${settings.authorizationStatus}');
 
-    // Get the token. On Android this returns the FCM token; on iOS the APNs
-    // token wrapped for FCM. Returns null if the device cannot provide one.
-    final token = await _messaging.getToken();
+    final token = await messaging.getToken();
     if (token != null) {
       await _sendToken(token);
     }
 
-    // Listen for token refreshes (the server needs the latest token).
-    _messaging.onTokenRefresh.listen(_sendToken);
+    messaging.onTokenRefresh.listen(_sendToken);
 
     _registered = true;
   }
@@ -78,23 +71,23 @@ class FcmService {
       );
       debugPrint('FCM token registered with server');
     } catch (error) {
-      // Non-fatal: the server may be down. The local reminders still work
-      // while the app is alive; only the background delivery path is affected.
       debugPrint('FCM token registration failed: $error');
     }
   }
 
   /// Deletes the token from the server on sign-out.
   Future<void> unregister() async {
+    if (kIsWeb) return;
     try {
-      final token = await _messaging.getToken();
+      final messaging = FirebaseMessaging.instance;
+      final token = await messaging.getToken();
       if (token != null) {
         await _client.post<Map<String, dynamic>>(
           '/api/push/fcm/remove',
           body: {'token': token},
         );
       }
-      await _messaging.deleteToken();
+      await messaging.deleteToken();
     } catch (_) {
       // Best-effort cleanup.
     }
@@ -120,20 +113,15 @@ class FcmSync extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final fcm = ref.watch(fcmServiceProvider);
 
-    // React to sign-in / sign-out.
     ref.listen<Object?>(currentUserProvider, (previous, next) {
       if (next != null && previous == null) {
-        // Signed in — register FCM.
         fcm.register();
       } else if (next == null && previous != null) {
-        // Signed out — unregister.
         fcm.unregister();
       }
     });
 
-    // First launch with an existing session.
     if (user != null) {
-      // Fire-and-forget: registration happens asynchronously.
       fcm.register();
     }
 
