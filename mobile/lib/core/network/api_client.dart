@@ -130,7 +130,7 @@ class ApiClient {
       final response = await _refreshDio.post<Map<String, dynamic>>(
         '/api/auth/refresh',
         data: {'refresh_token': refreshToken},
-      ).timeout(const Duration(seconds: 3));
+      ).timeout(const Duration(seconds: 30));
       final data = response.data;
       if (data == null) return false;
       _token = data['token'] as String;
