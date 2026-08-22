@@ -127,7 +127,7 @@ async def delete_emergency_contact(
 
 
 @router.get("/public/{user_id}", response_model=EmergencyProfileResponse)
-@limiter.limit("30/hour")
+@limiter.limit("10/hour")
 async def get_public_emergency_profile(
     request: Request,
     user_id: str,

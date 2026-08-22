@@ -96,7 +96,11 @@ class Settings(BaseSettings):
 
     @property
     def cors_origin_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        if self.cors_origins.strip():
+            return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        if not self.is_production:
+            return ["http://localhost:3000", "http://127.0.0.1:3000"]
+        return []
 
 
 # Sentinel values that must never survive into production.

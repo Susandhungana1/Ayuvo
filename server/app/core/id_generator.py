@@ -1,5 +1,5 @@
 """User ID generator for #hosxxx format"""
-from sqlmodel import Session, select, create_engine
+from sqlmodel import Session, select, create_engine, text
 from app.models.models import IDCounter
 from app.core.config import settings
 
@@ -15,22 +15,25 @@ def _get_engine():
 
 
 def generate_user_id() -> str:
-    """Generate a new user ID in format #hosxxx"""
+    """Generate a new user ID in format #hosxxx.
+
+    Uses ``SELECT ... FOR UPDATE`` to lock the counter row for the duration
+    of the transaction, preventing two concurrent registrations from receiving
+    the same number.
+    """
     engine = _get_engine()
 
     with Session(engine) as session:
-        # Get or create counter
-        counter = session.get(IDCounter, 1)
-        if not counter:
-            counter = IDCounter(id=1, last_number=0)
-            session.add(counter)
-            session.commit()
-            session.refresh(counter)
-
-        # Increment counter
-        counter.last_number += 1
-        new_number = counter.last_number
-        session.add(counter)
+        # Upsert atomically: insert the counter if missing, then increment.
+        # ``RETURNING`` gives us the new value in one round-trip with no race.
+        result = session.execute(
+            text(
+                "INSERT INTO id_counter (id, last_number) VALUES (1, 1) "
+                "ON CONFLICT (id) DO UPDATE SET last_number = id_counter.last_number + 1 "
+                "RETURNING last_number"
+            )
+        )
+        new_number = result.fetchone()[0]
         session.commit()
 
     # Format as #hosxxx (3 digits with leading zeros)

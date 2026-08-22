@@ -127,23 +127,28 @@ class MedicineResponse(BaseModel):
 
 class MedicinesListResponse(BaseModel):
     medicines: List[MedicineResponse]
+    total: int
 
 
 @router.get("", response_model=MedicinesListResponse)
 async def list_medicines(
     patient_id: PatientScope = Query(default=None),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
     scope = resolve_medicine_scope(db, actor_id=current_user.id, patient_id=patient_id)
-    medicines = db.exec(
+    all_medicines = db.exec(
         select(Medicine)
         .where(
             Medicine.user_id == scope,
             Medicine.deleted_at.is_(None),  # type: ignore[union-attr]
         )
-        .order_by(Medicine.created_at.desc())
     ).all()
+    total = len(all_medicines)
+    medicines = sorted(all_medicines, key=lambda m: m.created_at or datetime.min, reverse=True)
+    medicines = medicines[offset:offset + limit]
 
     return MedicinesListResponse(
         medicines=[
@@ -159,7 +164,8 @@ async def list_medicines(
                 created_at=str(m.created_at) if m.created_at else None
             )
             for m in medicines
-        ]
+        ],
+        total=total,
     )
 
 

@@ -1,9 +1,8 @@
 import httpx
 from datetime import datetime, timezone, timedelta, time
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, field_validator
-from sqlalchemy import text
 from sqlalchemy import text
 from sqlmodel import Session, select, and_
 from app.api.auth import get_current_user
@@ -52,6 +51,7 @@ class AppointmentResponse(BaseModel):
 
 class AppointmentListResponse(BaseModel):
     appointments: List[AppointmentResponse]
+    total: int
 
 
 class AvailableSlot(BaseModel):
@@ -268,13 +268,21 @@ async def create_appointment(
 
 @router.get("", response_model=AppointmentListResponse)
 async def list_appointments(
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
+    total = len(db.exec(
+        select(Appointment)
+        .where(Appointment.user_id == current_user.id)
+    ).all())
     appointments = db.exec(
         select(Appointment)
         .where(Appointment.user_id == current_user.id)
         .order_by(Appointment.appointment_date.asc())
+        .offset(offset)
+        .limit(limit)
     ).all()
 
     return AppointmentListResponse(
@@ -293,7 +301,8 @@ async def list_appointments(
                 reminder_sent=a.reminder_sent
             )
             for a in appointments
-        ]
+        ],
+        total=total,
     )
 
 
@@ -472,6 +481,8 @@ async def delete_appointment(
 
 @router.get("/doctor/my-appointments", response_model=AppointmentListResponse)
 async def list_doctor_appointments(
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
@@ -482,10 +493,16 @@ async def list_doctor_appointments(
     if not doctor:
         raise HTTPException(status_code=404, detail="Doctor profile not found")
     
+    total = len(db.exec(
+        select(Appointment)
+        .where(Appointment.doctor_id == doctor.id)
+    ).all())
     appointments = db.exec(
         select(Appointment)
         .where(Appointment.doctor_id == doctor.id)
         .order_by(Appointment.appointment_date.asc())
+        .offset(offset)
+        .limit(limit)
     ).all()
     
     return AppointmentListResponse(
@@ -504,5 +521,6 @@ async def list_doctor_appointments(
                 reminder_sent=a.reminder_sent
             )
             for a in appointments
-        ]
+        ],
+        total=total,
     )

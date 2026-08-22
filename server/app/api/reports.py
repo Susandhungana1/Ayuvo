@@ -2,9 +2,10 @@ import uuid
 import os
 import asyncio
 import json
+import logging
 from datetime import datetime
 from typing import Optional, List
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, UploadFile, File, Form, Request
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
@@ -19,6 +20,7 @@ from app.core.ocr import extract_report_text
 from app.models.models import User, MedicalReport, MedicalReportType, MedicalDocument
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def get_report_bytes(report: MedicalReport) -> Optional[bytes]:
@@ -53,6 +55,7 @@ class ReportResponse(BaseModel):
 
 class ReportListResponse(BaseModel):
     reports: List[ReportResponse]
+    total: int
 
 
 class LabFinding(BaseModel):
@@ -110,14 +113,24 @@ def _build_report_response(report: MedicalReport, db: Session) -> ReportResponse
     )
 
 
+_OCR_TIMEOUT_SECONDS = 120
+
+
 def _extract_and_store(report_id: str, content: bytes, file_name: str) -> None:
     """Run OCR outside the request lifecycle and persist the result, so an
     upload never blocks on a multi-second Tesseract pass. Opens its own session
     because the request's transaction is already committed."""
     try:
-        text = asyncio.run(extract_report_text(content, file_name))
+        text = asyncio.wait_for(
+            extract_report_text(content, file_name),
+            timeout=_OCR_TIMEOUT_SECONDS,
+        )
+        text = asyncio.run(text)
+    except asyncio.TimeoutError:
+        logger.warning("OCR timed out after %ds for report %s", _OCR_TIMEOUT_SECONDS, report_id)
+        text = None
     except Exception as e:  # noqa: BLE001 — best-effort, never fatal
-        print(f"OCR background error: {e}")
+        logger.exception("OCR background error: %s", e)
         text = None
     try:
         with Session(engine) as db:
@@ -129,7 +142,7 @@ def _extract_and_store(report_id: str, content: bytes, file_name: str) -> None:
             db.add(report)
             db.commit()
     except Exception as e:  # noqa: BLE001
-        print(f"OCR background store error: {e}")
+        logger.exception("OCR background store error: %s", e)
 
 
 MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -205,17 +218,26 @@ async def create_report(
 
 @router.get("", response_model=ReportListResponse)
 async def list_reports(
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
+    total = len(db.exec(
+        select(MedicalReport)
+        .where(MedicalReport.user_id == current_user.id)
+    ).all())
     reports = db.exec(
         select(MedicalReport)
         .where(MedicalReport.user_id == current_user.id)
         .order_by(MedicalReport.created_at.desc())
+        .offset(offset)
+        .limit(limit)
     ).all()
     
     return ReportListResponse(
-        reports=[_build_report_response(r, db) for r in reports]
+        reports=[_build_report_response(r, db) for r in reports],
+        total=total,
     )
 
 

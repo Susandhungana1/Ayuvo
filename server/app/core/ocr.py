@@ -8,6 +8,7 @@ logic is unit-testable without HTTP.
 """
 
 import io
+import logging
 import re
 from typing import Optional
 
@@ -15,6 +16,7 @@ from PIL import Image, ImageOps, ImageFilter
 import pytesseract
 
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".webp")
+logger = logging.getLogger(__name__)
 
 # Tesseract: LSTM engine (--oem 1) + "assume a uniform block of text" (--psm 6),
 # which transcribes tabular lab reports more reliably than the default auto mode
@@ -79,7 +81,7 @@ def ocr_image_bytes(content: bytes) -> Optional[str]:
         text = _best_ocr_pass(preprocess(image))
         return text.strip() or None
     except Exception as e:  # noqa: BLE001 — OCR is best-effort, never fatal
-        print(f"OCR image error: {e}")
+        logger.exception("OCR image error: %s", e)
         return None
 
 
@@ -100,7 +102,7 @@ def extract_pdf(content: bytes) -> Optional[str]:
             if txt:
                 parts.append(txt)
     except Exception as e:  # noqa: BLE001
-        print(f"PDF extract error: {e}")
+        logger.exception("PDF extract error: %s", e)
     joined = "\n".join(parts).strip()
     return joined or None
 

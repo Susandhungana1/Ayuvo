@@ -579,12 +579,15 @@ async def list_claims_on_my_records(
         .order_by(ClaimedShare.claimed_at.desc())
     ).all()
 
+    recipient_ids = list({c.recipient_id for c in claims})
+    recipients = db.exec(select(User).where(User.id.in_(recipient_ids))).all() if recipient_ids else []
+    recipient_map = {u.id: u.name for u in recipients}
+
     entries = []
     for c in claims:
-        recipient = db.get(User, c.recipient_id)
         entries.append(ClaimAuditEntry(
             id=c.id,
-            recipient_name=recipient.name if recipient else "Deleted account",
+            recipient_name=recipient_map.get(c.recipient_id, "Deleted account"),
             recipient_id=c.recipient_id,
             kind=c.kind,
             report_count=len(c.report_ids),

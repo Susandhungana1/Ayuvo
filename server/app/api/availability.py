@@ -116,9 +116,12 @@ async def list_doctors(
 ):
     doctors = db.exec(select(Doctor).where(Doctor.verified == True)).all()
 
+    user_ids = [d.user_id for d in doctors]
+    users = db.exec(select(User).where(User.id.in_(user_ids))).all() if user_ids else []
+    user_map = {u.id: u.name for u in users}
+
     result = []
     for doctor in doctors:
-        doctor_user = db.exec(select(User).where(User.id == doctor.user_id)).first()
         result.append(DoctorResponse(
             id=doctor.id,
             nmid=doctor.nmid,
@@ -126,7 +129,7 @@ async def list_doctors(
             specialty=doctor.specialty,
             verified=doctor.verified,
             user_id=doctor.user_id,
-            name=doctor_user.name if doctor_user else "Unknown"
+            name=user_map.get(doctor.user_id, "Unknown")
         ))
 
     return DoctorListResponse(doctors=result)
