@@ -152,6 +152,8 @@ async def health():
     # request gets 401 whether the feature is on or off — there is otherwise no
     # way to confirm a flag flip actually reached the running process. Reports
     # the flag's state, which is not a secret.
+    from app.core.fcm import fcm_available
+
     return Response(
         content=json.dumps({
             "status": "ok",
@@ -160,6 +162,7 @@ async def health():
             "caretaker": settings.caretaker_enabled,
             "doctor_confirms_bookings": settings.doctor_confirms_bookings,
             "frontend_url": settings.frontend_url,
+            "fcm": fcm_available(),
         }),
         media_type="application/json",
         status_code=200 if db_ok else 503,
