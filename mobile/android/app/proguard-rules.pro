@@ -13,3 +13,8 @@
 
 # Keep source file names and line numbers for crash reports
 -keepattributes SourceFile,LineNumberTable
+
+# Google Play Core (Flutter embedder references, not actually used)
+-dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
