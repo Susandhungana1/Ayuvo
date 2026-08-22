@@ -13,6 +13,7 @@ from app.api.reports import get_report_bytes
 from app.core.config import get_session
 from app.core.audit import record_access
 from app.core.lab_analysis import analyze_lab_text, apply_overrides, summarize_findings
+from app.core.time import utcnow
 from app.core.ratelimit import limiter, user_key
 from app.models.models import (
     User, MedicalReport, Medicine, ShareLink, EmergencyContact, ClaimedShare,
@@ -151,7 +152,7 @@ async def create_all_reports_share_link(
         raise HTTPException(status_code=400, detail="Nothing to share")
 
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.utcnow() + timedelta(hours=expires_hours)
+    expires_at = utcnow() + timedelta(hours=expires_hours)
 
     # A whole-record share exposes every report and medicine, so it gets a
     # 6-digit PIN the sharer must hand over separately (or read out). A
@@ -189,7 +190,7 @@ async def access_all_shared_reports(
     if not share_link.all_reports:
         raise HTTPException(status_code=404, detail="Invalid share link")
 
-    if share_link.expires_at < datetime.utcnow():
+    if share_link.expires_at < utcnow():
         raise HTTPException(status_code=410, detail="Share link expired")
 
     if share_link.pin_hash is not None:
@@ -372,7 +373,7 @@ async def claim_share(
     share_link = db.exec(select(ShareLink).where(ShareLink.token == token)).first()
     if not share_link:
         raise HTTPException(status_code=404, detail="Share link not found")
-    if share_link.expires_at < datetime.utcnow():
+    if share_link.expires_at < utcnow():
         raise HTTPException(
             status_code=410,
             detail="This link has expired, so it can no longer be saved. Ask the sender for a new one.",
@@ -555,7 +556,7 @@ async def drop_received_share(
         raise HTTPException(status_code=404, detail="Not found")
 
     claim.status = "revoked"
-    claim.revoked_at = datetime.utcnow()
+    claim.revoked_at = utcnow()
     claim.revoked_by = current_user.id
     db.add(claim)
     db.commit()
@@ -615,7 +616,7 @@ async def revoke_claim(
         raise HTTPException(status_code=404, detail="Not found")
 
     claim.status = "revoked"
-    claim.revoked_at = datetime.utcnow()
+    claim.revoked_at = utcnow()
     claim.revoked_by = current_user.id
     db.add(claim)
     db.commit()
@@ -643,7 +644,7 @@ async def create_share_link(
         raise HTTPException(status_code=404, detail="Report not found")
     
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.utcnow() + timedelta(hours=expires_hours)
+    expires_at = utcnow() + timedelta(hours=expires_hours)
     
     share_link = ShareLink(
         token=token,
@@ -671,7 +672,7 @@ async def access_shared_report(
     if not share_link:
         raise HTTPException(status_code=404, detail="Share link not found")
 
-    if share_link.expires_at < datetime.utcnow():
+    if share_link.expires_at < utcnow():
         raise HTTPException(status_code=410, detail="Share link expired")
 
     # A whole-record link carries no report_id, so it cannot be read here. The
@@ -735,7 +736,7 @@ def _resolve_shared_report(token: str, report_id: Optional[str], db: Session) ->
     share_link = db.exec(select(ShareLink).where(ShareLink.token == token)).first()
     if not share_link:
         raise HTTPException(status_code=404, detail="Share link not found")
-    if share_link.expires_at < datetime.utcnow():
+    if share_link.expires_at < utcnow():
         raise HTTPException(status_code=410, detail="Share link expired")
 
     rid = report_id or share_link.report_id

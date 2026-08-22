@@ -25,6 +25,7 @@ except Exception:  # pragma: no cover
 from sqlmodel import Session, select
 
 from app.models.models import Medicine, PushSubscription, User
+from app.core.time import utcnow
 
 DEFAULT_TZ = "UTC"
 
@@ -69,7 +70,7 @@ def zone(tz_name: Optional[str]):
 
 def local_now(tz_name: Optional[str]) -> datetime:
     tz = zone(tz_name)
-    return datetime.now(tz) if tz else datetime.utcnow()
+    return datetime.now(tz) if tz else utcnow()
 
 
 def timezone_from(user: Optional[User], newest_sub: Optional[PushSubscription]) -> str:

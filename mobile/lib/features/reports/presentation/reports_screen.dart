@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/time/medi_time.dart';
+import '../../../core/widgets/load_more_button.dart';
 import '../../../core/widgets/range_bar.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/states.dart';
@@ -97,6 +98,20 @@ class _Loaded extends ConsumerWidget {
             padding: const EdgeInsets.only(bottom: AppSpacing.md),
             child: _ReportCard(report: report),
           ),
+        Consumer(
+          builder: (context, ref, _) {
+            final offset = ref.watch(reportsOffsetProvider);
+            final total = ref.watch(reportsTotalProvider);
+            final loadingMore = ref.watch(reportsLoadingMoreProvider);
+            return LoadMoreButton(
+              offset: offset,
+              total: total,
+              loading: loadingMore,
+              onTap: () =>
+                  ref.read(reportsProvider.notifier).loadMore(),
+            );
+          },
+        ),
         const SizedBox(height: 88),
       ],
     );

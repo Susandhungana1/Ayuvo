@@ -1,7 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from sqlmodel import Session, select
+from sqlmodel import Session, select, or_
 
 from app.api.auth import get_current_user
 from app.core.config import get_session
@@ -27,6 +27,8 @@ class SearchResponse(BaseModel):
 @router.get("", response_model=SearchResponse)
 async def search(
     q: str = Query(default="", min_length=1),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session),
 ):
@@ -34,91 +36,96 @@ async def search(
     if not query:
         return SearchResponse(query=query, results=[], total=0)
 
-    results = []
-    seen = set()
+    pattern = f"%{query}%"
+    results: list[SearchResultItem] = []
+    seen: set[str] = set()
 
-    query_lower = query.lower()
-
-    reports = db.exec(
+    # --- Reports: search type, notes, extracted_text, file_name ---
+    report_rows = db.exec(
         select(MedicalReport)
         .where(MedicalReport.user_id == current_user.id)
+        .where(
+            or_(
+                MedicalReport.report_type.ilike(pattern),
+                MedicalReport.notes.ilike(pattern),
+                MedicalReport.extracted_text.ilike(pattern),
+                MedicalReport.file_name.ilike(pattern),
+            )
+        )
         .order_by(MedicalReport.created_at.desc())
     ).all()
 
-    for report in reports:
-        if report.id in seen:
+    for r in report_rows:
+        if r.id in seen:
             continue
-        searchable = " ".join(filter(None, [
-            report.report_type.value if hasattr(report.report_type, 'value') else str(report.report_type),
-            report.notes or "",
-            report.extracted_text or "",
-            report.file_name or "",
-        ])).lower()
-        if query_lower in searchable:
-            seen.add(report.id)
-            snippet = report.notes or report.extracted_text or ""
-            snippet = snippet[:200] if snippet else ""
-            results.append(SearchResultItem(
-                type="report",
-                id=report.id,
-                title=f"{report.file_name} ({report.report_type.value if hasattr(report.report_type, 'value') else report.report_type})",
-                snippet=snippet,
-                date=str(report.created_at) if report.created_at else None,
-            ))
+        seen.add(r.id)
+        snippet = r.notes or r.extracted_text or ""
+        results.append(SearchResultItem(
+            type="report",
+            id=r.id,
+            title=f"{r.file_name} ({r.report_type.value if hasattr(r.report_type, 'value') else r.report_type})",
+            snippet=snippet[:200] if snippet else None,
+            date=str(r.created_at) if r.created_at else None,
+        ))
 
-    medicines = db.exec(
+    # --- Medicines: search name, dosage, frequency, notes ---
+    medicine_rows = db.exec(
         select(Medicine)
         .where(Medicine.user_id == current_user.id)
         .where(Medicine.deleted_at.is_(None))
+        .where(
+            or_(
+                Medicine.name.ilike(pattern),
+                Medicine.dosage.ilike(pattern),
+                Medicine.frequency.ilike(pattern),
+                Medicine.notes.ilike(pattern),
+            )
+        )
         .order_by(Medicine.created_at.desc())
     ).all()
 
-    for medicine in medicines:
-        if medicine.id in seen:
+    for m in medicine_rows:
+        if m.id in seen:
             continue
-        searchable = " ".join(filter(None, [
-            medicine.name,
-            medicine.dosage,
-            medicine.frequency,
-            medicine.notes or "",
-        ])).lower()
-        if query_lower in searchable:
-            seen.add(medicine.id)
-            results.append(SearchResultItem(
-                type="medicine",
-                id=medicine.id,
-                title=medicine.name,
-                snippet=f"{medicine.dosage} - {medicine.frequency}",
-                date=str(medicine.created_at) if medicine.created_at else None,
-            ))
+        seen.add(m.id)
+        results.append(SearchResultItem(
+            type="medicine",
+            id=m.id,
+            title=m.name,
+            snippet=f"{m.dosage} - {m.frequency}",
+            date=str(m.created_at) if m.created_at else None,
+        ))
 
-    documents = db.exec(
+    # --- Documents: search hospital, doctor_name, department, description, location ---
+    doc_rows = db.exec(
         select(MedicalDocument)
         .where(MedicalDocument.user_id == current_user.id)
         .where(MedicalDocument.deleted_at.is_(None))
+        .where(
+            or_(
+                MedicalDocument.hospital.ilike(pattern),
+                MedicalDocument.doctor_name.ilike(pattern),
+                MedicalDocument.department.ilike(pattern),
+                MedicalDocument.description.ilike(pattern),
+                MedicalDocument.location.ilike(pattern),
+            )
+        )
         .order_by(MedicalDocument.created_at.desc())
     ).all()
 
-    for doc in documents:
-        if doc.id in seen:
+    for d in doc_rows:
+        if d.id in seen:
             continue
-        searchable = " ".join(filter(None, [
-            doc.hospital or "",
-            doc.doctor_name or "",
-            doc.department or "",
-            doc.description or "",
-            doc.location or "",
-        ])).lower()
-        if query_lower in searchable:
-            seen.add(doc.id)
-            snippet = doc.description or f"{doc.hospital} - {doc.doctor_name or ''}"
-            snippet = snippet[:200] if snippet else ""
-            results.append(SearchResultItem(
-                type="document",
-                id=doc.id,
-                title=f"Document - {doc.hospital}",
-                snippet=snippet,
-                date=str(doc.created_at) if doc.created_at else None,
-            ))
+        seen.add(d.id)
+        snippet = d.description or f"{d.hospital} - {d.doctor_name or ''}"
+        results.append(SearchResultItem(
+            type="document",
+            id=d.id,
+            title=f"Document - {d.hospital}",
+            snippet=snippet[:200] if snippet else None,
+            date=str(d.created_at) if d.created_at else None,
+        ))
 
-    return SearchResponse(query=query, results=results, total=len(results))
+    total = len(results)
+    results = results[offset:offset + limit]
+    return SearchResponse(query=query, results=results, total=total)

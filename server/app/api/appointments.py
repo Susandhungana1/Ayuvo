@@ -7,6 +7,7 @@ from sqlalchemy import text
 from sqlmodel import Session, select, and_
 from app.api.auth import get_current_user
 from app.core.config import get_session, settings
+from app.core.time import utcnow
 from app.models.models import User, Appointment, Doctor, DoctorAvailability, AppointmentStatus, DayOfWeek
 
 router = APIRouter()
@@ -357,7 +358,7 @@ async def update_appointment(
     appointment.appointment_date = appt_data.appointment_date
     appointment.duration_minutes = appt_data.duration_minutes
     appointment.reason = appt_data.reason
-    appointment.updated_at = datetime.utcnow()
+    appointment.updated_at = utcnow()
 
     db.add(appointment)
     db.commit()
@@ -390,7 +391,7 @@ async def update_appointment_status(
         raise HTTPException(status_code=404, detail="Appointment not found")
 
     appointment.status = status
-    appointment.updated_at = datetime.utcnow()
+    appointment.updated_at = utcnow()
 
     db.add(appointment)
     db.commit()
@@ -443,7 +444,7 @@ async def update_appointment_status_as_doctor(
         raise HTTPException(status_code=404, detail="Appointment not found")
 
     appointment.status = status
-    appointment.updated_at = datetime.utcnow()
+    appointment.updated_at = utcnow()
 
     db.add(appointment)
     db.commit()

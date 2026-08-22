@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/widgets/load_more_button.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/states.dart';
 import '../domain/medicine.dart';
@@ -148,6 +149,20 @@ class _List extends ConsumerWidget {
         for (final medicine in finished)
           _Row(medicine: medicine, patientId: patientId),
       ],
+      Consumer(
+        builder: (context, ref, _) {
+          final offset = ref.watch(medicinesOffsetProvider);
+          final total = ref.watch(medicinesTotalProvider);
+          final loadingMore = ref.watch(medicinesLoadingMoreProvider);
+          return LoadMoreButton(
+            offset: offset,
+            total: total,
+            loading: loadingMore,
+            onTap: () =>
+                ref.read(medicinesProvider(patientId).notifier).loadMore(),
+          );
+        },
+      ),
       // Clears the FAB.
       const SizedBox(height: 88),
     ];

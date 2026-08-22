@@ -7,10 +7,16 @@ import '../../../core/session/session_controller.dart';
 import '../data/document_repository.dart';
 import '../domain/document.dart';
 
+const _pageSize = 20;
+
 final documentsProvider =
     AsyncNotifierProvider<DocumentsController, List<MedicalDocument>>(
   DocumentsController.new,
 );
+
+final documentsTotalProvider = StateProvider<int>((ref) => 0);
+final documentsOffsetProvider = StateProvider<int>((ref) => 0);
+final documentsLoadingMoreProvider = StateProvider<bool>((ref) => false);
 
 class DocumentsController extends AsyncNotifier<List<MedicalDocument>> {
   DocumentRepository get _repository => ref.read(documentRepositoryProvider);
@@ -18,11 +24,35 @@ class DocumentsController extends AsyncNotifier<List<MedicalDocument>> {
   @override
   Future<List<MedicalDocument>> build() async {
     if (ref.watch(currentUserProvider) == null) return const [];
-    return _repository.list();
+    final result = await _repository.list(limit: _pageSize);
+    ref.read(documentsTotalProvider.notifier).state = result.total;
+    ref.read(documentsOffsetProvider.notifier).state = result.documents.length;
+    return result.documents;
   }
 
   Future<void> refresh() async {
-    state = await AsyncValue.guard(_repository.list);
+    final result = await _repository.list(limit: _pageSize);
+    ref.read(documentsTotalProvider.notifier).state = result.total;
+    ref.read(documentsOffsetProvider.notifier).state = result.documents.length;
+    state = AsyncData(result.documents);
+  }
+
+  Future<void> loadMore() async {
+    final currentOffset = ref.read(documentsOffsetProvider);
+    ref.read(documentsLoadingMoreProvider.notifier).state = true;
+    try {
+      final result = await _repository.list(
+        offset: currentOffset,
+        limit: _pageSize,
+      );
+      final prev = state.valueOrNull ?? const <MedicalDocument>[];
+      state = AsyncData([...prev, ...result.documents]);
+      ref.read(documentsOffsetProvider.notifier).state =
+          currentOffset + result.documents.length;
+      ref.read(documentsTotalProvider.notifier).state = result.total;
+    } finally {
+      ref.read(documentsLoadingMoreProvider.notifier).state = false;
+    }
   }
 
   Future<MedicalDocument> add({
@@ -50,6 +80,8 @@ class DocumentsController extends AsyncNotifier<List<MedicalDocument>> {
         return right.compareTo(left);
       });
     state = AsyncData(list);
+    ref.read(documentsTotalProvider.notifier).state++;
+    ref.read(documentsOffsetProvider.notifier).state++;
     return created;
   }
 
@@ -59,6 +91,8 @@ class DocumentsController extends AsyncNotifier<List<MedicalDocument>> {
       for (final document in state.valueOrNull ?? const <MedicalDocument>[])
         if (document.id != id) document,
     ]);
+    ref.read(documentsTotalProvider.notifier).state--;
+    ref.read(documentsOffsetProvider.notifier).state--;
   }
 }
 

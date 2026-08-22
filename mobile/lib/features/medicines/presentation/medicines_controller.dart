@@ -10,6 +10,8 @@ import '../../../core/session/session_controller.dart';
 import '../data/medicine_repository.dart';
 import '../domain/medicine.dart';
 
+const _pageSize = 20;
+
 /// Keyed by `patient_id`: null is "my own medicines", a real id is a patient a
 /// caretaker is acting for. Phase 6 supplies the second case; the plumbing is
 /// here from the start so the caretaker screen adds no new code path — and so
@@ -18,6 +20,10 @@ final medicinesProvider =
     AsyncNotifierProvider.family<MedicinesController, List<Medicine>, String?>(
   MedicinesController.new,
 );
+
+final medicinesTotalProvider = StateProvider<int>((ref) => 0);
+final medicinesOffsetProvider = StateProvider<int>((ref) => 0);
+final medicinesLoadingMoreProvider = StateProvider<bool>((ref) => false);
 
 class MedicinesController
     extends FamilyAsyncNotifier<List<Medicine>, String?> {
@@ -45,13 +51,23 @@ class MedicinesController
     // disk — the link that authorises it can be revoked at any moment, and a
     // cached copy would outlive the permission. `offline_cache.dart` has the
     // full reasoning; this is the only place the rule is applied.
-    if (patientId != null) return _repository.list(patientId: patientId);
+    if (patientId != null) {
+      final result = await _repository.list(patientId: patientId, limit: _pageSize);
+      ref.read(medicinesTotalProvider.notifier).state = result.total;
+      ref.read(medicinesOffsetProvider.notifier).state = result.medicines.length;
+      return result.medicines;
+    }
 
     return loadWithCache<Medicine>(
       cache: ref.watch(offlineCacheProvider),
       status: ref.read(cacheStatusProvider(CacheKeys.medicines).notifier),
       name: CacheKeys.medicines,
-      fetch: () => _repository.list(),
+      fetch: () async {
+        final result = await _repository.list(limit: _pageSize);
+        ref.read(medicinesTotalProvider.notifier).state = result.total;
+        ref.read(medicinesOffsetProvider.notifier).state = result.medicines.length;
+        return result.medicines;
+      },
       decode: Medicine.fromJson,
       encode: (medicine) => medicine.toJson(),
       publish: (fresh) => state = AsyncData(fresh),
@@ -60,16 +76,35 @@ class MedicinesController
   }
 
   Future<void> refresh() async {
-    state = await AsyncValue.guard(() => _repository.list(patientId: _patientId));
-    if (state.hasValue && _patientId == null) {
-      // A successful manual refresh is the moment the "showing a saved copy"
-      // banner should go away, and the moment the saved copy should be the one
-      // just fetched.
+    final result = await _repository.list(patientId: _patientId, limit: _pageSize);
+    ref.read(medicinesTotalProvider.notifier).state = result.total;
+    ref.read(medicinesOffsetProvider.notifier).state = result.medicines.length;
+    state = AsyncData(result.medicines);
+    if (_patientId == null) {
       ref.read(cacheStatusProvider(CacheKeys.medicines).notifier).live();
       await ref.read(offlineCacheProvider).write(
             CacheKeys.medicines,
             [for (final medicine in state.value!) medicine.toJson()],
           );
+    }
+  }
+
+  Future<void> loadMore() async {
+    final currentOffset = ref.read(medicinesOffsetProvider);
+    ref.read(medicinesLoadingMoreProvider.notifier).state = true;
+    try {
+      final result = await _repository.list(
+        patientId: _patientId,
+        offset: currentOffset,
+        limit: _pageSize,
+      );
+      final prev = state.valueOrNull ?? const <Medicine>[];
+      state = AsyncData([...prev, ...result.medicines]);
+      ref.read(medicinesOffsetProvider.notifier).state =
+          currentOffset + result.medicines.length;
+      ref.read(medicinesTotalProvider.notifier).state = result.total;
+    } finally {
+      ref.read(medicinesLoadingMoreProvider.notifier).state = false;
     }
   }
 
@@ -94,6 +129,8 @@ class MedicinesController
     );
     // The list is newest-first, and this is the newest.
     state = AsyncData([created, ...state.valueOrNull ?? const []]);
+    ref.read(medicinesTotalProvider.notifier).state++;
+    ref.read(medicinesOffsetProvider.notifier).state++;
     return created;
   }
 
@@ -133,6 +170,8 @@ class MedicinesController
       for (final medicine in state.valueOrNull ?? const <Medicine>[])
         if (medicine.id != id) medicine,
     ]);
+    ref.read(medicinesTotalProvider.notifier).state--;
+    ref.read(medicinesOffsetProvider.notifier).state--;
   }
 
   /// `POST /{id}/restore`. Used by the snackbar's Undo and, in phase 6, by the

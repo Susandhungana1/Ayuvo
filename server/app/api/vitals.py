@@ -6,6 +6,7 @@ from sqlmodel import Session, select
 
 from app.api.auth import get_current_user
 from app.core.config import get_session
+from app.core.time import utcnow
 from app.models.models import User, VitalSign
 
 router = APIRouter()
@@ -92,7 +93,7 @@ async def create_vital(
         temperature=data.temperature,
         oxygen_saturation=data.oxygen_saturation,
         notes=data.notes,
-        measured_at=data.measured_at or datetime.utcnow(),
+        measured_at=data.measured_at or utcnow(),
     )
     db.add(vital)
     db.commit()

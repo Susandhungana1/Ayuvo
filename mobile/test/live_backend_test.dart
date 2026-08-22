@@ -226,7 +226,7 @@ void main() {
     /// Retires every medicine on the account, so the next test starts from a
     /// list it can reason about.
     Future<void> clearMedicines() async {
-      for (final medicine in await medicines.list()) {
+      for (final medicine in (await medicines.list()).medicines) {
         await medicines.remove(medicine.id);
       }
     }
@@ -250,7 +250,7 @@ void main() {
       expect(DoseTimes.decode(created.takingTimes), ['08:00', '20:00']);
 
       final listed = await medicines.list();
-      expect(listed.single.times, ['08:00', '20:00']);
+      expect(listed.medicines.single.times, ['08:00', '20:00']);
     });
 
     test('"[]" clears the dose times where null would leave them alone',
@@ -281,12 +281,12 @@ void main() {
       );
 
       await medicines.remove(created.id);
-      expect(await medicines.list(), isEmpty);
+      expect((await medicines.list()).medicines, isEmpty);
 
       final restored = await medicines.restore(created.id);
       // The same id, not a copy: this is what makes the snackbar's Undo honest.
       expect(restored.id, created.id);
-      expect((await medicines.list()).single.id, created.id);
+      expect((await medicines.list()).medicines.single.id, created.id);
     });
 
     test('recording a dose is accepted with no patient_id and no undo',
@@ -740,7 +740,7 @@ void main() {
       );
       await medicines.remove(doomed.id);
 
-      expect((await medicines.list()).map((m) => m.id),
+      expect((await medicines.list()).medicines.map((m) => m.id),
           isNot(contains(doomed.id)));
       expect(
         (await search.find('doxycycline')).of(SearchKind.medicine),

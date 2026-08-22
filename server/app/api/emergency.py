@@ -8,6 +8,7 @@ from app.api.auth import get_current_user
 from app.core.config import get_session
 from app.core.audit import record_access
 from app.core.ratelimit import limiter
+from app.core.time import utcnow
 from app.models.models import User, EmergencyContact
 
 router = APIRouter()
@@ -66,7 +67,7 @@ async def update_emergency_profile(
 ):
     if data.blood_type is not None:
         current_user.blood_type = data.blood_type
-    current_user.updated_at = datetime.utcnow()
+    current_user.updated_at = utcnow()
 
     db.add(current_user)
     db.commit()

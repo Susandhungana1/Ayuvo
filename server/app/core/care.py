@@ -20,6 +20,7 @@ from fastapi import HTTPException
 from sqlmodel import Session, select
 
 from app.models.models import CareInvite, CareLink
+from app.core.time import utcnow
 
 # --- Invite codes ---
 
@@ -62,7 +63,7 @@ def hash_code(code: str) -> str:
 def utc_iso(value: datetime) -> str:
     """Serialize a naive-UTC column as an explicitly-UTC ISO string.
 
-    Timestamps are stored via datetime.utcnow(), so they carry no offset. Sent
+    Timestamps are stored via utcnow(), so they carry no offset. Sent
     bare, `Date.parse` in the browser reads them as *local* time: in Kathmandu
     (UTC+5:45) a code that expires in 15 minutes renders as already expired.
     The trailing Z is what makes the client agree with the server.
@@ -161,14 +162,14 @@ def find_redeemable_invite(db: Session, code: str) -> Optional[CareInvite]:
     ).first()
     if not invite or invite.used_at is not None:
         return None
-    if invite.expires_at < datetime.utcnow():
+    if invite.expires_at < utcnow():
         return None
     return invite
 
 
 def invalidate_outstanding_invites(db: Session, patient_id: str) -> None:
     """Burn any unused invite from this patient, so only the newest code works."""
-    now = datetime.utcnow()
+    now = utcnow()
     for old in db.exec(
         select(CareInvite).where(
             CareInvite.patient_id == patient_id,

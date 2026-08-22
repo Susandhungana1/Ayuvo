@@ -15,6 +15,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { LoadMore } from '@/components/load-more';
 import { cacheGet, cacheSet } from '@/lib/offlineCache';
 import { CareAccessRevoked, authHeaders, scopedUrl } from '@/lib/care';
 import { formatPlainDate } from '@/lib/datetime';
@@ -70,6 +71,10 @@ export function MedicineManager({
   const [interactions, setInteractions] = useState<Interaction[]>([]);
   const [offlineCopy, setOfflineCopy] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const PAGE_SIZE = 20;
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [takingTimes, setTakingTimes] = useState<string[]>(['']);
   const [error, setError] = useState('');
@@ -90,9 +95,10 @@ export function MedicineManager({
     [onAccessRevoked],
   );
 
-  const fetchMedicines = useCallback(async (): Promise<Medicine[] | null> => {
+  const fetchMedicines = useCallback(async (fetchOffset = 0): Promise<{ medicines: Medicine[]; total: number } | null> => {
     try {
-      const res = await fetch(scopedUrl('/api/medicines', patientId), {
+      const url = scopedUrl(`/api/medicines?offset=${fetchOffset}&limit=${PAGE_SIZE}`, patientId);
+      const res = await fetch(url, {
         headers: authHeaders(),
       });
       if (res.status === 403) throw new CareAccessRevoked();
@@ -100,18 +106,20 @@ export function MedicineManager({
 
       const data = await res.json();
       const list: Medicine[] = data.medicines || [];
-      if (isSelf) cacheSet('medicines', list);
-      return list;
+      if (isSelf && fetchOffset === 0) cacheSet('medicines', list);
+      return { medicines: list, total: data.total || 0 };
     } catch (err) {
       if (handle(err)) return null;
       if (!isSelf) {
         setError('Could not load medicines. Check your connection.');
         return null;
       }
-      const cached = await cacheGet<Medicine[]>('medicines');
-      if (cached && cached.data.length) {
-        setOfflineCopy(true);
-        return cached.data;
+      if (fetchOffset === 0) {
+        const cached = await cacheGet<Medicine[]>('medicines');
+        if (cached && cached.data && cached.data.length) {
+          setOfflineCopy(true);
+          return { medicines: cached.data, total: cached.data.length };
+        }
       }
       return null;
     }
@@ -135,10 +143,15 @@ export function MedicineManager({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const list = await fetchMedicines();
+      const result = await fetchMedicines(0);
       if (cancelled) return;
-      if (list !== null) setMedicines(list);
-      if (list === null) setMedicines([]);
+      if (result !== null) {
+        setMedicines(result.medicines);
+        setTotal(result.total);
+        setOffset(result.medicines.length);
+      } else {
+        setMedicines([]);
+      }
       const its = await fetchInteractions();
       if (!cancelled) setInteractions(its);
     })();
@@ -168,6 +181,8 @@ export function MedicineManager({
       }
       const created = await res.json();
       setMedicines((prev) => [created, ...(prev ?? [])]);
+      setTotal((prev) => prev + 1);
+      setOffset((prev) => prev + 1);
       setOfflineCopy(false);
       setShowForm(false);
       setFormData(EMPTY_FORM);
@@ -214,6 +229,22 @@ export function MedicineManager({
   };
 
   const today = new Date().toISOString().slice(0, 10);
+
+  const handleLoadMore = async () => {
+    setLoadingMore(true);
+    try {
+      const result = await fetchMedicines(offset);
+      if (result) {
+        setMedicines((prev) => [...(prev ?? []), ...result.medicines]);
+        setOffset((prev) => prev + result.medicines.length);
+        setTotal(result.total);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   if (medicines === null) {
     return (
@@ -452,6 +483,16 @@ export function MedicineManager({
             </div>
           )}
         </>
+      )}
+
+      {medicines.length > 0 && (
+        <LoadMore
+          offset={offset}
+          total={total}
+          limit={PAGE_SIZE}
+          loading={loadingMore}
+          onLoadMore={handleLoadMore}
+        />
       )}
     </>
   );

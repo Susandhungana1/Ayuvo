@@ -20,6 +20,7 @@ from app.core import care, doses
 from app.core.audit import record_access
 from app.core.config import get_session, settings
 from app.core.ratelimit import limiter, user_key
+from app.core.time import utcnow
 from app.models.models import CareInvite, CareLink, Medicine, User
 
 router = APIRouter()
@@ -102,7 +103,7 @@ async def create_invite(
     care.invalidate_outstanding_invites(db, current_user.id)
 
     code = care.generate_code()
-    expires_at = datetime.utcnow() + care.INVITE_TTL
+    expires_at = utcnow() + care.INVITE_TTL
     db.add(
         CareInvite(
             patient_id=current_user.id,
@@ -176,7 +177,7 @@ async def redeem_invite(
         )
 
     link = CareLink(patient_id=patient.id, caretaker_id=current_user.id)
-    invite.used_at = datetime.utcnow()
+    invite.used_at = utcnow()
     invite.used_by = current_user.id
     db.add(link)
     db.add(invite)
@@ -332,7 +333,7 @@ async def revoke_link(
         raise HTTPException(status_code=404, detail="Care link not found")
 
     link.status = "revoked"
-    link.revoked_at = datetime.utcnow()
+    link.revoked_at = utcnow()
     link.revoked_by = current_user.id
     db.add(link)
     db.commit()

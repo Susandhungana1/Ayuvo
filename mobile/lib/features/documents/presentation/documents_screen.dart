@@ -11,6 +11,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/time/medi_time.dart';
 import '../../../core/widgets/form_sheet.dart';
+import '../../../core/widgets/load_more_button.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/states.dart';
 import '../data/document_repository.dart';
@@ -47,16 +48,28 @@ class DocumentsScreen extends ConsumerWidget {
           AsyncData(:final value) => ListView.builder(
               padding: AppSpacing.screen,
               itemCount: value.length + 1,
-              itemBuilder: (context, index) => index == value.length
-                  ? const SizedBox(height: 88)
-                  : Padding(
-                      key: ValueKey(value[index].id),
-                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                      child: _DocumentCard(
-                        document: value[index],
-                        startExpanded: value[index].id == highlightId,
-                      ),
-                    ),
+              itemBuilder: (context, index) {
+                if (index == value.length) {
+                  final offset = ref.watch(documentsOffsetProvider);
+                  final total = ref.watch(documentsTotalProvider);
+                  final loadingMore = ref.watch(documentsLoadingMoreProvider);
+                  return LoadMoreButton(
+                    offset: offset,
+                    total: total,
+                    loading: loadingMore,
+                    onTap: () =>
+                        ref.read(documentsProvider.notifier).loadMore(),
+                  );
+                }
+                return Padding(
+                  key: ValueKey(value[index].id),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  child: _DocumentCard(
+                    document: value[index],
+                    startExpanded: value[index].id == highlightId,
+                  ),
+                );
+              },
             ),
           AsyncError(:final error) => ListView(
               padding: AppSpacing.screen,

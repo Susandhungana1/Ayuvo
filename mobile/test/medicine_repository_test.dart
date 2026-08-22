@@ -44,12 +44,13 @@ void main() {
 
   group('list', () {
     test('unscoped, there is no patient_id at all', () async {
-      arrange((_) => jsonResponse({'medicines': [medicineJson]}));
-      final medicines = await repository.list();
+      arrange((_) => jsonResponse({'medicines': [medicineJson], 'total': 1}));
+      final result = await repository.list();
 
-      expect(medicines, hasLength(1));
-      expect(medicines.first.times, ['08:00']);
-      expect(lastRequest().options.uri.query, isEmpty);
+      expect(result.medicines, hasLength(1));
+      expect(result.medicines.first.times, ['08:00']);
+      expect(lastRequest().options.uri.query, contains('offset=0'));
+      expect(lastRequest().options.uri.query, contains('limit=20'));
     });
 
     test('a patient id containing # survives as a query parameter', () async {

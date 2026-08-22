@@ -33,11 +33,21 @@ class MedicineRepository {
   static const _base = '/api/medicines';
 
   /// `GET /api/medicines` — newest first, soft-deleted rows excluded.
-  Future<List<Medicine>> list({String? patientId}) async {
-    final json = await _client.get<Map<String, dynamic>>(
-      ScopedUrl.build(_base, patientId: patientId),
+  Future<({List<Medicine> medicines, int total})> list({
+    String? patientId,
+    int offset = 0,
+    int limit = 20,
+  }) async {
+    final url = ScopedUrl.build(
+      _base,
+      patientId: patientId,
+      query: {'offset': offset, 'limit': limit},
     );
-    return _medicines(json);
+    final json = await _client.get<Map<String, dynamic>>(url);
+    return (
+      medicines: _medicines(json),
+      total: (json['total'] as num?)?.toInt() ?? 0,
+    );
   }
 
   /// `POST /api/medicines`.

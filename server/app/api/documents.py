@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Request
 from pydantic import BaseModel, field_validator
 from sqlmodel import Session, select
 
@@ -48,6 +48,7 @@ class DocumentResponse(BaseModel):
 
 class DocumentListResponse(BaseModel):
     documents: List[DocumentResponse]
+    total: int
 
 
 class FileResponse(BaseModel):
@@ -83,23 +84,28 @@ async def create_document(
 
 @router.get("", response_model=DocumentListResponse)
 async def list_documents(
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
+    total = len(db.exec(
+        select(MedicalDocument)
+        .where(MedicalDocument.user_id == current_user.id)
+    ).all())
     documents = db.exec(
         select(MedicalDocument)
         .where(MedicalDocument.user_id == current_user.id)
         .order_by(MedicalDocument.checkup_date.desc())
+        .offset(offset)
+        .limit(limit)
     ).all()
-    # from_attributes: MedicalDocument is an ORM object, not a dict. Without it
-    # pydantic refuses the input and every call to this endpoint 500s — which is
-    # what it has been doing. The other handlers return the ORM object and let
-    # FastAPI's response_model do the conversion, so only this one was affected.
     return DocumentListResponse(
         documents=[
             DocumentResponse.model_validate(doc, from_attributes=True)
             for doc in documents
-        ]
+        ],
+        total=total,
     )
 
 

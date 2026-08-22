@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Dialog } from '@/components/ui/dialog';
+import { LoadMore } from '@/components/load-more';
 import { formatPlainDate } from '@/lib/datetime';
 
 
@@ -37,6 +38,10 @@ export default function Documents() {
   const router = useRouter();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [total, setTotal] = useState(0);
+  const PAGE_SIZE = 20;
   const [showForm, setShowForm] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
@@ -54,15 +59,15 @@ export default function Documents() {
   });
   const [error, setError] = useState('');
 
-  const fetchDocuments = useCallback(async (): Promise<Document[]> => {
+  const fetchDocuments = useCallback(async (fetchOffset = 0): Promise<{ documents: Document[]; total: number }> => {
     const token = localStorage.getItem('token');
     if (!token) {
       router.push('/auth/login');
-      return [];
+      return { documents: [], total: 0 };
     }
 
     try {
-      const res = await apiFetch(`${API_URL}/api/documents`, {
+      const res = await apiFetch(`${API_URL}/api/documents?offset=${fetchOffset}&limit=${PAGE_SIZE}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -71,12 +76,12 @@ export default function Documents() {
 
       if (res.ok) {
         const data = await res.json();
-        return data.documents || [];
+        return { documents: data.documents || [], total: data.total || 0 };
       }
     } catch (err) {
       console.error('Fetch error:', err);
     }
-    return [];
+    return { documents: [], total: 0 };
   }, [router]);
 
   useEffect(() => {
@@ -88,8 +93,12 @@ export default function Documents() {
     let cancelled = false;
     (async () => {
       try {
-        const list = await fetchDocuments();
-        if (!cancelled) setDocuments(list);
+        const result = await fetchDocuments(0);
+        if (!cancelled) {
+          setDocuments(result.documents);
+          setTotal(result.total);
+          setOffset(result.documents.length);
+        }
       } catch (err) { console.error(err); }
       if (!cancelled) setLoading(false);
     })();
@@ -192,8 +201,10 @@ export default function Documents() {
       }
 
       setShowForm(false);
-      const list = await fetchDocuments();
-      setDocuments(list);
+      const result = await fetchDocuments(0);
+      setDocuments(result.documents);
+      setTotal(result.total);
+      setOffset(result.documents.length);
       setFormData({
         hospital: '',
         location: '',
@@ -222,6 +233,20 @@ export default function Documents() {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleLoadMore = async () => {
+    setLoadingMore(true);
+    try {
+      const result = await fetchDocuments(offset);
+      setDocuments((prev) => [...prev, ...result.documents]);
+      setOffset((prev) => prev + result.documents.length);
+      setTotal(result.total);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -410,6 +435,16 @@ export default function Documents() {
               </Card>
             ))}
           </div>
+        )}
+
+        {documents.length > 0 && (
+          <LoadMore
+            offset={offset}
+            total={total}
+            limit={PAGE_SIZE}
+            loading={loadingMore}
+            onLoadMore={handleLoadMore}
+          />
         )}
       </div>
 

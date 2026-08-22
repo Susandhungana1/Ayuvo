@@ -31,13 +31,21 @@ class ReportRepository {
   ///
   /// Carries `extracted_text` in full for **every** report, which is why the
   /// list is fetched once and cached rather than on every visit to the tab.
-  Future<List<MedicalReport>> list() async {
-    final json = await _client.get<Map<String, dynamic>>(_base);
+  Future<({List<MedicalReport> reports, int total})> list({
+    int offset = 0,
+    int limit = 20,
+  }) async {
+    final json = await _client.get<Map<String, dynamic>>(
+      '$_base?offset=$offset&limit=$limit',
+    );
     final rows = json['reports'] as List<dynamic>? ?? const [];
-    return [
-      for (final row in rows)
-        MedicalReport.fromJson(row as Map<String, dynamic>),
-    ];
+    return (
+      reports: [
+        for (final row in rows)
+          MedicalReport.fromJson(row as Map<String, dynamic>),
+      ],
+      total: (json['total'] as num?)?.toInt() ?? rows.length,
+    );
   }
 
   /// `POST /api/reports` — multipart, 10 MB cap, synchronous OCR.

@@ -13,6 +13,7 @@ from app.core.config import settings, get_session
 from app.core.email import send_email
 from app.core.ratelimit import limiter
 from app.core.audit import record_access
+from app.core.time import utcnow
 from app.models.models import User, PasswordResetToken, RefreshToken
 
 router = APIRouter()
@@ -109,7 +110,7 @@ class MessageResponse(BaseModel):
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or ACCESS_TOKEN_TTL)
+    expire = utcnow() + (expires_delta or ACCESS_TOKEN_TTL)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.jwt_secret, algorithm="HS256")
 
@@ -130,12 +131,12 @@ def _issue_refresh_token(db: Session, user_id: str, replaced: Optional[RefreshTo
     row = RefreshToken(
         user_id=user_id,
         token_hash=_hash_token(raw),
-        expires_at=datetime.utcnow() + REFRESH_TOKEN_TTL,
+        expires_at=utcnow() + REFRESH_TOKEN_TTL,
     )
     db.add(row)
     db.flush()
     if replaced is not None:
-        replaced.revoked_at = datetime.utcnow()
+        replaced.revoked_at = utcnow()
         replaced.replaced_by = row.token_hash
         db.add(replaced)
     db.commit()
@@ -265,7 +266,7 @@ async def refresh(
         # a race — reject it, but leave the family alive so the legitimate
         # session survives. Only replays older than the window get the
         # burn-the-family response.
-        if datetime.utcnow() - token.revoked_at < REPLAY_GRACE:
+        if utcnow() - token.revoked_at < REPLAY_GRACE:
             record_access(
                 db, "auth.refresh.race", actor_id=token.user_id,
                 request=request, detail="revoked_token_within_grace",
@@ -276,7 +277,7 @@ async def refresh(
             select(RefreshToken).where(RefreshToken.user_id == token.user_id)
         ).all():
             if member.revoked_at is None:
-                member.revoked_at = datetime.utcnow()
+                member.revoked_at = utcnow()
                 db.add(member)
         db.commit()
         record_access(
@@ -285,7 +286,7 @@ async def refresh(
         )
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-    if token.expires_at < datetime.utcnow():
+    if token.expires_at < utcnow():
         record_access(db, "auth.refresh.expired", actor_id=token.user_id, request=request)
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
@@ -297,7 +298,7 @@ async def refresh(
     for old in db.exec(
         select(RefreshToken).where(
             RefreshToken.user_id == user.id,
-            RefreshToken.expires_at < datetime.utcnow(),
+            RefreshToken.expires_at < utcnow(),
         )
     ).all():
         db.delete(old)
@@ -328,7 +329,7 @@ async def logout(
             )
         ).first()
         if token is not None and token.revoked_at is None:
-            token.revoked_at = datetime.utcnow()
+            token.revoked_at = utcnow()
             db.add(token)
             db.commit()
             record_access(
@@ -382,7 +383,7 @@ async def forgot_password(
     db.add(PasswordResetToken(
         user_id=user.id,
         token_hash=_hash_token(raw_token),
-        expires_at=datetime.utcnow() + RESET_TOKEN_TTL,
+        expires_at=utcnow() + RESET_TOKEN_TTL,
     ))
     db.commit()
     record_access(db, "auth.reset.requested", actor_id=user.id, request=request)
@@ -516,7 +517,7 @@ async def reset_password(
         )
     ).first()
 
-    if not token or token.used or token.expires_at < datetime.utcnow():
+    if not token or token.used or token.expires_at < utcnow():
         record_access(db, "auth.reset.invalid_token", request=request)
         raise HTTPException(
             status_code=400,
@@ -528,7 +529,7 @@ async def reset_password(
         raise HTTPException(status_code=400, detail="Invalid reset link")
 
     user.password = pwd_context.hash(data.new_password)
-    user.updated_at = datetime.utcnow()
+    user.updated_at = utcnow()
     token.used = True
     db.add(user)
     db.add(token)
@@ -544,7 +545,7 @@ async def reset_password(
         )
     ).all()
     for member in members:
-        member.revoked_at = datetime.utcnow()
+        member.revoked_at = utcnow()
         db.add(member)
 
     db.commit()
@@ -605,7 +606,7 @@ async def totp_setup(
 
     # Store the secret but keep totp_enabled False until verified.
     current_user.totp_secret = secret
-    current_user.updated_at = datetime.utcnow()
+    current_user.updated_at = utcnow()
     db.add(current_user)
     db.commit()
 
@@ -628,7 +629,7 @@ async def totp_verify(
         raise HTTPException(status_code=400, detail="Invalid code")
 
     current_user.totp_enabled = True
-    current_user.updated_at = datetime.utcnow()
+    current_user.updated_at = utcnow()
     db.add(current_user)
     db.commit()
     record_access(db, "auth.2fa.enabled", actor_id=current_user.id, request=request)
@@ -651,7 +652,7 @@ async def totp_disable(
 
     current_user.totp_enabled = False
     current_user.totp_secret = None
-    current_user.updated_at = datetime.utcnow()
+    current_user.updated_at = utcnow()
     db.add(current_user)
     db.commit()
     record_access(db, "auth.2fa.disabled", actor_id=current_user.id, request=request)

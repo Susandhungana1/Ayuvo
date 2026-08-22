@@ -8,6 +8,7 @@ from app.api.auth import get_current_user
 from app.core.care import resolve_medicine_scope, utc_iso
 from app.core.config import get_session
 from app.core.drug_interactions import check_interactions
+from app.core.time import utcnow
 from app.models.models import User, Medicine, MedicineAudit, MedicineIntakeLog
 
 router = APIRouter()
@@ -193,7 +194,7 @@ async def get_medicine_interactions(
     caretaker can already see, so it exposes nothing further.
     """
     scope = resolve_medicine_scope(db, actor_id=current_user.id, patient_id=patient_id)
-    today = datetime.utcnow().date().isoformat()
+    today = utcnow().date().isoformat()
     medicines = db.exec(
         select(Medicine).where(
             Medicine.user_id == scope,
@@ -409,7 +410,7 @@ async def delete_medicine(
     medicine = _owned_medicine(db, medicine_id, scope)
     before = _snapshot(medicine)
 
-    medicine.deleted_at = datetime.utcnow()
+    medicine.deleted_at = utcnow()
     db.add(medicine)
     db.commit()
 

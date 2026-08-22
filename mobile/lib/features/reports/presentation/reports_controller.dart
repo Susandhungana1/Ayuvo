@@ -9,10 +9,16 @@ import '../../../core/session/session_controller.dart';
 import '../data/report_repository.dart';
 import '../domain/report.dart';
 
+const _pageSize = 20;
+
 final reportsProvider =
     AsyncNotifierProvider<ReportsController, List<MedicalReport>>(
       ReportsController.new,
     );
+
+final reportsTotalProvider = StateProvider<int>((ref) => 0);
+final reportsOffsetProvider = StateProvider<int>((ref) => 0);
+final reportsLoadingMoreProvider = StateProvider<bool>((ref) => false);
 
 class ReportsController extends AsyncNotifier<List<MedicalReport>> {
   ReportRepository get _repository => ref.read(reportRepositoryProvider);
@@ -20,19 +26,43 @@ class ReportsController extends AsyncNotifier<List<MedicalReport>> {
   @override
   Future<List<MedicalReport>> build() async {
     if (ref.watch(currentUserProvider) == null) return const [];
-    return _repository.list();
+    final result = await _repository.list(limit: _pageSize);
+    ref.read(reportsTotalProvider.notifier).state = result.total;
+    ref.read(reportsOffsetProvider.notifier).state = result.reports.length;
+    return result.reports;
   }
 
   Future<void> refresh() async {
-    state = await AsyncValue.guard(_repository.list);
+    final result = await _repository.list(limit: _pageSize);
+    ref.read(reportsTotalProvider.notifier).state = result.total;
+    ref.read(reportsOffsetProvider.notifier).state = result.reports.length;
+    state = AsyncData(result.reports);
+  }
+
+  Future<void> loadMore() async {
+    final currentOffset = ref.read(reportsOffsetProvider);
+    ref.read(reportsLoadingMoreProvider.notifier).state = true;
+    try {
+      final result = await _repository.list(
+        offset: currentOffset,
+        limit: _pageSize,
+      );
+      final prev = state.valueOrNull ?? const <MedicalReport>[];
+      state = AsyncData([...prev, ...result.reports]);
+      ref.read(reportsOffsetProvider.notifier).state =
+          currentOffset + result.reports.length;
+      ref.read(reportsTotalProvider.notifier).state = result.total;
+    } finally {
+      ref.read(reportsLoadingMoreProvider.notifier).state = false;
+    }
   }
 
   /// Adds an already-uploaded report to the list. Upload itself lives in the
   /// upload controller, which needs progress and this does not.
   void remember(MedicalReport report) {
     state = AsyncData([report, ...state.valueOrNull ?? const []]);
-    // The new report may add points to a lab series, so the trends the screen
-    // is showing are now out of date.
+    ref.read(reportsTotalProvider.notifier).state++;
+    ref.read(reportsOffsetProvider.notifier).state++;
     ref.invalidate(reportTrendsProvider);
   }
 
@@ -42,6 +72,8 @@ class ReportsController extends AsyncNotifier<List<MedicalReport>> {
       for (final report in state.valueOrNull ?? const <MedicalReport>[])
         if (report.id != id) report,
     ]);
+    ref.read(reportsTotalProvider.notifier).state--;
+    ref.read(reportsOffsetProvider.notifier).state--;
     ref.invalidate(reportTrendsProvider);
   }
 }

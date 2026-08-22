@@ -25,13 +25,21 @@ class DocumentRepository {
   static const _base = '/api/documents';
 
   /// `GET /api/documents` — newest visit first.
-  Future<List<MedicalDocument>> list() async {
-    final json = await _client.get<Map<String, dynamic>>(_base);
+  Future<({List<MedicalDocument> documents, int total})> list({
+    int offset = 0,
+    int limit = 20,
+  }) async {
+    final json = await _client.get<Map<String, dynamic>>(
+      '$_base?offset=$offset&limit=$limit',
+    );
     final rows = json['documents'] as List<dynamic>? ?? const [];
-    return [
-      for (final row in rows)
-        MedicalDocument.fromJson(row as Map<String, dynamic>),
-    ];
+    return (
+      documents: [
+        for (final row in rows)
+          MedicalDocument.fromJson(row as Map<String, dynamic>),
+      ],
+      total: (json['total'] as num?)?.toInt() ?? rows.length,
+    );
   }
 
   /// `POST /api/documents`.

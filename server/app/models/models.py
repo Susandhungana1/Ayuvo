@@ -8,6 +8,8 @@ from sqlalchemy import (
 from typing import Any, Optional
 import uuid
 
+from app.core.time import utcnow
+
 
 class Role(str, Enum):
     PATIENT = "PATIENT"
@@ -93,8 +95,8 @@ class User(SQLModel, table=True):
     # When set, dose-time lookup prefers it over the push-subscription inference.
     timezone: Optional[str] = None
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class PasswordResetToken(SQLModel, table=True):
@@ -107,7 +109,7 @@ class PasswordResetToken(SQLModel, table=True):
     token_hash: str = Field(unique=True, index=True)
     expires_at: datetime
     used: bool = Field(default=False)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class RefreshToken(SQLModel, table=True):
@@ -127,7 +129,7 @@ class RefreshToken(SQLModel, table=True):
     expires_at: datetime
     revoked_at: Optional[datetime] = None
     replaced_by: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class Doctor(SQLModel, table=True):
@@ -171,9 +173,9 @@ class MedicalDocument(SQLModel, table=True):
     department: Optional[str] = None
     description: Optional[str] = None
 
-    checkup_date: datetime = Field(default_factory=datetime.utcnow)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    checkup_date: datetime = Field(default_factory=utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
     deleted_at: Optional[datetime] = None
 
 
@@ -189,7 +191,7 @@ class Medicine(SQLModel, table=True):
     end_date: Optional[str] = None
     taking_times: Optional[str] = None
     notes: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
     # Soft delete: a caretaker's removal must be reversible by the patient, so
     # rows are retired rather than dropped. Every read filters deleted_at IS NULL.
     deleted_at: Optional[datetime] = Field(default=None, index=True)
@@ -207,7 +209,7 @@ class MedicineIntakeLog(SQLModel, table=True):
     scheduled_time: str
     # "taken" | "snoozed" | "skipped"
     status: str = "taken"
-    recorded_at: datetime = Field(default_factory=datetime.utcnow)
+    recorded_at: datetime = Field(default_factory=utcnow)
 
 
 class PushSubscription(SQLModel, table=True):
@@ -224,7 +226,7 @@ class PushSubscription(SQLModel, table=True):
     # IANA tz (e.g. "Asia/Kathmandu") so the scheduler fires at the user's local
     # clock time, not the server's UTC.
     timezone: str = "UTC"
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class MedicalFile(SQLModel, table=True):
@@ -243,7 +245,7 @@ class MedicalFile(SQLModel, table=True):
     content: Optional[bytes] = Field(default=None, sa_type=LargeBinary())
 
     document_id: str = Field(foreign_key="medical_documents.id")
-    uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+    uploaded_at: datetime = Field(default_factory=utcnow)
 
 
 class MedicalReport(SQLModel, table=True):
@@ -281,7 +283,7 @@ class MedicalReport(SQLModel, table=True):
         description="User corrections to OCR'd lab values",
     )
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class Appointment(SQLModel, table=True):
@@ -308,8 +310,8 @@ class Appointment(SQLModel, table=True):
 
     reminder_sent: bool = Field(default=False)
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class ShareLink(SQLModel, table=True):
@@ -332,7 +334,7 @@ class ShareLink(SQLModel, table=True):
     failed_pin_attempts: int = Field(default=0)
 
     expires_at: datetime
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class VitalSign(SQLModel, table=True):
@@ -350,8 +352,8 @@ class VitalSign(SQLModel, table=True):
     oxygen_saturation: Optional[int] = None
 
     notes: Optional[str] = None
-    measured_at: datetime = Field(default_factory=datetime.utcnow)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    measured_at: datetime = Field(default_factory=utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class EmergencyContact(SQLModel, table=True):
@@ -362,7 +364,7 @@ class EmergencyContact(SQLModel, table=True):
 
     name: str
     phone: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class AuditLog(SQLModel, table=True):
@@ -389,7 +391,7 @@ class AuditLog(SQLModel, table=True):
     user_agent: Optional[str] = None
     detail: Optional[str] = None             # short free-text / token, no PII blobs
 
-    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    created_at: datetime = Field(default_factory=utcnow, index=True)
 
 
 # --- Caretaker ---------------------------------------------------------------
@@ -442,7 +444,7 @@ class CareInvite(SQLModel, table=True):
     used_by: Optional[str] = Field(
         default=None, sa_column=_user_fk(cascade=False, nullable=True)
     )
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class CareLink(SQLModel, table=True):
@@ -474,7 +476,7 @@ class CareLink(SQLModel, table=True):
     # The caretaker may mute one client without severing the link.
     notify: bool = Field(default=True)
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
     revoked_at: Optional[datetime] = None
     revoked_by: Optional[str] = Field(
         default=None, sa_column=_user_fk(cascade=False, nullable=True)
@@ -500,7 +502,7 @@ class MedicineAudit(SQLModel, table=True):
     before: Optional[dict[str, Any]] = Field(default=None, sa_type=JSON)
     after: Optional[dict[str, Any]] = Field(default=None, sa_type=JSON)
 
-    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    created_at: datetime = Field(default_factory=utcnow, index=True)
 
 
 class ReminderDelivery(SQLModel, table=True):
@@ -530,7 +532,7 @@ class ReminderDelivery(SQLModel, table=True):
     status: str                                     # sent | failed | skipped
     error: Optional[str] = None
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 # --- Claimed shares ----------------------------------------------------------
@@ -588,7 +590,7 @@ class ClaimedShare(SQLModel, table=True):
     owner_name: str
 
     status: str = Field(default="active")           # active | revoked
-    claimed_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    claimed_at: datetime = Field(default_factory=utcnow, index=True)
     revoked_at: Optional[datetime] = None
     revoked_by: Optional[str] = Field(
         default=None, sa_column=_user_fk(cascade=False, nullable=True)
