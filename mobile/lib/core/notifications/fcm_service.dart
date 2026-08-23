@@ -16,6 +16,7 @@ library;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../network/api_client.dart';
@@ -27,6 +28,58 @@ import '../session/session_controller.dart';
 @pragma('vm:entry-point')
 Future<void> fcmBackgroundHandler(RemoteMessage message) async {
   debugPrint('FCM background message: ${message.messageId}');
+}
+
+/// The channel every reminder rides on — shared with `reminders.dart` so
+/// server-pushed and locally scheduled notifications sit in one place in the
+/// system settings, and one mute silences both.
+const _reminderChannelId = 'medistore.doses';
+
+/// Displays a server-pushed reminder while the app is FOREGROUND.
+///
+/// Android shows FCM notification payloads in the system tray only when the
+/// app is backgrounded or killed; in the foreground the payload arrives here
+/// and nowhere else. Without this listener every reminder was silently
+/// dropped whenever the user happened to have the app open — which is most of
+/// the time for a caretaker watching their phone.
+Future<void> _showForegroundNotification(RemoteMessage message) async {
+  final notification = message.notification;
+  final data = message.data;
+  // Server pushes carry title/body in the notification block; fall back to
+  // the data copy so a data-only push still surfaces.
+  final title = notification?.title ?? data['title'] as String?;
+  final body = notification?.body ?? data['body'] as String?;
+  if (title == null && body == null) return;
+
+  try {
+    final plugin = FlutterLocalNotificationsPlugin();
+    await plugin.initialize(
+      settings: const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings(),
+      ),
+    );
+    await plugin.show(
+      id: DateTime.now().millisecondsSinceEpoch.remainder(0x7fffffff),
+      title: title ?? 'MediStore',
+      body: body ?? '',
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _reminderChannelId,
+          'Dose reminders',
+          channelDescription:
+              'Medicine reminders pushed from MediStore while the app is open.',
+          importance: Importance.high,
+          priority: Priority.high,
+          category: AndroidNotificationCategory.reminder,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      payload: data['medId'] as String?,
+    );
+  } catch (error) {
+    debugPrint('Could not display foreground FCM message: $error');
+  }
 }
 
 /// Manages the FCM lifecycle: token, foreground messages, and server
@@ -43,6 +96,10 @@ class FcmService {
     if (_registered || kIsWeb) return;
 
     final messaging = FirebaseMessaging.instance;
+
+    // Foreground delivery: without this, pushes arriving while the app is
+    // open vanish — Android only auto-displays them when backgrounded.
+    FirebaseMessaging.onMessage.listen(_showForegroundNotification);
 
     final settings = await messaging.requestPermission(
       alert: true,

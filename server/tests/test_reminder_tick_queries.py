@@ -111,7 +111,7 @@ def _nothing_due(monkeypatch):
     instead of on which files ran first, and the idle path is precisely the one
     Sentry flagged: it executes for every patient on every tick.
     """
-    monkeypatch.setattr(scheduler, "_is_due", lambda *a, **k: False)
+    monkeypatch.setattr(scheduler, "_stage_for", lambda *a, **k: None)
 
 
 def test_tick_query_count_does_not_grow_with_patient_count(client, monkeypatch):
