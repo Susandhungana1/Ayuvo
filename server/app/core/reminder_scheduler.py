@@ -36,6 +36,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app.core import doses
+from app.core.care import active_links_for_patient
 from app.core.config import engine, settings
 from app.core.fcm import fcm_available, send_fcm
 from app.core.webpush import push_available, send_push
@@ -594,6 +595,109 @@ async def run_tick_once() -> int:
     so a reliable scheduler (cron-job.org / UptimeRobot) can drive — and wake —
     a sleepy free-tier instance every minute."""
     return await asyncio.to_thread(_run_tick)
+
+
+def send_intake_confirmation(
+    *, patient_id: str, medicine_id: str, medicine_name: str, dosage: str, slot: str
+) -> int:
+    """Push '✅ taken' to the patient and their notifying caretakers.
+
+    Fired as a background task when the patient logs an intake as taken — the
+    answer to the verify stage's question, delivered to everyone who was asked.
+    Opens its own session because it outlives the request's.
+
+    Returns the number of pushes accepted by any transport.
+    """
+    if not reminders_available():
+        return 0
+
+    sent = 0
+    with Session(engine, expire_on_commit=False) as db:
+        patient = db.get(User, patient_id)
+        if patient is None:
+            return 0
+
+        links = (
+            active_links_for_patient(db, patient_id)
+            if settings.caretaker_enabled
+            else []
+        )
+        recipient_ids = [patient_id] + [l.caretaker_id for l in links if l.notify]
+
+        subs_by_user: dict[str, list[PushSubscription]] = {}
+        fcm_by_user: dict[str, list[FcmToken]] = {}
+        for sub in db.exec(
+            select(PushSubscription).where(
+                PushSubscription.user_id.in_(recipient_ids)  # type: ignore[attr-defined]
+            )
+        ).all():
+            subs_by_user.setdefault(sub.user_id, []).append(sub)
+        for fcm in db.exec(
+            select(FcmToken).where(
+                FcmToken.user_id.in_(recipient_ids)  # type: ignore[attr-defined]
+            )
+        ).all():
+            fcm_by_user.setdefault(fcm.user_id, []).append(fcm)
+
+        day = doses.local_now(
+            _patient_timezone(patient, subs_by_user.get(patient_id, []))
+        ).strftime("%Y-%m-%d")
+        patient_name = patient.name
+
+        for uid in recipient_ids:
+            is_self = uid == patient_id
+            if is_self:
+                payload = {
+                    "title": "✅ Medicine taken",
+                    "body": f"{medicine_name} {dosage} ({slot}) marked as taken",
+                    "stage": "taken",
+                    "medId": medicine_id,
+                    "time": slot,
+                    "tag": f"{medicine_id}-{slot}-{day}-{uid}-taken",
+                    "forSelf": True,
+                    "patient_name": None,
+                }
+            else:
+                payload = {
+                    "title": f"💊 {patient_name}",
+                    "body": f"{patient_name} took {medicine_name} {dosage} at {slot}",
+                    "stage": "taken",
+                    "medId": medicine_id,
+                    "time": slot,
+                    "tag": f"{medicine_id}-{slot}-{day}-{uid}-taken",
+                    "forSelf": False,
+                    "patient_name": patient_name,
+                }
+
+            for sub in subs_by_user.get(uid, []):
+                try:
+                    result = send_push(sub.endpoint, sub.p256dh, sub.auth, payload)
+                except Exception:  # pragma: no cover - defensive
+                    continue
+                if result.ok:
+                    sent += 1
+                elif result.gone:
+                    try:
+                        db.delete(sub)
+                    except Exception:
+                        pass
+
+            for fcm in fcm_by_user.get(uid, []):
+                try:
+                    result = send_fcm(fcm.token, payload)
+                except Exception:  # pragma: no cover - defensive
+                    continue
+                if result.ok:
+                    sent += 1
+                elif result.invalid_token:
+                    try:
+                        db.delete(fcm)
+                    except Exception:
+                        pass
+
+        db.commit()
+
+    return sent
 
 
 async def _loop() -> None:

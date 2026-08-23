@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
@@ -236,6 +236,7 @@ _ALLOWED_INTAKE_STATUS = {"taken", "snoozed", "skipped"}
 async def record_intake(
     medicine_id: str,
     data: IntakeCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
@@ -244,6 +245,10 @@ async def record_intake(
     Deliberately self-only, with no patient_id: a caretaker manages the
     medicine *list*, but whether a dose was actually swallowed is the patient's
     own account of it and must not be assertable on their behalf.
+
+    A 'taken' log answers the verify stage's question, so it is echoed to
+    everyone who was asked — the patient's confirmation and, by name, each
+    notifying caretaker.
     """
     medicine = db.get(Medicine, medicine_id)
     if not medicine or medicine.user_id != current_user.id or medicine.deleted_at:
@@ -259,6 +264,21 @@ async def record_intake(
     db.add(log)
     db.commit()
     db.refresh(log)
+
+    if status == "taken":
+        # Off the response path: push delivery is blocking HTTP and must not
+        # delay the tap. Runs after the response with its own DB session.
+        from app.core.reminder_scheduler import send_intake_confirmation
+
+        background_tasks.add_task(
+            send_intake_confirmation,
+            patient_id=current_user.id,
+            medicine_id=medicine.id,
+            medicine_name=medicine.name,
+            dosage=medicine.dosage,
+            slot=data.scheduled_time,
+        )
+
     return IntakeItem(
         id=log.id,
         medicine_id=log.medicine_id,

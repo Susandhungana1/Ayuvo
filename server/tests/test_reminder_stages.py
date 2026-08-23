@@ -325,3 +325,91 @@ def test_scheduler_runs_when_only_fcm_is_configured(client, monkeypatch):
     token, payload = fcm_sends[0]
     assert token == "fcm-token-1"
     assert payload["stage"] == "dose"
+
+
+def test_taking_a_dose_notifies_patient_and_caretaker(client, monkeypatch):
+    """Logging a dose as taken echoes the answer to everyone the verify stage
+    asked: a ✅ confirmation to the patient, and to each notifying caretaker,
+    word that their person took it."""
+    monkeypatch.setattr(settings, "caretaker_enabled", True, raising=False)
+
+    sent: list = []
+    _arm(monkeypatch, sent)
+
+    # Slot deliberately far outside every reminder window: this test must not
+    # leave an armed dose behind on the shared database for the next file's
+    # tick to trip over.
+    slot = _hhmm(120)
+    patient_id, med_id = _make_patient(client, [slot])
+    keeper = _register(client, "Keeper")
+    with Session(engine) as db:
+        db.add(CareLink(patient_id=patient_id, caretaker_id=keeper["id"]))
+        db.add(
+            PushSubscription(
+                user_id=keeper["id"],
+                endpoint=f"https://push.example/keeper-{keeper['id']}",
+                p256dh="p",
+                auth="a",
+                timezone="UTC",
+            )
+        )
+        db.commit()
+
+    slot = _hhmm(120)
+    # _make_patient registered through `client`, so recover the patient's
+    # bearer by logging in again with the same credentials.
+    with Session(engine) as db:
+        account_email = db.get(User, patient_id).email
+    login = client.post(
+        "/api/auth/login",
+        data={"username": account_email, "password": "supersecret1"},
+    )
+    token = login.json()["token"]
+    r = client.post(
+        f"/api/medicines/{med_id}/intake",
+        json={"scheduled_time": slot, "status": "taken"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200, r.text
+
+    stages = [(p["forSelf"], p) for p in sent]
+    assert len(stages) == 2, sent
+
+    self_payload = next(p for mine, p in stages if mine)
+    keeper_payload = next(p for mine, p in stages if not mine)
+
+    assert self_payload["title"].startswith("✅")
+    assert "marked as taken" in self_payload["body"]
+    assert keeper_payload["title"] == "💊 Stage User"
+    assert "took Aspirin" in keeper_payload["body"]
+    for p in (self_payload, keeper_payload):
+        assert p["stage"] == "taken"
+        assert p["medId"] == med_id
+
+
+def test_snoozing_logs_without_confirmation_pushes(client, monkeypatch):
+    """Only 'taken' answers the ladder's question; snooze stays quiet."""
+    sent: list = []
+    _arm(monkeypatch, sent)
+    # Outside every window — see the taken test.
+    _, med_id = _make_patient(client, [_hhmm(120)])
+
+    with Session(engine) as db:
+        email = db.get(User, _user_id_for(db, med_id)).email
+
+    login = client.post(
+        "/api/auth/login",
+        data={"username": email, "password": "supersecret1"},
+    )
+    token = login.json()["token"]
+    r = client.post(
+        f"/api/medicines/{med_id}/intake",
+        json={"scheduled_time": _hhmm(120), "status": "snoozed"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    assert sent == []
+
+
+def _user_id_for(db: Session, medicine_id: str) -> str:
+    return db.get(Medicine, medicine_id).user_id
