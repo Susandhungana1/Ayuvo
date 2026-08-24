@@ -12,6 +12,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/cache/offline_cache.dart';
 import '../../../core/router/routes.dart';
@@ -87,7 +88,7 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.xl),
             const _Upcoming(),
             const SizedBox(height: AppSpacing.md),
-            const _WeekAdherence(),
+            const _TomorrowPlan(),
             // Nothing at all for the vast majority of accounts, which have no
             // care links. See `people_i_care_for.dart`.
             const SizedBox(height: AppSpacing.xl),
@@ -707,109 +708,67 @@ class _Upcoming extends ConsumerWidget {
   }
 }
 
-/// Seven days of adherence, one bar per day. Reuses the intake log already in
-/// memory for the streak — no extra request — so a missed dose becomes gently
-/// visible without a lecture.
-class _WeekAdherence extends ConsumerWidget {
-  const _WeekAdherence();
+/// Tomorrow's schedule, so the day ahead is knowable the night before.
+/// Read-only by design: a future dose has nothing to mark yet. Hidden
+/// entirely when nothing is scheduled — silence beats furniture.
+class _TomorrowPlan extends ConsumerWidget {
+  const _TomorrowPlan();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final medicines = ref.watch(medicinesProvider(null)).valueOrNull;
-    final intakeLog = ref.watch(intakeLogProvider).valueOrNull ?? const [];
     if (medicines == null || medicines.isEmpty) return const SizedBox.shrink();
 
-    final now = DateTime.now();
-    final taken = <String>{
-      for (final intake in intakeLog)
-        if (intake.status == 'taken' && intake.recorded != null)
-          '${intake.medicineId}-${intake.scheduledTime}'
-              '@${MediTime.dateOnly(intake.recorded!)}',
-    };
+    final now = ref.watch(_clockProvider).valueOrNull ?? DateTime.now();
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    final slots = DoseSchedule.forDay(medicines, tomorrow);
+    if (slots.isEmpty) return const SizedBox.shrink();
 
-    var scheduledTotal = 0;
-    var takenTotal = 0;
-    final bars = <({int done, int total})>[];
-    for (var back = 6; back >= 0; back--) {
-      final day = DateTime(now.year, now.month, now.day - back);
-      final slots = DoseSchedule.forDay(medicines, day);
-      final key = MediTime.dateOnly(day);
-      final done = slots.where((s) => taken.contains('${s.key}@$key')).length;
-      bars.add((done: done, total: slots.length));
-      scheduledTotal += slots.length;
-      takenTotal += done;
-    }
-    if (scheduledTotal == 0) return const SizedBox.shrink();
-
-    final pct = (takenTotal * 100 / scheduledTotal).round();
-
-    return Card(
-      child: Padding(
-        padding: AppSpacing.card,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text('This week', style: context.texts.titleMedium),
-                ),
-                Text(
-                  '$pct%',
-                  style: context.numerals.numericMedium.copyWith(
-                    color: pct >= 80
-                        ? context.status.ok
-                        : pct >= 50
-                            ? context.status.caution
-                            : context.status.alert,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Tomorrow · ${DateFormat.E().format(tomorrow)}',
+          style: context.texts.titleMedium,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.xs,
             ),
-            const SizedBox(height: AppSpacing.sm),
-            Row(
+            child: Column(
               children: [
-                for (final bar in bars) ...[
-                  Expanded(
-                    child: SizedBox(
-                      height: 28,
-                      child: Stack(
-                        alignment: Alignment.bottomCenter,
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color: context.colors.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(4),
+                for (final slot in slots)
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 68,
+                          child: Text(
+                            MediTime.clockLabel(slot.time),
+                            style: context.numerals.numericMedium.copyWith(
+                              color: context.colors.onSurfaceVariant,
                             ),
                           ),
-                          FractionallySizedBox(
-                            heightFactor: bar.total == 0
-                                ? 0.0
-                                : (bar.done / bar.total).clamp(0.08, 1.0),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: bar.done == bar.total && bar.total > 0
-                                    ? context.status.ok
-                                    : bar.done == 0
-                                        ? context.status.alert
-                                        : context.status.caution,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            slot.medicine.name,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                  if (!identical(bar, bars.last))
-                    const SizedBox(width: AppSpacing.xs),
-                ],
               ],
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

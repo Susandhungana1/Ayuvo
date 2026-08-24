@@ -263,29 +263,26 @@ export default function Home() {
     ? new Date(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
     : null;
 
-  // 7-day adherence percentage — mirrors home_screen.dart exactly.
-  const weekAdherence = (() => {
-    if (!mounted || medicines.length === 0) return null;
-    const taken = new Set(
-      intakeLog
-        .filter(l => l.status === 'taken' && l.recorded_at)
-        .map(l => `${l.medicine_id}-${l.scheduled_time}@${l.recorded_at.slice(0, 10)}`)
-    );
+  // Tomorrow's dose plan — forward-looking, never judgmental. Same slot
+  // arithmetic as the app's home_screen.dart.
+  const tomorrowPlan = (() => {
+    if (!mounted || medicines.length === 0) return [];
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
     const pad = (n: number) => String(n).padStart(2, '0');
-    let scheduled = 0, done = 0;
-    for (let back = 6; back >= 0; back--) {
-      const d = new Date();
-      d.setDate(d.getDate() - back);
-      const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-      for (const med of medicines) {
-        if (med.start_date > key || (med.end_date && med.end_date < key)) continue;
-        for (const t of parseTimes(med.taking_times)) {
-          scheduled++;
-          if (taken.has(`${med.id}-${t}@${key}`)) done++;
-        }
-      }
+    const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const slots: { time: string; name: string }[] = [];
+    for (const med of medicines) {
+      if (med.start_date > key || (med.end_date && med.end_date < key)) continue;
+      for (const t of parseTimes(med.taking_times)) slots.push({ time: t, name: med.name });
     }
-    return scheduled === 0 ? null : Math.round((done * 100) / scheduled);
+    return slots.sort((a, b) => a.time.localeCompare(b.time));
+  })();
+
+  const tomorrowLabel = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toLocaleDateString('en-US', { weekday: 'short' });
   })();
 
   return (
@@ -533,41 +530,16 @@ export default function Home() {
                   </div>
                 </Link>
               )}
-              {weekAdherence !== null && (
-                <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-4 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)]">
-                  <p className="text-xs text-[var(--color-ink-variant)] mb-1">This week</p>
-                  <div className="flex items-center justify-between">
-                    <p className={`text-2xl font-bold ${
-                      weekAdherence >= 80 ? 'text-[var(--color-ok)]' : weekAdherence >= 50 ? 'text-amber-600' : 'text-red-600'
-                    }`}>{weekAdherence}%</p>
-                    <div className="flex items-end gap-1 h-7" aria-hidden>
-                      {[6,5,4,3,2,1,0].map(back => {
-                        const d = new Date(); d.setDate(d.getDate() - back);
-                        const pad = (n: number) => String(n).padStart(2, '0');
-                        const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-                        const takenSet = new Set(
-                          intakeLog.filter(l => l.status === 'taken' && l.recorded_at)
-                            .map(l => `${l.medicine_id}-${l.scheduled_time}@${l.recorded_at.slice(0, 10)}`)
-                        );
-                        let total = 0, done = 0;
-                        for (const med of medicines) {
-                          if (med.start_date > key || (med.end_date && med.end_date < key)) continue;
-                          for (const t of parseTimes(med.taking_times)) {
-                            total++;
-                            if (takenSet.has(`${med.id}-${t}@${key}`)) done++;
-                          }
-                        }
-                        const frac = total === 0 ? 0 : Math.max(done / total, 0.08);
-                        return (
-                          <span key={back} className="w-2 rounded-sm" style={{
-                            height: `${Math.round(frac * 100)}%`,
-                            backgroundColor: total === 0 ? 'var(--color-muted)'
-                              : done === total ? 'var(--color-ok)'
-                              : done === 0 ? '#dc2626' : '#f59e0b',
-                          }} />
-                        );
-                      })}
-                    </div>
+              {tomorrowPlan.length > 0 && (
+                <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-4 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] sm:col-span-2">
+                  <p className="text-xs text-[var(--color-ink-variant)] mb-2">Tomorrow · {tomorrowLabel}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-1.5">
+                    {tomorrowPlan.map((s, i) => (
+                      <div key={i} className="flex items-baseline gap-2">
+                        <span className="text-xs font-semibold text-[var(--color-primary)] tabular-nums shrink-0">{s.time}</span>
+                        <span className="text-sm text-[var(--color-ink)] truncate">{s.name}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
