@@ -96,7 +96,7 @@ void main() {
 
     expect(find.text('Shared medical record'), findsOneWidget);
     expect(find.text('Aspirin'), findsOneWidget);
-    expect(find.text('Sita (Wife) · 9812345678'), findsOneWidget);
+    expect(find.text('Sita · 9812345678'), findsOneWidget);
   });
 
   testWidgets('single-report deep link parses and renders an item',

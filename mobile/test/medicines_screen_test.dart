@@ -199,9 +199,14 @@ void main() {
     // Phase 6 supplies the caretaker screen; the family key is here from the
     // start so that when it arrives it adds no new code path. What must be
     // true today is that an unscoped list sends no patient_id at all.
+    // (offset/limit pagination rides along; scoping is the security line.)
     final api = backend(medicines: [medicineRow()], checkedCount: 1);
     await openMedicines(tester, api);
 
-    expect(api.requestFor('GET /api/medicines')!.options.uri.query, isEmpty);
+    expect(
+      api.requestFor('GET /api/medicines')!.options.uri.queryParameters
+          .containsKey('patient_id'),
+      isFalse,
+    );
   });
 }

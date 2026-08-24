@@ -7,9 +7,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
-import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer
-} from 'recharts';
 
 interface Medicine {
   id: string;
@@ -33,6 +30,13 @@ interface VitalSign {
   oxygen_saturation: number | null;
   notes: string | null;
   measured_at: string;
+}
+
+interface IntakeEntry {
+  medicine_id: string;
+  scheduled_time: string;
+  status: string;
+  recorded_at: string;
 }
 
 // Band classification lives in lib/status.ts — the same engine as /vitals.
@@ -89,7 +93,7 @@ export default function Home() {
   const [vitals, setVitals] = useState<VitalSign[]>([]);
   const [vitalsLoading, setVitalsLoading] = useState(true);
   const [nextDose, setNextDose] = useState<{ name: string; time: string; remaining: string } | null>(null);
-  const [chartType, setChartType] = useState('bp');
+  const [intakeLog, setIntakeLog] = useState<IntakeEntry[]>([]);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -128,7 +132,14 @@ export default function Home() {
       } catch (e) { console.error(e); } finally { setVitalsLoading(false); }
     };
 
-    if (isPatient) { fetchMeds(); fetchVitals(); }
+    const fetchIntake = async () => {
+      try {
+        const res = await apiFetch(`${API_URL}/api/medicines/intake/log?limit=200`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) { const d = await res.json(); setIntakeLog(d.intakes || []); }
+      } catch (e) { console.error(e); }
+    };
+
+    if (isPatient) { fetchMeds(); fetchVitals(); fetchIntake(); }
     else { setMedsLoading(false); setVitalsLoading(false); }
   }, [isPatient]);
 
@@ -166,6 +177,42 @@ export default function Home() {
   const today = mounted ? new Date().toISOString().slice(0, 10) : '';
   const latestVital = vitals[0];
 
+  // Consecutive full days ending yesterday — mirrors home_screen.dart so both
+  // platforms quote the same number. Days with no schedule are neutral.
+  const adherenceStreak = (() => {
+    if (!mounted || medicines.length === 0) return 0;
+    const taken = new Set(
+      intakeLog
+        .filter(l => l.status === 'taken' && l.recorded_at)
+        .map(l => `${l.medicine_id}-${l.scheduled_time}@${l.recorded_at.slice(0, 10)}`)
+    );
+    const pad = (n: number) => String(n).padStart(2, '0');
+    let streak = 0;
+    for (let back = 1; back <= 30; back++) {
+      const d = new Date();
+      d.setDate(d.getDate() - back);
+      const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      const slots: string[] = [];
+      for (const med of medicines) {
+        if (med.start_date > key || (med.end_date && med.end_date < key)) continue;
+        for (const t of parseTimes(med.taking_times)) slots.push(`${med.id}-${t}@${key}`);
+      }
+      if (slots.length === 0) continue;
+      if (!slots.every(s => taken.has(s))) return streak;
+      streak++;
+    }
+    return streak;
+  })();
+
+  const agoLabel = latestVital?.measured_at ? (() => {
+    const mins = Math.floor((Date.now() - new Date(latestVital.measured_at).getTime()) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  })() : '';
+
   return (
     <div className="bg-[var(--color-background)]">
       {/* HEADER — consistent with other pages */}
@@ -194,167 +241,20 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            {/* Latest Vitals */}
-            <div className="lg:col-span-3">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-[var(--color-ink)] font-heading">Latest Vitals</h2>
-                <Link href="/vitals" className="text-sm text-[var(--color-primary)] hover:underline">View all</Link>
-              </div>
-
-              {vitalsLoading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {[1,2,3].map(i => (
-                    <div key={i} className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-5 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] animate-pulse">
-                      <div className="h-3 bg-[var(--color-muted)] rounded w-12 mb-2" />
-                      <div className="h-6 bg-[var(--color-muted)] rounded w-16 mb-1" />
-                      <div className="h-3 bg-[var(--color-muted)] rounded w-8" />
-                    </div>
-                  ))}
-                </div>
-              ) : latestVital ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {latestVital.blood_pressure_systolic && latestVital.blood_pressure_diastolic && (() => {
-                    const bp = chip('bp', analyzeBP(latestVital.blood_pressure_systolic, latestVital.blood_pressure_diastolic));
-                    return (
-                      <div className={`bg-white rounded-xl p-5 border ${bp.border}`}>
-                        <p className="text-xs text-gray-400 font-medium mb-1">Blood Pressure</p>
-                        <p className="text-xl font-bold text-text-main">{latestVital.blood_pressure_systolic}/{latestVital.blood_pressure_diastolic}</p>
-                        <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded ${bp.bg} ${bp.color}`}>
-                          {bp.status}
-                        </span>
-                      </div>
-                    );
-                  })()}
-                  {latestVital.heart_rate && (() => {
-                    const hr = chip('hr', analyzeHR(latestVital.heart_rate));
-                    return (
-                      <div className={`bg-white rounded-xl p-5 border ${hr.border}`}>
-                        <p className="text-xs text-gray-400 font-medium mb-1">Heart Rate</p>
-                        <p className="text-xl font-bold text-text-main">{latestVital.heart_rate}</p>
-                        <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded ${hr.bg} ${hr.color}`}>
-                          {hr.status}
-                        </span>
-                      </div>
-                    );
-                  })()}
-                  {latestVital.blood_sugar && (() => {
-                    const sg = chip('sugar', analyzeSugar(latestVital.blood_sugar));
-                    return (
-                      <div className={`bg-white rounded-xl p-5 border ${sg.border}`}>
-                        <p className="text-xs text-gray-400 font-medium mb-1">Blood Sugar</p>
-                        <p className="text-xl font-bold text-text-main">{Math.round(latestVital.blood_sugar)}</p>
-                        <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded ${sg.bg} ${sg.color}`}>
-                          {sg.status}
-                        </span>
-                      </div>
-                    );
-                  })()}
-                  {latestVital.temperature && (() => {
-                    const t = chip('temp', analyzeTemp(latestVital.temperature));
-                    return (
-                      <div className={`bg-white rounded-xl p-5 border ${t.border}`}>
-                        <p className="text-xs text-gray-400 font-medium mb-1">Temperature</p>
-                        <p className="text-xl font-bold text-text-main">{latestVital.temperature.toFixed(1)}°C</p>
-                        <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded ${t.bg} ${t.color}`}>
-                          {t.status}
-                        </span>
-                      </div>
-                    );
-                  })()}
-                  {latestVital.oxygen_saturation && (() => {
-                    const o = chip('spo2', analyzeSpO2(latestVital.oxygen_saturation));
-                    return (
-                      <div className={`bg-white rounded-xl p-5 border ${o.border}`}>
-                        <p className="text-xs text-gray-400 font-medium mb-1">SpO2</p>
-                        <p className="text-xl font-bold text-text-main">{latestVital.oxygen_saturation}%</p>
-                        <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded ${o.bg} ${o.color}`}>
-                          {o.status}
-                        </span>
-                      </div>
-                    );
-                  })()}
-                  {latestVital.weight && (
-                    <div className="bg-white rounded-xl p-5 border border-gray-100">
-                      <p className="text-xs text-gray-400 font-medium mb-1">Weight</p>
-                      <p className="text-xl font-bold text-text-main">{latestVital.weight.toFixed(1)} kg</p>
-                      <span className="inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700">Recorded</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <Card className="p-8 text-center">
-                  <p className="text-subtext mb-4">No vital signs recorded yet</p>
-                  <Link href="/vitals"><Button>Record Your First Reading</Button></Link>
-                </Card>
-              )}
-
-              {/* Trend Chart */}
-              {vitals.length > 1 && (
-                <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-5 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] mt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-[var(--color-ink)] uppercase tracking-wider font-heading">Trends</h3>
-                    <select value={chartType} onChange={e => setChartType(e.target.value)}
-                      className="text-xs border border-[var(--color-outline)] rounded-[var(--radius-sm)] px-2 py-1 text-[var(--color-ink-variant)] bg-white dark:bg-[var(--color-card)]">
-                      <option value="bp">Blood Pressure</option>
-                      <option value="hr">Heart Rate</option>
-                      <option value="sugar">Blood Sugar</option>
-                      <option value="temp">Temperature</option>
-                      <option value="spo2">SpO2</option>
-                      <option value="weight">Weight</option>
-                    </select>
-                  </div>
-                  <div style={{ height: 200 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={[...vitals].reverse().map((v, i) => ({
-                        name: `#${i + 1}`,
-                        systolic: v.blood_pressure_systolic,
-                        diastolic: v.blood_pressure_diastolic,
-                        heartRate: v.heart_rate,
-                        bloodSugar: v.blood_sugar,
-                        temperature: v.temperature,
-                        oxygenSaturation: v.oxygen_saturation,
-                        weight: v.weight,
-                      }))}>
-                        <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                        <YAxis tick={{ fontSize: 10 }} />
-                        <Tooltip />
-                        {chartType === 'bp' && <>
-                          <Line type="monotone" dataKey="systolic" stroke="#ef4444" name="Systolic" strokeWidth={2} dot={false} />
-                          <Line type="monotone" dataKey="diastolic" stroke="var(--chart-1)" name="Diastolic" strokeWidth={2} dot={false} />
-                        </>}
-                        {chartType === 'hr' && <Line type="monotone" dataKey="heartRate" stroke="var(--chart-2)" name="Heart Rate" strokeWidth={2} dot={false} />}
-                        {chartType === 'sugar' && <Line type="monotone" dataKey="bloodSugar" stroke="var(--chart-3)" name="Blood Sugar" strokeWidth={2} dot={false} />}
-                        {chartType === 'temp' && <Line type="monotone" dataKey="temperature" stroke="var(--chart-4)" name="Temperature" strokeWidth={2} dot={false} />}
-                        {chartType === 'spo2' && <Line type="monotone" dataKey="oxygenSaturation" stroke="var(--chart-1)" name="SpO2" strokeWidth={2} dot={false} />}
-                        {chartType === 'weight' && <Line type="monotone" dataKey="weight" stroke="var(--color-ok)" name="Weight" strokeWidth={2} dot={false} />}
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-
-              {/* Quick links */}
-              <div className="grid grid-cols-3 gap-4 mt-6">
-                <Link href="/appointments">
-                  <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-4 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] hover:border-[var(--color-primary)] transition-colors text-center">
-                    <p className="text-sm font-medium text-[var(--color-ink)]">Appointments</p>
-                  </div>
-                </Link>
-                <Link href="/reports">
-                  <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-4 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] hover:border-[var(--color-primary)] transition-colors text-center">
-                    <p className="text-sm font-medium text-[var(--color-ink)]">Reports</p>
-                  </div>
-                </Link>
-                <Link href="/medicines">
-                  <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-4 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] hover:border-[var(--color-primary)] transition-colors text-center">
-                    <p className="text-sm font-medium text-[var(--color-ink)]">Medicines</p>
-                  </div>
-                </Link>
-              </div>
-            </div>
-
-            {/* Today's Medicines */}
+            {/* Today's Medicines — the reason people open MediStore, so it
+                leads both on desktop and in mobile stacking order. */}
             <div className="lg:col-span-2">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-[var(--color-ink)] font-heading">Today's Medicines</h2>
+                <Link href="/medicines" className="text-sm text-[var(--color-primary)] hover:underline">Manage</Link>
+              </div>
+
+              {adherenceStreak >= 2 && (
+                <div className="inline-flex items-center gap-1.5 mb-3 px-2.5 py-1 rounded-full bg-[var(--color-ok-container)]">
+                  <span className="text-sm" aria-hidden>🔥</span>
+                  <span className="text-xs font-semibold text-[var(--color-ok)]">{adherenceStreak}-day streak</span>
+                </div>
+              )}
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-[var(--color-ink)] font-heading">Today's Medicines</h2>
                 <Link href="/medicines" className="text-sm text-[var(--color-primary)] hover:underline">Manage</Link>
@@ -426,6 +326,107 @@ export default function Home() {
                   <Link href="/medicines"><Button>Add Medicines</Button></Link>
                 </Card>
               )}
+            </div>
+
+            {/* Health — one thin strip of chips; full detail and trends live
+                in /vitals, so home only answers "am I OK?" at a glance. */}
+            <div className="lg:col-span-3">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-[var(--color-ink)] font-heading">Health</h2>
+                <Link href="/vitals" className="text-sm text-[var(--color-primary)] hover:underline">View all</Link>
+              </div>
+
+              {vitalsLoading ? (
+                <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-5 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] animate-pulse">
+                  <div className="h-8 bg-[var(--color-muted)] rounded w-3/4" />
+                </div>
+              ) : latestVital ? (
+                <Link href="/vitals" className="block group">
+                  <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-4 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] group-hover:border-[var(--color-primary)] transition-colors">
+                    <div className="flex items-center gap-6 overflow-x-auto pb-1">
+                      {latestVital.blood_pressure_systolic && latestVital.blood_pressure_diastolic && (() => {
+                        const bp = chip('bp', analyzeBP(latestVital.blood_pressure_systolic, latestVital.blood_pressure_diastolic));
+                        return (
+                          <div className="shrink-0">
+                            <p className="text-lg font-bold text-text-main leading-tight">{latestVital.blood_pressure_systolic}/{latestVital.blood_pressure_diastolic}</p>
+                            <p className={`text-xs font-medium ${bp.color}`}>BP · {bp.status}</p>
+                          </div>
+                        );
+                      })()}
+                      {latestVital.heart_rate && (() => {
+                        const hr = chip('hr', analyzeHR(latestVital.heart_rate));
+                        return (
+                          <div className="shrink-0">
+                            <p className="text-lg font-bold text-text-main leading-tight">{latestVital.heart_rate}</p>
+                            <p className={`text-xs font-medium ${hr.color}`}>Heart · {hr.status}</p>
+                          </div>
+                        );
+                      })()}
+                      {latestVital.blood_sugar && (() => {
+                        const sg = chip('sugar', analyzeSugar(latestVital.blood_sugar));
+                        return (
+                          <div className="shrink-0">
+                            <p className="text-lg font-bold text-text-main leading-tight">{Math.round(latestVital.blood_sugar)}</p>
+                            <p className={`text-xs font-medium ${sg.color}`}>Sugar · {sg.status}</p>
+                          </div>
+                        );
+                      })()}
+                      {latestVital.temperature && (() => {
+                        const t = chip('temp', analyzeTemp(latestVital.temperature));
+                        return (
+                          <div className="shrink-0">
+                            <p className="text-lg font-bold text-text-main leading-tight">{latestVital.temperature.toFixed(1)}°C</p>
+                            <p className={`text-xs font-medium ${t.color}`}>Temp · {t.status}</p>
+                          </div>
+                        );
+                      })()}
+                      {latestVital.oxygen_saturation && (() => {
+                        const o = chip('spo2', analyzeSpO2(latestVital.oxygen_saturation));
+                        return (
+                          <div className="shrink-0">
+                            <p className="text-lg font-bold text-text-main leading-tight">{latestVital.oxygen_saturation}%</p>
+                            <p className={`text-xs font-medium ${o.color}`}>SpO₂ · {o.status}</p>
+                          </div>
+                        );
+                      })()}
+                      {latestVital.weight && (
+                        <div className="shrink-0">
+                          <p className="text-lg font-bold text-text-main leading-tight">{latestVital.weight.toFixed(1)} kg</p>
+                          <p className="text-xs font-medium text-blue-700">Weight · Recorded</p>
+                        </div>
+                      )}
+                      <span className="text-[var(--color-ink-variant)] shrink-0 ml-auto" aria-hidden>›</span>
+                    </div>
+                    {agoLabel && (
+                      <p className="text-xs text-[var(--color-ink-variant)] mt-2">Measured {agoLabel}</p>
+                    )}
+                  </div>
+                </Link>
+              ) : (
+                <Card className="p-8 text-center">
+                  <p className="text-subtext mb-4">No vital signs recorded yet</p>
+                  <Link href="/vitals"><Button>Record Your First Reading</Button></Link>
+                </Card>
+              )}
+
+              {/* Quick links */}
+              <div className="grid grid-cols-3 gap-4 mt-6">
+                <Link href="/appointments">
+                  <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-4 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] hover:border-[var(--color-primary)] transition-colors text-center">
+                    <p className="text-sm font-medium text-[var(--color-ink)]">Appointments</p>
+                  </div>
+                </Link>
+                <Link href="/reports">
+                  <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-4 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] hover:border-[var(--color-primary)] transition-colors text-center">
+                    <p className="text-sm font-medium text-[var(--color-ink)]">Reports</p>
+                  </div>
+                </Link>
+                <Link href="/medicines">
+                  <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-4 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] hover:border-[var(--color-primary)] transition-colors text-center">
+                    <p className="text-sm font-medium text-[var(--color-ink)]">Medicines</p>
+                  </div>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

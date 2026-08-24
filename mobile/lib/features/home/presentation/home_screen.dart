@@ -19,6 +19,7 @@ import '../../../core/session/session_controller.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/time/medi_time.dart';
+import '../../../core/widgets/range_bar.dart' show RangeStatus;
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/states.dart';
 import '../../care/presentation/people_i_care_for.dart';
@@ -28,7 +29,6 @@ import '../../medicines/domain/medicine.dart';
 import '../../medicines/presentation/medicines_controller.dart';
 import '../../vitals/domain/vital_ranges.dart';
 import '../../vitals/presentation/vitals_controller.dart';
-import '../../vitals/presentation/widgets/vital_tile.dart';
 
 /// Ticks once a minute so the countdown stays true without the screen
 /// rebuilding sixty times an hour for nothing.
@@ -209,6 +209,37 @@ class _NextDose extends ConsumerWidget {
   }
 }
 
+/// Consecutive days, ending yesterday, where every scheduled dose was marked
+/// taken. Days with no schedule are neutral (neither break nor extend).
+/// Today is deliberately excluded: an unfinished day says nothing yet.
+int _adherenceStreak(
+  List<Medicine> medicines,
+  Iterable<dynamic> intakeLog,
+  DateTime now,
+) {
+  final taken = <String>{
+    for (final intake in intakeLog)
+      if (intake.status == 'taken' && intake.recorded != null)
+        '${intake.medicineId}-${intake.scheduledTime}'
+            '@${MediTime.dateOnly(intake.recorded!)}',
+  };
+
+  var streak = 0;
+  for (var back = 1; back <= 30; back++) {
+    final day = DateTime(now.year, now.month, now.day - back);
+    final slots = DoseSchedule.forDay(medicines, day);
+    if (slots.isEmpty) continue; // a day off neither breaks nor extends
+    final allTaken = slots.every(
+      (slot) =>
+          taken.contains('${slot.key}@$day') ||
+          taken.contains('${slot.key}@${MediTime.dateOnly(day)}'),
+    );
+    if (!allTaken) return streak;
+    streak++;
+  }
+  return streak;
+}
+
 class _Today extends ConsumerWidget {
   const _Today();
 
@@ -236,14 +267,33 @@ class _Today extends ConsumerWidget {
       preTaken.add('${intake.medicineId}-${intake.scheduledTime}');
     }
 
+    final streak = _adherenceStreak(medicines, intakeLog, now);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Expanded(
-              child: Text('Today', style: context.texts.titleLarge),
-            ),
+            Expanded(child: Text('Today', style: context.texts.titleLarge)),
+            if (streak >= 2)
+              Padding(
+                padding: const EdgeInsets.only(right: AppSpacing.md),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.local_fire_department,
+                        size: 16, color: context.status.caution),
+                    const SizedBox(width: AppSpacing.xxs),
+                    Text(
+                      '$streak-day streak',
+                      style: context.texts.bodySmall?.copyWith(
+                        color: context.status.caution,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Text(
               remaining == 0
                   ? 'All ${slots.length} done'
@@ -394,6 +444,9 @@ class _DoseRowState extends ConsumerState<_DoseRow> {
   }
 }
 
+/// One-glance health status: a single thin strip of chips — label, latest
+/// value, status colour — instead of a tile grid. Full detail and trends live
+/// in the Vitals tab, one tap away; home only answers "am I OK?".
 class _LatestVitals extends ConsumerWidget {
   const _LatestVitals();
 
@@ -408,13 +461,7 @@ class _LatestVitals extends ConsumerWidget {
         children: [
           Skeleton(width: 120, height: 20),
           SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(child: SkeletonCard(lines: 2)),
-              SizedBox(width: AppSpacing.md),
-              Expanded(child: SkeletonCard(lines: 2)),
-            ],
-          ),
+          SkeletonCard(lines: 1),
         ],
       );
     }
@@ -432,7 +479,7 @@ class _LatestVitals extends ConsumerWidget {
         Row(
           children: [
             Expanded(
-              child: Text('Latest vitals', style: context.texts.titleLarge),
+              child: Text('Health', style: context.texts.titleLarge),
             ),
             if (measured != null)
               Text(
@@ -442,21 +489,97 @@ class _LatestVitals extends ConsumerWidget {
               ),
           ],
         ),
-        const SizedBox(height: AppSpacing.md),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: AppSpacing.md,
-          mainAxisSpacing: AppSpacing.md,
-          childAspectRatio: 0.92,
-          children: [
-            for (final reading in readings)
-              VitalTile(
-                reading: reading,
-                onTap: () => context.go(Routes.vitals),
+        const SizedBox(height: AppSpacing.sm),
+        Card(
+          child: InkWell(
+            onTap: () => context.go(Routes.vitals),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final reading in readings) ...[
+                      _HealthChip(reading: reading),
+                      const SizedBox(width: AppSpacing.md),
+                    ],
+                    Icon(
+                      Icons.chevron_right,
+                      size: 20,
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ],
+                ),
               ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// One metric as a chip: coloured status dot · value · short label.
+class _HealthChip extends StatelessWidget {
+  const _HealthChip({required this.reading});
+
+  final VitalReading reading;
+
+  @override
+  Widget build(BuildContext context) {
+    final tone = switch (reading.tone) {
+      RangeStatus.ok => context.status.ok,
+      RangeStatus.caution => context.status.caution,
+      RangeStatus.alert => context.status.alert,
+    };
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(color: tone, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              reading.display,
+              style: context.numerals.numericMedium
+                  .copyWith(fontWeight: FontWeight.w600),
+            ),
           ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          // Normal stays quiet — the default state shouldn't shout. Anything
+          // else is named, so the strip reads without its colour dot too.
+          reading.isNormal
+              ? switch (reading.metric) {
+                  VitalMetric.bloodPressure => 'BP',
+                  VitalMetric.heartRate => 'Heart',
+                  VitalMetric.bloodSugar => 'Sugar',
+                  VitalMetric.temperature => 'Temp',
+                  VitalMetric.oxygenSaturation => 'SpO₂',
+                  VitalMetric.weight => 'Weight',
+                }
+              : '${switch (reading.metric) {
+                  VitalMetric.bloodPressure => 'BP',
+                  VitalMetric.heartRate => 'Heart',
+                  VitalMetric.bloodSugar => 'Sugar',
+                  VitalMetric.temperature => 'Temp',
+                  VitalMetric.oxygenSaturation => 'SpO₂',
+                  VitalMetric.weight => 'Weight',
+                }} · ${reading.status}',
+          style: context.texts.labelSmall?.copyWith(
+            color:
+                reading.isNormal ? context.colors.onSurfaceVariant : tone,
+          ),
         ),
       ],
     );

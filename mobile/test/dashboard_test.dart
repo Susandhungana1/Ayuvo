@@ -117,7 +117,7 @@ void main() {
     expect(find.widgetWithText(TextButton, 'Taken'), findsOneWidget);
   });
 
-  testWidgets('the latest reading becomes tiles with a judgement on each',
+  testWidgets('the latest reading becomes one thin strip of chips',
       (tester) async {
     final api = backend(vitals: [
       vitalRow(systolic: 118, diastolic: 76, heartRate: 72),
@@ -125,10 +125,11 @@ void main() {
     ]);
     await pumpSignedIn(tester, api);
 
-    expect(find.text('Latest vitals'), findsOneWidget);
+    expect(find.text('Health'), findsOneWidget);
     expect(find.text('118/76'), findsOneWidget);
     expect(find.text('72'), findsOneWidget);
-    expect(find.text('Normal'), findsNWidgets(2));
+    // Normal is the quiet default: the value and metric suffice.
+    expect(find.text('Normal'), findsNothing);
     // The older, worse reading is not what the dashboard shows.
     expect(find.text('150/95'), findsNothing);
   });
@@ -139,10 +140,10 @@ void main() {
     await pumpSignedIn(tester, api);
 
     expect(find.text('182/122'), findsOneWidget);
-    expect(find.text('Crisis'), findsOneWidget);
+    expect(find.text('BP · Crisis'), findsOneWidget);
   });
 
-  testWidgets('a reading with nothing in it does not draw an empty grid',
+  testWidgets('a reading with nothing in it does not draw an empty strip',
       (tester) async {
     // POST /api/vitals accepts a body where every measurement is null, and
     // the web app's form will happily send one.
@@ -151,7 +152,7 @@ void main() {
     ]);
     await pumpSignedIn(tester, api);
 
-    expect(find.text('Latest vitals'), findsNothing);
+    expect(find.text('Health'), findsNothing);
     // And the shortcut comes back, because there is still nothing to show.
     expect(find.text('Record a reading'), findsOneWidget);
   });

@@ -88,11 +88,18 @@ void main() {
       find.widgetWithText(OutlinedButton, 'Edit details'),
       scrollable: scrollableIn(EmergencyScreen),
     );
+    // The form opens pre-filled with the saved value; clearing is an explicit
+    // re-tap of the selected chip, as the sibling test pins down.
+    await tester.tap(find.widgetWithText(ChoiceChip, 'O+'));
+    await settle(tester);
     await tester.tap(find.widgetWithText(FilledButton, 'Save details'));
     await settle(tester);
 
     final body = jsonDecode(api.requestFor('PUT /api/emergency/profile')!.body)
         as Map<String, dynamic>;
+    // The key must be PRESENT with '' — sending null would wipe nothing on
+    // the server and silently keep the old type on the card.
+    expect(body.containsKey('blood_type'), isTrue);
     expect(body['blood_type'], '');
   });
 

@@ -92,9 +92,20 @@ class FcmService {
 
   /// Called once after sign-in. Requests permission (Android 13+ / iOS),
   /// obtains the token, and registers it with the server.
+  ///
+  /// Deliberately swallow-safe: FCM is an enhancement over local reminders,
+  /// never a precondition. A platform without Firebase configured (a widget
+  /// test, a desktop target) must not take the shell down with it.
   Future<void> register() async {
     if (_registered || kIsWeb) return;
+    try {
+      await _register();
+    } catch (error) {
+      debugPrint('FCM registration unavailable: $error');
+    }
+  }
 
+  Future<void> _register() async {
     final messaging = FirebaseMessaging.instance;
 
     // Foreground delivery: without this, pushes arriving while the app is
@@ -149,8 +160,7 @@ class FcmService {
       // Best-effort cleanup.
     }
     _registered = false;
-  }
-}
+  }}
 
 /// Riverpod provider for the FCM service.
 final fcmServiceProvider = Provider<FcmService>((ref) {
