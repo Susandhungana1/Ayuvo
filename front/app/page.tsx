@@ -39,6 +39,21 @@ interface IntakeEntry {
   recorded_at: string;
 }
 
+interface Appointment {
+  id: string;
+  title: string;
+  doctor_name?: string | null;
+  hospital?: string | null;
+  appointment_date: string;
+  status: string;
+}
+
+interface Report {
+  id: string;
+  report_type: string;
+  report_date?: string | null;
+}
+
 // Band classification lives in lib/status.ts — the same engine as /vitals.
 // This page only maps its output (level + label) onto this page's chip
 // colours, so a threshold change is edited once, not twice.
@@ -94,6 +109,8 @@ export default function Home() {
   const [vitalsLoading, setVitalsLoading] = useState(true);
   const [nextDose, setNextDose] = useState<{ name: string; time: string; remaining: string } | null>(null);
   const [intakeLog, setIntakeLog] = useState<IntakeEntry[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -139,7 +156,21 @@ export default function Home() {
       } catch (e) { console.error(e); }
     };
 
-    if (isPatient) { fetchMeds(); fetchVitals(); fetchIntake(); }
+    const fetchAppointments = async () => {
+      try {
+        const res = await apiFetch(`${API_URL}/api/appointments`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) { const d = await res.json(); setAppointments(d.appointments || []); }
+      } catch (e) { console.error(e); }
+    };
+
+    const fetchReports = async () => {
+      try {
+        const res = await apiFetch(`${API_URL}/api/reports?offset=0&limit=1`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) { const d = await res.json(); setReports(d.reports || []); }
+      } catch (e) { console.error(e); }
+    };
+
+    if (isPatient) { fetchMeds(); fetchVitals(); fetchIntake(); fetchAppointments(); fetchReports(); }
     else { setMedsLoading(false); setVitalsLoading(false); }
   }, [isPatient]);
 
@@ -212,6 +243,50 @@ export default function Home() {
     if (hrs < 24) return `${hrs}h ago`;
     return `${Math.floor(hrs / 24)}d ago`;
   })() : '';
+
+  // Next appointment that has not been cancelled and is still ahead.
+  const nextAppointment = (() => {
+    const nowMs = mounted ? Date.now() : 0;
+    return appointments
+      .filter(a => a.status !== 'CANCELLED' && a.status !== 'cancelled')
+      .map(a => ({ ...a, at: new Date(a.appointment_date).getTime() }))
+      .filter(a => !Number.isNaN(a.at) && a.at >= nowMs)
+      .sort((a, b) => a.at - b.at)[0] ?? null;
+  })();
+
+  const latestReport = reports[0] ?? null;
+
+  const fmtAppt = (iso: string) => new Date(iso).toLocaleString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+  });
+  const fmtDate = (iso?: string | null) => iso
+    ? new Date(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+    : null;
+
+  // 7-day adherence percentage — mirrors home_screen.dart exactly.
+  const weekAdherence = (() => {
+    if (!mounted || medicines.length === 0) return null;
+    const taken = new Set(
+      intakeLog
+        .filter(l => l.status === 'taken' && l.recorded_at)
+        .map(l => `${l.medicine_id}-${l.scheduled_time}@${l.recorded_at.slice(0, 10)}`)
+    );
+    const pad = (n: number) => String(n).padStart(2, '0');
+    let scheduled = 0, done = 0;
+    for (let back = 6; back >= 0; back--) {
+      const d = new Date();
+      d.setDate(d.getDate() - back);
+      const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      for (const med of medicines) {
+        if (med.start_date > key || (med.end_date && med.end_date < key)) continue;
+        for (const t of parseTimes(med.taking_times)) {
+          scheduled++;
+          if (taken.has(`${med.id}-${t}@${key}`)) done++;
+        }
+      }
+    }
+    return scheduled === 0 ? null : Math.round((done * 100) / scheduled);
+  })();
 
   return (
     <div className="bg-[var(--color-background)]">
@@ -427,6 +502,75 @@ export default function Home() {
                   </div>
                 </Link>
               </div>
+            </div>
+          </div>
+
+          {/* Upcoming — read-only glances after doses: nearest appointment,
+              newest report, and the week's adherence. */}
+          <div className="mt-6">
+            {(nextAppointment || latestReport) && (
+              <h2 className="text-xl font-semibold text-[var(--color-ink)] font-heading mb-4">Upcoming</h2>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {nextAppointment && (
+                <Link href="/appointments">
+                  <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-4 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] hover:border-[var(--color-primary)] transition-colors h-full">
+                    <p className="text-xs text-[var(--color-ink-variant)] mb-1">📅 Appointment</p>
+                    <p className="text-sm font-semibold text-[var(--color-ink)]">{nextAppointment.title}</p>
+                    {nextAppointment.doctor_name && (
+                      <p className="text-xs text-[var(--color-ink-variant)]">{nextAppointment.doctor_name}</p>
+                    )}
+                    <p className="text-xs text-[var(--color-primary)] mt-1">{fmtAppt(nextAppointment.appointment_date)}</p>
+                  </div>
+                </Link>
+              )}
+              {latestReport && (
+                <Link href="/reports">
+                  <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-4 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] hover:border-[var(--color-primary)] transition-colors h-full">
+                    <p className="text-xs text-[var(--color-ink-variant)] mb-1">📄 Latest report</p>
+                    <p className="text-sm font-semibold text-[var(--color-ink)] capitalize">{latestReport.report_type.toLowerCase().replace(/_/g, ' ')}</p>
+                    <p className="text-xs text-[var(--color-ink-variant)] mt-1">{fmtDate(latestReport.report_date) ?? 'Undated'}</p>
+                  </div>
+                </Link>
+              )}
+              {weekAdherence !== null && (
+                <div className="bg-white dark:bg-[var(--color-card)] rounded-[var(--radius-md)] p-4 border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)]">
+                  <p className="text-xs text-[var(--color-ink-variant)] mb-1">This week</p>
+                  <div className="flex items-center justify-between">
+                    <p className={`text-2xl font-bold ${
+                      weekAdherence >= 80 ? 'text-[var(--color-ok)]' : weekAdherence >= 50 ? 'text-amber-600' : 'text-red-600'
+                    }`}>{weekAdherence}%</p>
+                    <div className="flex items-end gap-1 h-7" aria-hidden>
+                      {[6,5,4,3,2,1,0].map(back => {
+                        const d = new Date(); d.setDate(d.getDate() - back);
+                        const pad = (n: number) => String(n).padStart(2, '0');
+                        const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                        const takenSet = new Set(
+                          intakeLog.filter(l => l.status === 'taken' && l.recorded_at)
+                            .map(l => `${l.medicine_id}-${l.scheduled_time}@${l.recorded_at.slice(0, 10)}`)
+                        );
+                        let total = 0, done = 0;
+                        for (const med of medicines) {
+                          if (med.start_date > key || (med.end_date && med.end_date < key)) continue;
+                          for (const t of parseTimes(med.taking_times)) {
+                            total++;
+                            if (takenSet.has(`${med.id}-${t}@${key}`)) done++;
+                          }
+                        }
+                        const frac = total === 0 ? 0 : Math.max(done / total, 0.08);
+                        return (
+                          <span key={back} className="w-2 rounded-sm" style={{
+                            height: `${Math.round(frac * 100)}%`,
+                            backgroundColor: total === 0 ? 'var(--color-muted)'
+                              : done === total ? 'var(--color-ok)'
+                              : done === 0 ? '#dc2626' : '#f59e0b',
+                          }} />
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -72,7 +72,7 @@ Future<void> settle(WidgetTester tester) async {
 /// rather than fail: [localStoreProvider], because `path_provider` is a method
 /// channel with nobody on the other end in a `flutter test`, and
 /// [remindersProvider], because scheduling one would need three more.
-Future<void> pumpSignedIn(
+ Future<void> pumpSignedIn(
   WidgetTester tester,
   FakeApi api, {
   AuthUser user = testUser,
@@ -81,6 +81,18 @@ Future<void> pumpSignedIn(
   Reminders? reminders,
   FakeAuthRepository? auth,
 }) async {
+  // Home reads the calendar and the report shelf too. Fallbacks only: a test
+  // that scripts these routes itself keeps its own bodies.
+  api.onIfAbsent('GET /api/appointments', (_) => {'appointments': const []});
+  api.onIfAbsent(
+    'GET /api/reports',
+    (_) => {'reports': const [], 'total': 0},
+  );
+  api.onIfAbsent(
+    'GET /api/medicines/intake/log',
+    (_) => {'intakes': const []},
+  );
+
   await tester.pumpWidget(
     ProviderScope(
       overrides: [

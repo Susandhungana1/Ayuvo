@@ -23,10 +23,12 @@ import '../../../core/widgets/range_bar.dart' show RangeStatus;
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/states.dart';
 import '../../care/presentation/people_i_care_for.dart';
+import '../../appointments/presentation/appointments_controller.dart';
 import '../../medicines/data/medicine_repository.dart';
 import '../../medicines/domain/dose_schedule.dart';
 import '../../medicines/domain/medicine.dart';
 import '../../medicines/presentation/medicines_controller.dart';
+import '../../reports/presentation/reports_controller.dart';
 import '../../vitals/domain/vital_ranges.dart';
 import '../../vitals/presentation/vitals_controller.dart';
 
@@ -53,6 +55,8 @@ class HomeScreen extends ConsumerWidget {
           await Future.wait([
             ref.read(medicinesProvider(null).notifier).refresh(),
             ref.read(vitalsProvider.notifier).refresh(),
+            ref.read(appointmentsProvider.notifier).refresh(),
+            ref.read(reportsProvider.notifier).refresh(),
           ]);
         },
         child: ListView(
@@ -80,6 +84,10 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.xl),
               const _Shortcuts(),
             ],
+            const SizedBox(height: AppSpacing.xl),
+            const _Upcoming(),
+            const SizedBox(height: AppSpacing.md),
+            const _WeekAdherence(),
             // Nothing at all for the vast majority of accounts, which have no
             // care links. See `people_i_care_for.dart`.
             const SizedBox(height: AppSpacing.xl),
@@ -624,6 +632,184 @@ class _Shortcuts extends ConsumerWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// The next two things on the calendar after doses: the nearest appointment
+/// and the newest report. Read-only glances — each deep-links to its tab
+/// rather than duplicating it.
+class _Upcoming extends ConsumerWidget {
+  const _Upcoming();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appointments = ref.watch(appointmentsProvider);
+    final reports = ref.watch(reportsProvider);
+
+    if (appointments.isLoading || reports.isLoading) {
+      return const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Skeleton(width: 110, height: 20),
+          SizedBox(height: AppSpacing.md),
+          SkeletonCard(lines: 1),
+        ],
+      );
+    }
+
+    final upcoming =
+        splitAppointments(appointments.valueOrNull ?? const []).upcoming;
+    final reportsList = reports.valueOrNull ?? const [];
+    final latestReport = reportsList.isEmpty ? null : reportsList.first;
+
+    // Nothing on the calendar and nothing filed: silence beats furniture.
+    if (upcoming.isEmpty && latestReport == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Upcoming', style: context.texts.titleLarge),
+        const SizedBox(height: AppSpacing.sm),
+        if (upcoming.isNotEmpty)
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.event_outlined),
+              title: Text(upcoming.first.title),
+              subtitle: Text(
+                [
+                  if (upcoming.first.who.isNotEmpty) upcoming.first.who,
+                  MediTime.dateTime(upcoming.first.startsAt!),
+                ].join(' · '),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go(Routes.appointments),
+            ),
+          ),
+        if (latestReport != null)
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.description_outlined),
+              title: Text(latestReport.typeLabel),
+              subtitle: Text(
+                latestReport.dated == null
+                    ? 'Undated'
+                    : MediTime.date(latestReport.dated!),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go(Routes.reports),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Seven days of adherence, one bar per day. Reuses the intake log already in
+/// memory for the streak — no extra request — so a missed dose becomes gently
+/// visible without a lecture.
+class _WeekAdherence extends ConsumerWidget {
+  const _WeekAdherence();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final medicines = ref.watch(medicinesProvider(null)).valueOrNull;
+    final intakeLog = ref.watch(intakeLogProvider).valueOrNull ?? const [];
+    if (medicines == null || medicines.isEmpty) return const SizedBox.shrink();
+
+    final now = DateTime.now();
+    final taken = <String>{
+      for (final intake in intakeLog)
+        if (intake.status == 'taken' && intake.recorded != null)
+          '${intake.medicineId}-${intake.scheduledTime}'
+              '@${MediTime.dateOnly(intake.recorded!)}',
+    };
+
+    var scheduledTotal = 0;
+    var takenTotal = 0;
+    final bars = <({int done, int total})>[];
+    for (var back = 6; back >= 0; back--) {
+      final day = DateTime(now.year, now.month, now.day - back);
+      final slots = DoseSchedule.forDay(medicines, day);
+      final key = MediTime.dateOnly(day);
+      final done = slots.where((s) => taken.contains('${s.key}@$key')).length;
+      bars.add((done: done, total: slots.length));
+      scheduledTotal += slots.length;
+      takenTotal += done;
+    }
+    if (scheduledTotal == 0) return const SizedBox.shrink();
+
+    final pct = (takenTotal * 100 / scheduledTotal).round();
+
+    return Card(
+      child: Padding(
+        padding: AppSpacing.card,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text('This week', style: context.texts.titleMedium),
+                ),
+                Text(
+                  '$pct%',
+                  style: context.numerals.numericMedium.copyWith(
+                    color: pct >= 80
+                        ? context.status.ok
+                        : pct >= 50
+                            ? context.status.caution
+                            : context.status.alert,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                for (final bar in bars) ...[
+                  Expanded(
+                    child: SizedBox(
+                      height: 28,
+                      child: Stack(
+                        alignment: Alignment.bottomCenter,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: context.colors.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          FractionallySizedBox(
+                            heightFactor: bar.total == 0
+                                ? 0.0
+                                : (bar.done / bar.total).clamp(0.08, 1.0),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: bar.done == bar.total && bar.total > 0
+                                    ? context.status.ok
+                                    : bar.done == 0
+                                        ? context.status.alert
+                                        : context.status.caution,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (!identical(bar, bars.last))
+                    const SizedBox(width: AppSpacing.xs),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

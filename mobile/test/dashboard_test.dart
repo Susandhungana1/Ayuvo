@@ -37,9 +37,17 @@ void main() {
     );
     expect(find.text('Get started'), findsOneWidget);
     expect(find.text('Record a reading'), findsOneWidget);
-    // Nothing else was fetched. The dashboard costs two requests, which is the
-    // whole reason it reuses the tabs' providers instead of having its own.
-    expect(api.calls, ['GET /api/medicines', 'GET /api/vitals']);
+    // Nothing else was fetched. The dashboard costs five requests, which is
+    // the whole reason it reuses the tabs' providers instead of having its
+    // own. Set-compare: launch order across five providers is not the contract.
+    expect(api.calls.length, 5);
+    expect(api.calls.toSet(), {
+      'GET /api/medicines',
+      'GET /api/vitals',
+      'GET /api/appointments',
+      'GET /api/reports',
+      'GET /api/medicines/intake/log',
+    });
     expect(api.unmatched, isEmpty);
   });
 

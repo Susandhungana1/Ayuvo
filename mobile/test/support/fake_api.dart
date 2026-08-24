@@ -35,6 +35,13 @@ class FakeApi {
   /// string is not part of the key — assert on it through [requestFor].
   void on(String route, FakeRoute respond) => _routes[route] = respond;
 
+  /// Scripts a fallback without clobbering what the test itself scripted.
+  /// Used by the harness for the shell-level reads (appointments, reports)
+  /// that Home now fires: a screen under test scripts its own body when the
+  /// content matters, and everyone else gets silence.
+  void onIfAbsent(String route, FakeRoute respond) =>
+      _routes.putIfAbsent(route, () => respond);
+
   /// Scripts a route that always answers the same 200 JSON body.
   void json(String route, Object? body) => on(route, (_) => body);
 
