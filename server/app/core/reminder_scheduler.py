@@ -30,7 +30,7 @@ Design notes:
 import asyncio
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone as dt_timezone
+from datetime import datetime, timedelta, timezone as dt_timezone
 
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
@@ -99,14 +99,28 @@ class Recipient:
     linked_at: datetime | None = None
 
 
-def _delta_minutes(scheduled: str, now: datetime) -> int | None:
-    """Minutes since `scheduled` (HH:MM) hit, in the patient's local clock.
-    Negative means the slot is still ahead."""
+def _delta_minutes(scheduled: str, now: datetime) -> tuple[int, int] | None:
+    """(minutes since slot, day offset) in the patient's local clock.
+
+    Negative minutes means the slot is still ahead; the day offset is 1 when
+    that "ahead" reaches across midnight — a 00:10 dose seen from 23:45 is
+    −25, not +1415, or its pre-reminder would never fire (the only window
+    long enough to reach past midnight; dose and verify always sit within
+    twenty minutes of their own day).
+    """
     sched = doses.minutes_of_day(scheduled)
     if sched is None:
         return None
     now_min = now.hour * 60 + now.minute
-    return now_min - sched
+    delta = now_min - sched
+    day_offset = 0
+    # A raw delta this large can only be tomorrow's early-morning slot.
+    # PRE_MINUTES + GRACE is the furthest lookback any stage reaches; 60 adds
+    # headroom without ever touching a legitimate same-day reading (max +20).
+    if delta >= 1440 - (PRE_MINUTES + GRACE_MINUTES + 10):
+        delta -= 1440
+        day_offset = 1
+    return delta, day_offset
 
 
 def _stage_for(delta: int) -> str | None:
@@ -520,23 +534,30 @@ def _tick_patient(
         .replace(tzinfo=None)
     )
 
-    # (medicine, slot, stage) triples currently inside some stage window.
+    # (medicine, slot, stage, day_offset) tuples inside some stage window.
     # The stage follows from the slot's minute-delta alone, so each
     # (medicine, slot) lands in exactly one window per tick — including the
     # delta == VERIFY_MINUTES boundary, where the dose window wins and the
     # verify question waits for a later tick inside its own grace.
-    due: list[tuple[Medicine, str, str]] = []
+    due: list[tuple[Medicine, str, str, int]] = []
     for med in meds:
         if not doses.is_active_on(med, today):
             continue
         for t in doses.parse_times(med.taking_times):
-            delta = _delta_minutes(t, now)
-            if delta is None:
+            got = _delta_minutes(t, now)
+            if got is None:
                 continue
+            delta, day_offset = got
             stage = _stage_for(delta)
             if stage is None:
                 continue
-            due.append((med, t, stage))
+            # A pre-reminder borrowed from tomorrow only exists if the course
+            # is still running tomorrow.
+            if day_offset == 1 and not doses.is_active_on(
+                med, (now.date() + timedelta(days=1)).isoformat()
+            ):
+                continue
+            due.append((med, t, stage, day_offset))
 
     if not due:
         return 0
@@ -545,14 +566,15 @@ def _tick_patient(
     patient_name = user.name if user else "Your patient"
 
     sent = 0
-    for med, slot, stage in due:
+    for med, slot, stage, day_offset in due:
         mins = doses.minutes_of_day(slot)
         if mins is None:
             continue
-        # The dose slot itself, in the patient's local zone — the send time may
-        # drift up to GRACE_MINUTES later, but the slot identifies the dose.
+        # The dose slot itself, in the patient's local zone — anchored to the
+        # day it belongs to, so a pre fired at 23:45 for tomorrow's 00:10
+        # never collides with (or masks) that day's own ledger rows.
         scheduled_for = datetime.combine(
-            now.date(), datetime.min.time()
+            now.date() + timedelta(days=day_offset), datetime.min.time()
         ).replace(hour=mins // 60, minute=mins % 60)
 
         # The verification nag only asks when nobody has answered. Checked per
@@ -598,13 +620,24 @@ async def run_tick_once() -> int:
 
 
 def send_intake_confirmation(
-    *, patient_id: str, medicine_id: str, medicine_name: str, dosage: str, slot: str
+    *,
+    patient_id: str,
+    medicine_id: str,
+    medicine_name: str,
+    dosage: str,
+    slot: str,
+    log_id: str | None = None,
 ) -> int:
     """Push '✅ taken' to the patient and their notifying caretakers.
 
     Fired as a background task when the patient logs an intake as taken — the
     answer to the verify stage's question, delivered to everyone who was asked.
     Opens its own session because it outlives the request's.
+
+    A second 'taken' log for the same slot on the same local day is a double
+    tap, not news: when [log_id] is given and an earlier taken entry already
+    exists for today, the echo stays silent. (A sub-second race between two
+    near-simultaneous taps can still slip past this check.)
 
     Returns the number of pushes accepted by any transport.
     """
@@ -639,10 +672,30 @@ def send_intake_confirmation(
         ).all():
             fcm_by_user.setdefault(fcm.user_id, []).append(fcm)
 
-        day = doses.local_now(
+        now_local = doses.local_now(
             _patient_timezone(patient, subs_by_user.get(patient_id, []))
-        ).strftime("%Y-%m-%d")
+        )
+        day = now_local.strftime("%Y-%m-%d")
         patient_name = patient.name
+
+        if log_id is not None:
+            day_start_utc = (
+                now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+                .astimezone(dt_timezone.utc)
+                .replace(tzinfo=None)
+            )
+            earlier_taken = db.exec(
+                select(MedicineIntakeLog).where(
+                    MedicineIntakeLog.user_id == patient_id,
+                    MedicineIntakeLog.medicine_id == medicine_id,
+                    MedicineIntakeLog.scheduled_time == slot,
+                    MedicineIntakeLog.status == "taken",
+                    MedicineIntakeLog.recorded_at >= day_start_utc,
+                    MedicineIntakeLog.id != log_id,  # type: ignore[attr-defined]
+                )
+            ).first()
+            if earlier_taken is not None:
+                return 0
 
         for uid in recipient_ids:
             is_self = uid == patient_id

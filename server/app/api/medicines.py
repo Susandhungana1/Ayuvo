@@ -277,6 +277,7 @@ async def record_intake(
             medicine_name=medicine.name,
             dosage=medicine.dosage,
             slot=data.scheduled_time,
+            log_id=log.id,
         )
 
     return IntakeItem(

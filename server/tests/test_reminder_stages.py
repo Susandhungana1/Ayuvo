@@ -301,6 +301,102 @@ def test_caretaker_hears_every_stage_of_a_medicine_they_added(
         assert patient_name in payload["title"] or payload["patient_name"]
 
 
+def _freeze_patient_clock(monkeypatch, frozen):
+    """Pin every scheduler clock read to one instant."""
+    monkeypatch.setattr(scheduler.doses, "local_now", lambda name: frozen)
+
+
+def test_pre_fires_across_midnight(client, monkeypatch):
+    """23:45 + a 00:10 dose: the pre window reaches past midnight, so the
+    heads-up fires tonight instead of never."""
+    sent: list = []
+    _arm(monkeypatch, sent)
+
+    account = _register(client, "Night User")
+    med_id = _add_medicine(client, account["token"], ["00:10"])
+
+    with Session(engine) as db:
+        user = db.get(User, account["id"])
+        user.timezone = None
+        db.add(user)
+        db.add(
+            PushSubscription(
+                user_id=account["id"],
+                endpoint=f"https://push.example/{account['id']}",
+                p256dh="p",
+                auth="a",
+                timezone="UTC",
+            )
+        )
+        db.commit()
+
+    from datetime import datetime, timedelta, timezone as dt_tz
+
+    # 25 minutes before the dose's minute, on the previous day.
+    frozen = datetime(2026, 8, 23, 23, 45, tzinfo=dt_tz.utc)
+    _freeze_patient_clock(monkeypatch, frozen)
+
+    scheduler._run_tick()
+
+    assert len(sent) == 1, sent
+    assert sent[0]["stage"] == "pre"
+
+    # The ledger row must anchor to the dose's own day, so tonight's heads-up
+    # never collides with tomorrow's real rows.
+    with Session(engine) as db:
+        row = db.exec(
+            select(ReminderDelivery).where(ReminderDelivery.medicine_id == med_id)
+        ).first()
+        assert row is not None
+        assert row.scheduled_for.date() == frozen.date() + timedelta(days=1)
+        assert row.scheduled_for.hour == 0
+
+
+def test_pre_across_midnight_skips_when_course_ends_today(client, monkeypatch):
+    """A course ending today owes nobody tomorrow's heads-up."""
+    sent: list = []
+    _arm(monkeypatch, sent)
+
+    account = _register(client, "Ending User")
+    # Course ends on the FROZEN today (2026-08-23): active for tonight's gate,
+    # but tomorrow's 00:10 slot must not be announced.
+    med = client.post(
+        "/api/medicines",
+        json={
+            "name": "EndingMed",
+            "dosage": "1tab",
+            "frequency": "daily",
+            "start_date": "2020-01-01",
+            "end_date": "2026-08-23",
+            "taking_times": json.dumps(["00:10"]),
+        },
+        headers={"Authorization": f"Bearer {account['token']}"},
+    )
+    assert med.status_code == 200
+
+    with Session(engine) as db:
+        user = db.get(User, account["id"])
+        user.timezone = None
+        db.add(user)
+        db.add(
+            PushSubscription(
+                user_id=account["id"],
+                endpoint=f"https://push.example/{account['id']}",
+                p256dh="p",
+                auth="a",
+                timezone="UTC",
+            )
+        )
+        db.commit()
+
+    from datetime import datetime, timezone as dt_tz
+
+    _freeze_patient_clock(monkeypatch, datetime(2026, 8, 23, 23, 45, tzinfo=dt_tz.utc))
+
+    scheduler._run_tick()
+    assert sent == []
+
+
 def test_scheduler_runs_when_only_fcm_is_configured(client, monkeypatch):
     """VAPID unset must not starve FCM devices — the gate is any transport."""
     fcm_sends: list = []
@@ -325,6 +421,41 @@ def test_scheduler_runs_when_only_fcm_is_configured(client, monkeypatch):
     token, payload = fcm_sends[0]
     assert token == "fcm-token-1"
     assert payload["stage"] == "dose"
+
+
+def test_double_taken_logs_echo_once(client, monkeypatch):
+    """Two taps on 'taken' are one piece of news — the second echo stays silent."""
+    monkeypatch.setattr(settings, "caretaker_enabled", True, raising=False)
+    sent: list = []
+    _arm(monkeypatch, sent)
+
+    slot = _hhmm(120)  # outside every reminder window; see the earlier note
+    patient_id, med_id = _make_patient(client, [slot])
+
+    with Session(engine) as db:
+        email = db.get(User, patient_id).email
+    token = client.post(
+        "/api/auth/login",
+        data={"username": email, "password": "supersecret1"},
+    ).json()["token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    first = client.post(
+        f"/api/medicines/{med_id}/intake",
+        json={"scheduled_time": slot, "status": "taken"},
+        headers=headers,
+    )
+    assert first.status_code == 200
+    echo_count_after_first = len(sent)
+    assert echo_count_after_first == 1, sent  # patient's own confirmation
+
+    second = client.post(
+        f"/api/medicines/{med_id}/intake",
+        json={"scheduled_time": slot, "status": "taken"},
+        headers=headers,
+    )
+    assert second.status_code == 200
+    assert len(sent) == echo_count_after_first, sent
 
 
 def test_taking_a_dose_notifies_patient_and_caretaker(client, monkeypatch):
