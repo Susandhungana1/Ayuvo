@@ -1,8 +1,8 @@
-// MediStore service worker — offline app shell only.
+// Ayuvo service worker — offline app shell only.
 // SECURITY: never cache API responses or medical data. Only static assets
 // and a generic offline fallback page are cached.
 
-const CACHE = "medistore-v3";
+const CACHE = "ayuvo-v3";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE = [
   OFFLINE_URL,

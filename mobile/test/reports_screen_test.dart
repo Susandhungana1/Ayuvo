@@ -5,8 +5,8 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/features/reports/presentation/report_detail_screen.dart';
-import 'package:medistore/features/reports/presentation/reports_screen.dart';
+import 'package:ayuvo/features/reports/presentation/report_detail_screen.dart';
+import 'package:ayuvo/features/reports/presentation/reports_screen.dart';
 
 import 'support/fake_api.dart';
 import 'support/harness.dart';

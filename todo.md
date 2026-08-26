@@ -1,4 +1,4 @@
-# MediStore — Production & Adoption Roadmap
+# Ayuvo — Production & Adoption Roadmap
 
 Academic phase is done (examiner passed). Goal now: **ship a real mobile app** and **make it
 safe + interoperable enough for hospitals to adopt.** This holds real patient data, so security,

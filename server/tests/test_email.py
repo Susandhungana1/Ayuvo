@@ -84,7 +84,7 @@ def test_falls_back_to_smtp_when_no_brevo_key(monkeypatch):
         brevo_api_key="",
         smtp_host="smtp.example.com",
         smtp_user="",
-        smtp_from="MediStore <no-reply@example.com>",
+        smtp_from="Ayuvo <no-reply@example.com>",
     )
 
     sent = {}

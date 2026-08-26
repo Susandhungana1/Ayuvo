@@ -2,7 +2,7 @@
 // Lists fetched from the API are cached here so the app can still show the
 // user's records when the network (or backend) is unavailable.
 
-const DB_NAME = 'medistore-cache';
+const DB_NAME = 'ayuvo-cache';
 const STORE = 'kv';
 const VERSION = 1;
 

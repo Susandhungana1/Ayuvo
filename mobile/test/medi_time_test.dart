@@ -5,7 +5,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/core/time/medi_time.dart';
+import 'package:ayuvo/core/time/medi_time.dart';
 
 void main() {
   group('parseUtc', () {

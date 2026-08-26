@@ -7,9 +7,9 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/core/widgets/range_bar.dart';
-import 'package:medistore/features/vitals/domain/vital_ranges.dart';
-import 'package:medistore/features/vitals/domain/vital_sign.dart';
+import 'package:ayuvo/core/widgets/range_bar.dart';
+import 'package:ayuvo/features/vitals/domain/vital_ranges.dart';
+import 'package:ayuvo/features/vitals/domain/vital_sign.dart';
 
 void main() {
   group('blood pressure', () {

@@ -164,7 +164,7 @@ export default function ViewSharedReport() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <a
-              href={`https://wa.me/?text=${encodeURIComponent('MediStore shared report: ' + window.location.href)}`}
+              href={`https://wa.me/?text=${encodeURIComponent('Ayuvo shared report: ' + window.location.href)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-3 py-1.5 rounded-lg bg-[#25D366] text-white font-medium text-sm hover:bg-[#1fb355] transition-colors inline-flex items-center gap-1.5"

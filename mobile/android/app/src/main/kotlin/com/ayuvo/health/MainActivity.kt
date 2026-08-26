@@ -1,4 +1,4 @@
-package com.medistore.medistore
+package com.ayuvo.health
 
 import io.flutter.embedding.android.FlutterActivity
 

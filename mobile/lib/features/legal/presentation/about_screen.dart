@@ -1,4 +1,4 @@
-/// About MediStore and Quorlyn — mirrors the web page at /about.
+/// About Ayuvo and Quorlyn — mirrors the web page at /about.
 library;
 
 import 'package:flutter/material.dart';
@@ -21,7 +21,7 @@ class AboutScreen extends StatelessWidget {
     final textTheme = theme.textTheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('About MediStore')),
+      appBar: AppBar(title: const Text('About Ayuvo')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.lg,
@@ -31,7 +31,7 @@ class AboutScreen extends StatelessWidget {
         ),
         children: [
           Text(
-            'MediStore is your personal digital health store — a secure platform to store medical records, track vital signs, manage medications, book appointments, generate reports, and share your health data with doctors — all in one place.',
+            'Ayuvo is your personal digital health store — a secure platform to store medical records, track vital signs, manage medications, book appointments, generate reports, and share your health data with doctors — all in one place.',
             style: textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               height: 1.6,
@@ -41,7 +41,7 @@ class AboutScreen extends StatelessWidget {
           _Section(
             title: 'Our Company',
             child: Text(
-              'MediStore is built and published by Quorlyn, a technology company focused on products that make everyday life simpler and more secure. Quorlyn brings together a team of founders and directors who care about building software that people can trust with what matters most.',
+              'Ayuvo is built and published by Quorlyn, a technology company focused on products that make everyday life simpler and more secure. Quorlyn brings together a team of founders and directors who care about building software that people can trust with what matters most.',
               style: textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
                 height: 1.6,
@@ -80,7 +80,7 @@ class AboutScreen extends StatelessWidget {
           _Section(
             title: 'What We Do',
             child: Text(
-              'MediStore lets you upload and organize lab results, prescriptions, and medical history, track vital signs like blood pressure, heart rate, blood sugar, and weight, manage your medications with dose reminders, book appointments with doctors, generate AI-powered medical reports, and share records securely via expiring links.',
+              'Ayuvo lets you upload and organize lab results, prescriptions, and medical history, track vital signs like blood pressure, heart rate, blood sugar, and weight, manage your medications with dose reminders, book appointments with doctors, generate AI-powered medical reports, and share records securely via expiring links.',
               style: textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
                 height: 1.6,

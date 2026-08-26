@@ -10,7 +10,7 @@ import os
 import tempfile
 
 # Point config at a temp SQLite DB + temp storage dir before anything imports it.
-_TMP = tempfile.mkdtemp(prefix="medistore-test-")
+_TMP = tempfile.mkdtemp(prefix="ayuvo-test-")
 os.environ["DATABASE_URL"] = f"sqlite:///{os.path.join(_TMP, 'test.db')}"
 os.environ["STORAGE_BACKEND"] = "local"
 os.environ["STORAGE_LOCAL_DIR"] = os.path.join(_TMP, "storage")

@@ -58,7 +58,7 @@
   "settingsReminders": "Dose reminders",
   "settingsRemindersBlurb": "A notification at each dose time, scheduled on this phone. Nothing about a medicine is sent anywhere.",
   "settingsRemindersOn": "Remind me to take my medicines",
-  "settingsRemindersDenied": "Notifications are switched off for MediStore. Turn them on in your phone's settings, then come back.",
+  "settingsRemindersDenied": "Notifications are switched off for Ayuvo. Turn them on in your phone's settings, then come back.",
   "settingsRemindersScheduled": "{count, plural, =0{Nothing scheduled yet} =1{1 reminder scheduled} other{{count} reminders scheduled}}",
   "@settingsRemindersScheduled": {
     "placeholders": { "count": { "type": "int" } }
@@ -66,7 +66,7 @@
   "settingsRemindersHorizon": "Covers the next 7 days. The app refreshes them whenever you open it.",
   "settingsRemindersTest": "Send test reminder",
   "settingsRemindersTestSent": "Test reminder scheduled — check your lock screen in a few seconds.",
-  "settingsRemindersTestFailed": "Could not schedule a test reminder. Check that notifications are allowed for MediStore.",
+  "settingsRemindersTestFailed": "Could not schedule a test reminder. Check that notifications are allowed for Ayuvo.",
 
   "searchTitle": "Search",
   "searchHint": "Reports, medicines, documents",

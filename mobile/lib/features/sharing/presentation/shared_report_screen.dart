@@ -120,7 +120,7 @@ class _SharedReportScreenState extends ConsumerState<SharedReportScreen> {
                 ],
                 const SizedBox(height: AppSpacing.xl),
                 Text(
-                  'Shared with MediStore · the link expires and can be revoked '
+                  'Shared with Ayuvo · the link expires and can be revoked '
                   'by its owner at any time',
                   style: context.texts.bodySmall?.copyWith(
                     color: context.colors.onSurfaceVariant,

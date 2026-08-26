@@ -9,9 +9,9 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/core/widgets/form_sheet.dart';
-import 'package:medistore/features/emergency/presentation/emergency_screen.dart';
-import 'package:medistore/features/shell/presentation/more_screen.dart';
+import 'package:ayuvo/core/widgets/form_sheet.dart';
+import 'package:ayuvo/features/emergency/presentation/emergency_screen.dart';
+import 'package:ayuvo/features/shell/presentation/more_screen.dart';
 
 import 'support/fake_api.dart';
 import 'support/fakes.dart';

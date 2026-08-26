@@ -402,11 +402,11 @@ async def forgot_password(
 
     sent = send_email(
         to=user.email,
-        subject="Reset your MediStore password",
+        subject="Reset your Ayuvo password",
         text=(
             f"Hi {user.name},\n"
             f"\n"
-            f"We received a request to reset the password for your MediStore account.\n"
+            f"We received a request to reset the password for your Ayuvo account.\n"
             f"Click the link below to choose a new password. This link is valid for\n"
             f"{minutes} minutes.\n"
             f"\n"
@@ -425,7 +425,7 @@ async def forgot_password(
             f"email. Your password will remain unchanged.\n"
             f"\n"
             f"--\n"
-            f"MediStore  |  Your Digital Health Store\n"
+            f"Ayuvo  |  Your Digital Health Store\n"
         ),
         html=(
             f"<!DOCTYPE html>"
@@ -438,14 +438,14 @@ async def forgot_password(
             # Header
             f"<tr><td style=\"background:#1a56db;padding:28px 32px;text-align:center;\">"
             f"<h1 style=\"margin:0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:0.5px;\">"
-            f"MediStore</h1>"
+            f"Ayuvo</h1>"
             f"<p style=\"margin:6px 0 0;color:#bfdbfe;font-size:13px;\">Your Digital Health Store</p>"
             f"</td></tr>"
             # Body
             f"<tr><td style=\"padding:36px 32px 24px;\">"
             f"<p style=\"margin:0 0 20px;color:#1f2937;font-size:16px;\">Hi {name_html},</p>"
             f"<p style=\"margin:0 0 20px;color:#4b5563;font-size:15px;line-height:1.6;\">"
-            f"We received a request to reset the password for your MediStore account. "
+            f"We received a request to reset the password for your Ayuvo account. "
             f"Click the button below to choose a new password.</p>"
             # Button
             f'<table cellpadding="0" cellspacing="0" style="margin:0 0 28px;"><tr>'
@@ -484,7 +484,7 @@ async def forgot_password(
             f'<tr><td style="background:#f9fafb;padding:20px 32px;text-align:center;'
             f'border-top:1px solid #e5e7eb;">'
             f'<p style="margin:0;color:#9ca3af;font-size:12px;">'
-            f"MediStore &mdash; Your Digital Health Store</p>"
+            f"Ayuvo &mdash; Your Digital Health Store</p>"
             f"</td></tr>"
             f"</table>"
             f"</td></tr></table>"
@@ -596,7 +596,7 @@ async def totp_setup(
 
     secret = pyotp.random_base32()
     otpauth_url = pyotp.TOTP(secret).provisioning_uri(
-        name=current_user.email, issuer_name="MediStore"
+        name=current_user.email, issuer_name="Ayuvo"
     )
 
     img = qrcode.make(otpauth_url)

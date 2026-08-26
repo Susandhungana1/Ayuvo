@@ -17,7 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:medistore/app.dart';
+import 'package:ayuvo/app.dart';
 
 /// Pumps until [finder] matches or the clock runs out. `pumpAndSettle` is not
 /// an option: the loading skeleton pulses forever by design, so "no frames
@@ -42,7 +42,7 @@ void main() {
     final email = 'phase3+${DateTime.now().millisecondsSinceEpoch}@example.com';
     const password = 'phase3-device-check';
 
-    await tester.pumpWidget(const ProviderScope(child: MediStoreApp()));
+    await tester.pumpWidget(const ProviderScope(child: AyuvoApp()));
     await waitFor(tester, find.widgetWithText(FilledButton, 'Sign in'));
 
     // — Register ————————————————————————————————————————————————

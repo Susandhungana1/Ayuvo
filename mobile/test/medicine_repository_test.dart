@@ -8,8 +8,8 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/core/network/api_client.dart';
-import 'package:medistore/features/medicines/data/medicine_repository.dart';
+import 'package:ayuvo/core/network/api_client.dart';
+import 'package:ayuvo/features/medicines/data/medicine_repository.dart';
 
 import 'support/fake_http.dart';
 

@@ -9,8 +9,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/core/theme/app_theme.dart';
-import 'package:medistore/core/theme/app_tokens.dart';
+import 'package:ayuvo/core/theme/app_theme.dart';
+import 'package:ayuvo/core/theme/app_tokens.dart';
 
 /// WCAG 2.1 relative luminance.
 double _luminance(Color c) {

@@ -9,8 +9,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/core/network/network_providers.dart';
-import 'package:medistore/features/sharing/presentation/shared_record_screen.dart';
+import 'package:ayuvo/core/network/network_providers.dart';
+import 'package:ayuvo/features/sharing/presentation/shared_record_screen.dart';
 
 import 'support/fake_api.dart';
 import 'support/fake_http.dart';

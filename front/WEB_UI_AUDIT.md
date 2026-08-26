@@ -1,4 +1,4 @@
-# MediStore Web UI — Audit & Baseline (Phase 0)
+# Ayuvo Web UI — Audit & Baseline (Phase 0)
 
 Date: 2026-08-14. Scope: `front/` Next.js app (https://medistore-health.vercel.app),
 redesign per `WEB_UI_REDESIGN_PROMPT.md`. Backend (`server/`) frozen; share reader
@@ -9,7 +9,7 @@ redesign per `WEB_UI_REDESIGN_PROMPT.md`. Backend (`server/`) frozen; share read
 Fetched `https://medistore-share-beige.vercel.app/` (2026-08-14):
 
 - The response is the **Flutter web bootstrap** (`flutter_bootstrap.js`, `<base href>`
-  comment, `manifest.json`, title `medistore`), not a Next.js build.
+  comment, `manifest.json`, title `ayuvo`), not a Next.js build.
 - Conclusion: **the reader deploys from the Flutter app (`mobile/`), not from this
   repo's `front/` code.** Changes to `front/app/globals.css` therefore cannot alter
   the deployed reader's rendering.
@@ -33,7 +33,7 @@ what reads as sloppy → planned change.
 
 | Page | Structure | Sloppy | Plan |
 |---|---|---|---|
-| `/` (home) | navbar → hero (eyebrow "Secure & Private", H1, 2 CTAs) → 3-card grid → CTA band; footer. Public when logged out; shows dashboard-ish content when logged in | Stock template hero, no artifact from the product's world, "Join others who trust MediStore" copy, 3 interchangeable cards | Replace with a real artifact: live data-drawn vitals preview using the range-bar grammar (only for logged-in; logged-out shows an illustrative range-bar composition), problem statement, single strong CTA; keep bilingual toggle |
+| `/` (home) | navbar → hero (eyebrow "Secure & Private", H1, 2 CTAs) → 3-card grid → CTA band; footer. Public when logged out; shows dashboard-ish content when logged in | Stock template hero, no artifact from the product's world, "Join others who trust Ayuvo" copy, 3 interchangeable cards | Replace with a real artifact: live data-drawn vitals preview using the range-bar grammar (only for logged-in; logged-out shows an illustrative range-bar composition), problem statement, single strong CTA; keep bilingual toggle |
 | `/about` | Static prose sections | Generic company page | Typography pass, brand voice, real facts (no invented stats) |
 | `/contact` | Form + info | Generic | Form polish, error/empty/loading states |
 | `/blog` + `/blog/[id]` | List with search/filter chips (MOCK_BLOG_POSTS), card grid; detail page | `components/ui/card` used here; Unsplash images; dated placeholder | Restyle via new Card/Input/Badge primitives; keep MOCK_BLOG_POSTS (static content, allowed — not fake user data) |

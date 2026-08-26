@@ -11,7 +11,7 @@
 library;
 
 import 'package:dio/dio.dart';
-import 'package:medistore/core/network/api_client.dart';
+import 'package:ayuvo/core/network/api_client.dart';
 
 import 'fake_http.dart';
 

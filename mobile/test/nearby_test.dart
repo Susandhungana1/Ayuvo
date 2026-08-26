@@ -5,8 +5,8 @@ library;
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:medistore/features/nearby/data/overpass_repository.dart';
-import 'package:medistore/features/nearby/domain/nearby_place.dart';
+import 'package:ayuvo/features/nearby/data/overpass_repository.dart';
+import 'package:ayuvo/features/nearby/domain/nearby_place.dart';
 
 import 'support/fake_http.dart';
 

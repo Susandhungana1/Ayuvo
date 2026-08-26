@@ -33,15 +33,15 @@ class TermsScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           _Section(
             title: '1. Acceptance of Terms',
-            body: 'By accessing or using MediStore, a product of Quorlyn (the "Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to all of these Terms, you may not use the Service.',
+            body: 'By accessing or using Ayuvo, a product of Quorlyn (the "Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to all of these Terms, you may not use the Service.',
           ),
           _Section(
             title: '2. Description of Service',
-            body: 'MediStore is a digital health platform that allows users to store, manage, and share their medical records, vital signs, prescriptions, and other health-related information. The Service also enables appointment scheduling with healthcare providers.',
+            body: 'Ayuvo is a digital health platform that allows users to store, manage, and share their medical records, vital signs, prescriptions, and other health-related information. The Service also enables appointment scheduling with healthcare providers.',
           ),
           _Section(
             title: '3. Medical Disclaimer',
-            body: 'IMPORTANT: MediStore is not a medical service provider and does not provide medical advice, diagnosis, or treatment.\n\n'
+            body: 'IMPORTANT: Ayuvo is not a medical service provider and does not provide medical advice, diagnosis, or treatment.\n\n'
                 'The information provided through our platform is for general informational purposes only and is not a substitute for professional medical advice. Always consult with a qualified healthcare provider for any medical questions or concerns. Never disregard professional medical advice or delay seeking it because of something you have read on this platform.',
             isWarning: true,
           ),
@@ -69,11 +69,11 @@ class TermsScreen extends StatelessWidget {
           ),
           _Section(
             title: '7. Intellectual Property',
-            body: 'All content, features, and functionality of the Service are owned by MediStore and are protected by copyright, trademark, and other intellectual property laws. You may not reproduce, distribute, modify, or create derivative works without our express written permission.',
+            body: 'All content, features, and functionality of the Service are owned by Ayuvo and are protected by copyright, trademark, and other intellectual property laws. You may not reproduce, distribute, modify, or create derivative works without our express written permission.',
           ),
           _Section(
             title: '8. Limitation of Liability',
-            body: 'To the maximum extent permitted by law, MediStore shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses resulting from:\n\n'
+            body: 'To the maximum extent permitted by law, Ayuvo shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses resulting from:\n\n'
                 '• Your use of or inability to use the Service.\n\n'
                 '• Any unauthorized access to or use of our servers and/or any personal information stored therein.\n\n'
                 '• Any errors, mistakes, or inaccuracies of content.\n\n'

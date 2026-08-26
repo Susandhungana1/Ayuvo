@@ -1,4 +1,4 @@
-# Production Readiness Audit — MediStore
+# Production Readiness Audit — Ayuvo
 
 Last reviewed: 2026-08-20. This file tracks what used to be blockers; the
 sections below reflect the *current* state of each platform.

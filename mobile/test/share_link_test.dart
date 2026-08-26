@@ -8,9 +8,9 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/core/config/env.dart';
-import 'package:medistore/features/sharing/domain/share_link.dart';
-import 'package:medistore/features/sharing/presentation/share_controller.dart';
+import 'package:ayuvo/core/config/env.dart';
+import 'package:ayuvo/features/sharing/domain/share_link.dart';
+import 'package:ayuvo/features/sharing/presentation/share_controller.dart';
 
 ShareLink _link({
   String token = 'tok-1',

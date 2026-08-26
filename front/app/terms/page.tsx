@@ -2,8 +2,8 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service - MediStore',
-  description: 'Terms of Service for MediStore digital health platform',
+  title: 'Terms of Service - Ayuvo',
+  description: 'Terms of Service for Ayuvo digital health platform',
   robots: { index: true, follow: true },
 };
 
@@ -21,7 +21,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-[var(--color-ink)] mb-3">1. Acceptance of Terms</h2>
             <p>
-              By accessing or using MediStore, a product of Quorlyn (the &quot;Service&quot;), you agree to be bound by these Terms of Service
+              By accessing or using Ayuvo, a product of Quorlyn (the &quot;Service&quot;), you agree to be bound by these Terms of Service
               (&quot;Terms&quot;). If you do not agree to all of these Terms, you may not use the Service.
             </p>
           </section>
@@ -29,7 +29,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-[var(--color-ink)] mb-3">2. Description of Service</h2>
             <p>
-              MediStore is a digital health platform that allows users to store, manage, and share their medical
+              Ayuvo is a digital health platform that allows users to store, manage, and share their medical
               records, vital signs, prescriptions, and other health-related information. The Service also enables
               appointment scheduling with healthcare providers.
             </p>
@@ -38,7 +38,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-[var(--color-ink)] mb-3">3. Medical Disclaimer</h2>
             <p className="font-semibold text-[var(--color-alert)]">
-              IMPORTANT: MediStore is not a medical service provider and does not provide medical advice, diagnosis,
+              IMPORTANT: Ayuvo is not a medical service provider and does not provide medical advice, diagnosis,
               or treatment.
             </p>
             <p className="mt-2">
@@ -88,7 +88,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-[var(--color-ink)] mb-3">7. Intellectual Property</h2>
             <p>
-              All content, features, and functionality of the Service are owned by MediStore and are protected by
+              All content, features, and functionality of the Service are owned by Ayuvo and are protected by
               copyright, trademark, and other intellectual property laws. You may not reproduce, distribute, modify,
               or create derivative works without our express written permission.
             </p>
@@ -97,7 +97,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-[var(--color-ink)] mb-3">8. Limitation of Liability</h2>
             <p>
-              To the maximum extent permitted by law, MediStore shall not be liable for any indirect, incidental,
+              To the maximum extent permitted by law, Ayuvo shall not be liable for any indirect, incidental,
               special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred
               directly or indirectly, or any loss of data, use, goodwill, or other intangible losses resulting from:
             </p>

@@ -4,8 +4,8 @@ import { Card } from '@/components/ui/card';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Contact Us - MediStore',
-  description: 'Have questions about MediStore? Reach out for help with your account, reports, or appointments.',
+  title: 'Contact Us - Ayuvo',
+  description: 'Have questions about Ayuvo? Reach out for help with your account, reports, or appointments.',
 };
 
 export default function Contact() {
@@ -16,11 +16,11 @@ export default function Contact() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h1 className="text-4xl font-display font-bold text-on-surface mb-6">Contact Us</h1>
           <p className="text-lg text-on-surface-variant">
-            Have questions about MediStore? Need help setting up your account?
+            Have questions about Ayuvo? Need help setting up your account?
             Reach out and we&apos;ll get back to you as soon as possible.
           </p>
           <p className="text-sm text-on-surface-variant mt-4">
-            MediStore is a product of{' '}
+            Ayuvo is a product of{' '}
             <a
               href="https://www.quorlyn.com.np"
               target="_blank"
@@ -60,7 +60,7 @@ export default function Contact() {
             </div>
             <h2 className="text-xl font-display font-semibold text-on-surface mb-1">Company Website</h2>
             <p className="text-on-surface-variant text-sm mb-4">
-              Learn more about Quorlyn, the company behind MediStore.
+              Learn more about Quorlyn, the company behind Ayuvo.
             </p>
             <a
               href="https://www.quorlyn.com.np"

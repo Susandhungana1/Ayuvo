@@ -453,7 +453,7 @@ Future<void> showLinkSheet(
             const SizedBox(height: AppSpacing.lg),
             LinkCard(
               url: link.url,
-              shareSubject: 'My MediStore record',
+              shareSubject: 'My Ayuvo record',
               caption: 'Scanning this opens it in a browser — no app needed.',
             ),
           ],

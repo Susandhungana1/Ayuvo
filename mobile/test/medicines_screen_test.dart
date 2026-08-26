@@ -4,7 +4,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/features/medicines/presentation/widgets/interaction_banner.dart';
+import 'package:ayuvo/features/medicines/presentation/widgets/interaction_banner.dart';
 
 import 'support/fake_api.dart';
 import 'support/harness.dart';

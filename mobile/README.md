@@ -1,6 +1,6 @@
-# MediStore — mobile
+# Ayuvo — mobile
 
-The Flutter client for MediStore, replacing the Next.js UI in `../front`. The
+The Flutter client for Ayuvo, replacing the Next.js UI in `../front`. The
 backend in `../server` is unchanged by this app and stays the contract: read
 `../server/app/api/<name>.py` before wiring a feature, and `FEATURE_MAP.md` for
 what each screen calls.
@@ -230,7 +230,7 @@ build should check them in order:
 | `NSAllowsLocalNetworking` for local dev over http | `ios/Runner/Info.plist` | that a simulator reaches `127.0.0.1:3001` |
 | Keychain storage, `first_unlock_this_device`, no iCloud copy | `lib/core/storage/session_store.dart` | that the token survives a relaunch on iOS |
 | Cupertino page transitions on iOS | `lib/core/theme/app_theme.dart` | how the back-swipe feels with the shell |
-| Display name `MediStore` | `ios/Runner/Info.plist` | the home-screen label |
+| Display name `Ayuvo` | `ios/Runner/Info.plist` | the home-screen label |
 | `NSCameraUsageDescription` — photographing a printed report | `ios/Runner/Info.plist` | that the prompt appears and the wording reads sensibly |
 | `NSPhotoLibraryUsageDescription` — choosing an existing scan | `ios/Runner/Info.plist` | the same, plus that `file_picker` reaches iCloud Drive |
 | `Printing.sharePdf` for the formal report | `digital_report_screen.dart` | the iOS share sheet at all — this has never been opened on either platform |

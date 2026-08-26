@@ -1,4 +1,4 @@
-# MediStore - Project Setup Guide
+# Ayuvo - Project Setup Guide
 
 ## Prerequisites
 

@@ -42,7 +42,7 @@ class FileLocalStore implements LocalStore {
   FileLocalStore({Future<Directory> Function()? directory})
       : _directory = directory ?? _appSupport;
 
-  static const _folder = 'medistore';
+  static const _folder = 'ayuvo';
 
   final Future<Directory> Function() _directory;
 

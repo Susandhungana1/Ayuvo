@@ -102,7 +102,7 @@ class ApiException implements Exception {
         if (response == null) {
           return const ApiException(
             ApiErrorKind.network,
-            "Couldn't reach MediStore. Check your connection and try again.",
+            "Couldn't reach Ayuvo. Check your connection and try again.",
           );
         }
       case DioExceptionType.cancel:
@@ -160,7 +160,7 @@ class ApiException implements Exception {
         ),
       final int s when s >= 500 => ApiException(
           ApiErrorKind.server,
-          'MediStore had a problem answering. Try again in a moment.',
+          'Ayuvo had a problem answering. Try again in a moment.',
           statusCode: status,
           detail: detail,
         ),

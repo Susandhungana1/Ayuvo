@@ -36,7 +36,7 @@ class SecureSessionStore implements SessionStore {
     ),
   ]);
 
-  static const _key = 'medistore.session.v1';
+  static const _key = 'ayuvo.session.v1';
 
   final FlutterSecureStorage _storage;
 

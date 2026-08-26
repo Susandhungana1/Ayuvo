@@ -152,7 +152,7 @@ class _NotADoctor extends StatelessWidget {
     return const EmptyState(
       icon: Icons.lock_outline,
       title: 'This is a patient account',
-      message: 'Doctor accounts are set up by a MediStore administrator. '
+      message: 'Doctor accounts are set up by a Ayuvo administrator. '
           'Contact them if you are a practitioner and need one.',
     );
   }

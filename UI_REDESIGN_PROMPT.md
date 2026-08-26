@@ -1,7 +1,7 @@
-# MediStore Website UI Redesign Prompt
+# Ayuvo Website UI Redesign Prompt
 
 ## Objective
-Redesign the MediStore **web frontend** (`/front`) to match the **mobile app's design language** (Flutter app in `/mobile`) while maintaining full functionality, web responsiveness, and zero breaking changes to backend APIs or app functionality.
+Redesign the Ayuvo **web frontend** (`/front`) to match the **mobile app's design language** (Flutter app in `/mobile`) while maintaining full functionality, web responsiveness, and zero breaking changes to backend APIs or app functionality.
 
 ---
 
@@ -118,7 +118,7 @@ Redesign the MediStore **web frontend** (`/front`) to match the **mobile app's d
 
 **Error Handling**:
 - If font fails to load: fallback to system stack gracefully
-- If SVG logo fails: fallback to text "MediStore" with cyan color
+- If SVG logo fails: fallback to text "Ayuvo" with cyan color
 
 ---
 

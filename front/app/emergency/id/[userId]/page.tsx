@@ -41,7 +41,7 @@ export default function PublicEmergencyId() {
         <div style={{ backgroundColor: '#fef2f2', border: '3px solid #dc2626', borderRadius: 16, overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>
           <div style={{ backgroundColor: '#dc2626', color: '#fff', padding: '16px 20px', textAlign: 'center' }}>
             <div style={{ fontSize: 13, letterSpacing: 2, fontWeight: 700, opacity: 0.9 }}>EMERGENCY MEDICAL ID</div>
-            <div style={{ fontSize: 12, marginTop: 2, opacity: 0.85 }}>MediStore</div>
+            <div style={{ fontSize: 12, marginTop: 2, opacity: 0.85 }}>Ayuvo</div>
           </div>
 
           <div style={{ padding: 20, color: '#7f1d1d' }}>

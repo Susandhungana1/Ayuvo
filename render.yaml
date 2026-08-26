@@ -1,4 +1,4 @@
-# Render Blueprint for the MediStore backend (FastAPI).
+# Render Blueprint for the Ayuvo backend (FastAPI).
 # Docs: https://render.com/docs/blueprint-spec
 #
 # How to use:
@@ -74,14 +74,14 @@ services:
       - key: VAPID_PRIVATE_KEY
         sync: false
       - key: VAPID_SUBJECT
-        value: mailto:admin@medistore.app
+        value: mailto:admin@ayuvo.app
       # Shared secret guarding POST /api/push/run-tick (external reminder cron).
       # Generate any long random string; set the SAME value as the CRON_SECRET
       # GitHub Actions secret and in any external cron's X-Cron-Secret header.
       - key: CRON_SECRET
         sync: false
       # Frontend origin(s) for CORS — set once the frontend is deployed.
-      # Comma-separated, e.g. https://medistore.vercel.app
+      # Comma-separated, e.g. https://ayuvo.vercel.app
       - key: CORS_ORIGINS
         sync: false
       # Outbound email for password reset links.

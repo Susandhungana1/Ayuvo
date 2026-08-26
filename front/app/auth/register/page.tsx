@@ -73,8 +73,8 @@ export default function Register() {
     <div className="bg-[var(--color-background)] min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       {/* React 19 hoists these to <head>; the page is client-side, so the
           Metadata API is not available here. */}
-      <title>Create Account - MediStore</title>
-      <meta name="description" content="Create a free MediStore account to securely store, track, and share your medical records." />
+      <title>Create Account - Ayuvo</title>
+      <meta name="description" content="Create a free Ayuvo account to securely store, track, and share your medical records." />
       <div className="w-full max-w-md">
         
         <div className="text-center mb-8">
@@ -83,7 +83,7 @@ export default function Register() {
           </div>
           <h2 className="text-3xl font-extrabold text-[var(--color-ink)] font-heading mb-2">Create an Account</h2>
           <p className="text-[var(--color-ink-variant)] text-sm">
-            Join MediStore to securely manage your medical records
+            Join Ayuvo to securely manage your medical records
           </p>
         </div>
 

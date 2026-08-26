@@ -4,10 +4,10 @@ library;
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/core/network/api_client.dart';
-import 'package:medistore/core/network/api_exception.dart';
-import 'package:medistore/features/care/data/care_repository.dart';
-import 'package:medistore/features/care/domain/care_link.dart';
+import 'package:ayuvo/core/network/api_client.dart';
+import 'package:ayuvo/core/network/api_exception.dart';
+import 'package:ayuvo/features/care/data/care_repository.dart';
+import 'package:ayuvo/features/care/domain/care_link.dart';
 
 import 'support/fake_http.dart';
 

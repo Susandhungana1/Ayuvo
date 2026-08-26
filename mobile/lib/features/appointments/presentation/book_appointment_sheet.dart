@@ -378,7 +378,7 @@ class _ListedDoctorFields extends ConsumerWidget {
           children: [
             const MessageBanner(
               tone: BannerTone.notice,
-              message: 'No doctors are listed on MediStore yet. A doctor '
+              message: 'No doctors are listed on Ayuvo yet. A doctor '
                   'appears here once an administrator has verified them.',
             ),
             const SizedBox(height: AppSpacing.md),

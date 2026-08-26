@@ -58,7 +58,7 @@
   "settingsReminders": "औषधिको सम्झना",
   "settingsRemindersBlurb": "हरेक औषधिको समयमा यही फोनबाट सूचना आउँछ। औषधिको कुनै विवरण कतै पठाइँदैन।",
   "settingsRemindersOn": "औषधि खाने बेला सम्झाइदेऊ",
-  "settingsRemindersDenied": "MediStore का लागि सूचना बन्द छ। फोनको सेटिङबाट खोलेर फर्किनुहोस्।",
+  "settingsRemindersDenied": "Ayuvo का लागि सूचना बन्द छ। फोनको सेटिङबाट खोलेर फर्किनुहोस्।",
   "settingsRemindersScheduled": "{count, plural, =0{अहिलेसम्म केही मिलाइएको छैन} other{{count} वटा सम्झना मिलाइएको छ}}",
   "@settingsRemindersScheduled": {
     "placeholders": { "count": { "type": "int" } }
@@ -66,7 +66,7 @@
   "settingsRemindersHorizon": "आउने ७ दिनका लागि। एप खोल्दा हरेक पटक नयाँ गरिन्छ।",
   "settingsRemindersTest": "परीक्षण सम्झना पठाउनुहोस्",
   "settingsRemindersTestSent": "परीक्षण सम्झना मिलाइयो — केही सेकेन्डमा स्क्रिन जाँच गर्नुहोस्।",
-  "settingsRemindersTestFailed": "परीक्षण सम्झना मिलाउन सकिएन। MediStore का लागि सूचना अनुमति जाँच गर्नुहोस्।",
+  "settingsRemindersTestFailed": "परीक्षण सम्झना मिलाउन सकिएन। Ayuvo का लागि सूचना अनुमति जाँच गर्नुहोस्।",
 
   "searchTitle": "खोज",
   "searchHint": "रिपोर्ट, औषधि, कागजात",

@@ -12,15 +12,15 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/app.dart';
-import 'package:medistore/core/health/health_providers.dart';
-import 'package:medistore/core/network/network_providers.dart';
-import 'package:medistore/core/notifications/reminders.dart';
-import 'package:medistore/core/router/app_router.dart';
-import 'package:medistore/core/session/session_controller.dart';
-import 'package:medistore/core/storage/local_store.dart';
-import 'package:medistore/core/storage/session_store.dart';
-import 'package:medistore/features/auth/data/auth_repository.dart';
+import 'package:ayuvo/app.dart';
+import 'package:ayuvo/core/health/health_providers.dart';
+import 'package:ayuvo/core/network/network_providers.dart';
+import 'package:ayuvo/core/notifications/reminders.dart';
+import 'package:ayuvo/core/router/app_router.dart';
+import 'package:ayuvo/core/session/session_controller.dart';
+import 'package:ayuvo/core/storage/local_store.dart';
+import 'package:ayuvo/core/storage/session_store.dart';
+import 'package:ayuvo/features/auth/data/auth_repository.dart';
 
 import 'support/fake_api.dart';
 import 'support/fakes.dart';
@@ -75,7 +75,7 @@ Future<void> _pumpAnonymous(
           return client;
         }),
       ],
-      child: const MediStoreApp(),
+      child: const AyuvoApp(),
     ),
   );
   await settle(tester);
@@ -89,7 +89,7 @@ void main() {
 
     await _pumpAnonymous(tester, api);
 
-    ProviderScope.containerOf(tester.element(find.byType(MediStoreApp)))
+    ProviderScope.containerOf(tester.element(find.byType(AyuvoApp)))
         .read(routerProvider)
         .go('/share/qr-code/abc-123');
     await settle(tester);
@@ -123,7 +123,7 @@ void main() {
 
     await _pumpAnonymous(tester, api);
 
-    ProviderScope.containerOf(tester.element(find.byType(MediStoreApp)))
+    ProviderScope.containerOf(tester.element(find.byType(AyuvoApp)))
         .read(routerProvider)
         .go('/share/xyz-456');
     await settle(tester);

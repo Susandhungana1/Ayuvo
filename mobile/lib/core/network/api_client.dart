@@ -16,7 +16,7 @@ import 'api_exception.dart';
 /// Marks a request that carries no session — sign-in, register, forgot/reset
 /// password, `/health`. A 401 on one of these means "those credentials are
 /// wrong", not "your session is over", and must not sign anyone out.
-const _unauthenticatedKey = 'medistore.unauthenticated';
+const _unauthenticatedKey = 'ayuvo.unauthenticated';
 
 /// Options for a route that runs without a session.
 final Options unauthenticated = Options(extra: {_unauthenticatedKey: true});

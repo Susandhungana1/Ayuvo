@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "MediStore - Personal Digital Health Store",
-    short_name: "MediStore",
+    name: "Ayuvo - Personal Digital Health Store",
+    short_name: "Ayuvo",
     description: "Securely manage, track, and share your medical records.",
     start_url: "/",
     scope: "/",

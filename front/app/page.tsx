@@ -313,7 +313,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            {/* Today's Medicines — the reason people open MediStore, so it
+            {/* Today's Medicines — the reason people open Ayuvo, so it
                 leads both on desktop and in mobile stacking order. */}
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
@@ -592,7 +592,7 @@ export default function Home() {
           <section className="py-20 bg-[var(--color-background)] text-center">
             <div className="max-w-md mx-auto px-4">
               <h2 className="text-2xl font-bold text-[var(--color-ink)] font-heading mb-4">Ready to Take Control?</h2>
-              <p className="text-[var(--color-ink-variant)] mb-8">Join others who trust MediStore to securely manage their medical information.</p>
+              <p className="text-[var(--color-ink-variant)] mb-8">Join others who trust Ayuvo to securely manage their medical information.</p>
               <Link href="/auth/register"><Button variant="primary" className="text-base px-6 py-2.5">Create Free Account</Button></Link>
             </div>
           </section>
@@ -609,12 +609,12 @@ export default function Home() {
               <div className="space-y-4">
                 {[
                   {
-                    q: 'Is my medical data safe with MediStore?',
+                    q: 'Is my medical data safe with Ayuvo?',
                     a: 'Yes. Your data is stored securely in an encrypted database, locked behind your account, and never sold or shared without your consent. You control exactly what you share and for how long.',
                   },
                   {
-                    q: 'Is MediStore a medical service?',
-                    a: 'No. MediStore is a storage and management tool for your health records. It does not provide medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider for medical decisions.',
+                    q: 'Is Ayuvo a medical service?',
+                    a: 'No. Ayuvo is a storage and management tool for your health records. It does not provide medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider for medical decisions.',
                   },
                   {
                     q: 'Who can see my records?',
@@ -625,7 +625,7 @@ export default function Home() {
                     a: 'You generate a secure link with an expiry time and send it to a doctor or family member. The link opens a read-only view of that single report and stops working once it expires.',
                   },
                   {
-                    q: 'Is MediStore free?',
+                    q: 'Is Ayuvo free?',
                     a: 'Yes. Creating an account and using all core features — vitals, medicines, reports, appointments, and sharing — is free.',
                   },
                 ].map((item) => (

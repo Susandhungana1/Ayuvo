@@ -125,7 +125,7 @@ class LocalReminders implements Reminders {
   LocalReminders([FlutterLocalNotificationsPlugin? plugin])
       : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
-  static const _channelId = 'medistore.doses';
+  static const _channelId = 'ayuvo.doses';
   static const _channelName = 'Dose reminders';
   static const _channelDescription =
       'One notification at each dose time on your medicine list.';
@@ -283,7 +283,7 @@ class LocalReminders implements Reminders {
     try {
       await _plugin.zonedSchedule(
         id: _testId,
-        title: 'MediStore test reminder',
+        title: 'Ayuvo test reminder',
         body: 'Your dose reminders are working.',
         scheduledDate:
             tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10)),

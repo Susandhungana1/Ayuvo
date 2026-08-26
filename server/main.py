@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="MediStore API",
+    title="Ayuvo API",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -120,7 +120,7 @@ app.include_router(care.router, prefix="/api/care", tags=["care"])
 
 @app.get("/")
 async def root():
-    return {"message": "MediStore API"}
+    return {"message": "Ayuvo API"}
 
 
 @app.get("/health")

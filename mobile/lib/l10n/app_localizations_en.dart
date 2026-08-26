@@ -181,7 +181,7 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get settingsRemindersDenied =>
-      'Notifications are switched off for MediStore. Turn them on in your phone\'s settings, then come back.';
+      'Notifications are switched off for Ayuvo. Turn them on in your phone\'s settings, then come back.';
 
   @override
   String settingsRemindersScheduled(int count) {
@@ -208,7 +208,7 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get settingsRemindersTestFailed =>
-      'Could not schedule a test reminder. Check that notifications are allowed for MediStore.';
+      'Could not schedule a test reminder. Check that notifications are allowed for Ayuvo.';
 
   @override
   String get searchTitle => 'Search';

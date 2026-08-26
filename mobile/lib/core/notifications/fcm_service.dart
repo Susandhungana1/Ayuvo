@@ -33,7 +33,7 @@ Future<void> fcmBackgroundHandler(RemoteMessage message) async {
 /// The channel every reminder rides on — shared with `reminders.dart` so
 /// server-pushed and locally scheduled notifications sit in one place in the
 /// system settings, and one mute silences both.
-const _reminderChannelId = 'medistore.doses';
+const _reminderChannelId = 'ayuvo.doses';
 
 /// Displays a server-pushed reminder while the app is FOREGROUND.
 ///
@@ -61,14 +61,14 @@ Future<void> _showForegroundNotification(RemoteMessage message) async {
     );
     await plugin.show(
       id: DateTime.now().millisecondsSinceEpoch.remainder(0x7fffffff),
-      title: title ?? 'MediStore',
+      title: title ?? 'Ayuvo',
       body: body ?? '',
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           _reminderChannelId,
           'Dose reminders',
           channelDescription:
-              'Medicine reminders pushed from MediStore while the app is open.',
+              'Medicine reminders pushed from Ayuvo while the app is open.',
           importance: Importance.high,
           priority: Priority.high,
           category: AndroidNotificationCategory.reminder,

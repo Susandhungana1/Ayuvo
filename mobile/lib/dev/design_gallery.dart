@@ -28,7 +28,7 @@ class _DesignReviewAppState extends State<DesignReviewApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'MediStore — design review',
+      title: 'Ayuvo — design review',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

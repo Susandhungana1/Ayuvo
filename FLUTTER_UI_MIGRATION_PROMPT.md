@@ -1,4 +1,4 @@
-# Master Prompt — Rebuild the MediStore UI as a Flutter mobile app
+# Master Prompt — Rebuild the Ayuvo UI as a Flutter mobile app
 
 > Paste everything below the line into a fresh agent session opened at the repo root
 > (`/Users/susandhungana/Desktop/Projects/finalyear`).
@@ -8,7 +8,7 @@
 ## Role
 
 You are building a new **Flutter mobile app** (`mobile/`) that replaces the existing
-Next.js web UI (`front/`) for MediStore, a personal digital health record app. The
+Next.js web UI (`front/`) for Ayuvo, a personal digital health record app. The
 Python/FastAPI backend in `server/` already works, is deployed, and holds real user
 data. Your job is UI + client only.
 
@@ -312,7 +312,7 @@ finished screens never fully happens; the theme must precede the widgets.
    python3 $S "patient records mobile app" --domain product
    # full system, written to a file you can iterate on:
    python3 $S "calm trustworthy healthcare mobile app" --design-system \
-     --project-name MediStore --format markdown --persist --output-dir mobile/
+     --project-name Ayuvo --format markdown --persist --output-dir mobile/
    ```
    `--variance`, `--motion` and `--density` (1–10) tune the generated system; state
    the values you chose and why. The output is CSS variables and Markdown, so

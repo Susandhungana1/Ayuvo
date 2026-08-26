@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.medistore.medistore"
+    namespace = "com.ayuvo.health"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -37,7 +37,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.medistore.medistore"
+        applicationId = "com.ayuvo.health"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

@@ -8,7 +8,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/core/network/scoped_url.dart';
+import 'package:ayuvo/core/network/scoped_url.dart';
 
 void main() {
   group('ScopedUrl', () {

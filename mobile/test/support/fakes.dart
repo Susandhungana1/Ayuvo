@@ -3,9 +3,9 @@ library;
 
 import 'dart:convert';
 
-import 'package:medistore/core/network/api_exception.dart';
-import 'package:medistore/features/auth/data/auth_repository.dart';
-import 'package:medistore/features/auth/domain/auth_user.dart';
+import 'package:ayuvo/core/network/api_exception.dart';
+import 'package:ayuvo/features/auth/data/auth_repository.dart';
+import 'package:ayuvo/features/auth/domain/auth_user.dart';
 
 const testUser = AuthUser(
   id: '#hos014',

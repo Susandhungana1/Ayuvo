@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     # (the in-app alarm keeps working regardless).
     vapid_public_key: str = ""
     vapid_private_key: str = ""
-    vapid_subject: str = "mailto:admin@medistore.app"  # contact for push services
+    vapid_subject: str = "mailto:admin@ayuvo.app"  # contact for push services
 
     # --- Firebase Cloud Messaging (mobile push) ---
     # Path to the Firebase service account JSON key file. Leave blank to
@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     # Sender identity for both transports. The address must be one the provider
     # has verified, or the send is rejected.
-    smtp_from: str = "MediStore <no-reply@medistore.app>"
+    smtp_from: str = "Ayuvo <no-reply@ayuvo.app>"
 
     # Base URL of the deployed frontend, used to build password-reset links.
     frontend_url: str = "http://localhost:3000"

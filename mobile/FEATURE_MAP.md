@@ -1,4 +1,4 @@
-# MediStore — Feature Map (Phase 1 recon)
+# Ayuvo — Feature Map (Phase 1 recon)
 
 Every user-facing surface in `front/app/`, the endpoints behind it, and the fields
 it renders. Compiled by reading `AGENTS.md`, `RUN.md`, every `server/app/api/*.py`,
@@ -749,14 +749,14 @@ rows get Remove rather than Revoke, and no Show — a QR for a dead link is wors
 than no QR.
 
 ### 9.5 Nearby care — `front/components/NearbyMap.tsx`
-No MediStore endpoint. Device geolocation (fallback Kathmandu 27.7172, 85.324),
+No Ayuvo endpoint. Device geolocation (fallback Kathmandu 27.7172, 85.324),
 Overpass API for `amenity=hospital|clinic|pharmacy` within 4 km (three mirrors tried
 in order), OSM tiles, up to 40 results sorted by haversine distance, pin colours
 red/blue/green, and a Directions link. Flutter: `flutter_map` + `geolocator`, keep the
 "© OpenStreetMap contributors" attribution (ODbL) and the mirror fallback.
 
 **Built (phase 6)** — `features/nearby/`. Overpass goes through its **own** dio with
-no interceptors: it is a third-party origin that must never see a MediStore bearer,
+no interceptors: it is a third-party origin that must never see a Ayuvo bearer,
 and a 401 from a busy mirror must never be able to sign anyone out. All three mirrors
 are tried in order, 429 and 504 are treated as "try the next one" rather than as
 errors, and if every one refuses the map still renders with the user's own pin and

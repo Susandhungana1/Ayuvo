@@ -10,11 +10,11 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/core/network/api_exception.dart';
-import 'package:medistore/core/notifications/reminders.dart';
-import 'package:medistore/core/storage/local_store.dart';
-import 'package:medistore/features/settings/presentation/settings_screen.dart';
-import 'package:medistore/features/shell/presentation/more_screen.dart';
+import 'package:ayuvo/core/network/api_exception.dart';
+import 'package:ayuvo/core/notifications/reminders.dart';
+import 'package:ayuvo/core/storage/local_store.dart';
+import 'package:ayuvo/features/settings/presentation/settings_screen.dart';
+import 'package:ayuvo/features/shell/presentation/more_screen.dart';
 
 import 'support/fake_api.dart';
 import 'support/fakes.dart';

@@ -109,7 +109,7 @@ export default function ClaimShareButton({ token }: { token: string }) {
         <div className="min-w-[16rem] flex-1">
           <p className="font-semibold text-text-main">Keep these records</p>
           <p className="text-sm text-subtext">
-            This link expires. Save it to your MediStore account to keep access
+            This link expires. Save it to your Ayuvo account to keep access
             afterwards — the sender will see that you saved it, and can withdraw
             it later.
           </p>

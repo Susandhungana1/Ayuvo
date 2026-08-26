@@ -26,11 +26,11 @@ export function buildIcs(event: CalendarEvent): string {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//MediStore//Appointments//EN',
+    'PRODID:-//Ayuvo//Appointments//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
-    `UID:${event.id}@medistore`,
+    `UID:${event.id}@ayuvo`,
     `DTSTAMP:${toIcsUtc(now)}`,
     `DTSTART:${toIcsUtc(start)}`,
     `DTEND:${toIcsUtc(end)}`,

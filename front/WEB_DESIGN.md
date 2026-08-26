@@ -1,10 +1,10 @@
-# MediStore Web — Design System (Phase 1 deliverable)
+# Ayuvo Web — Design System (Phase 1 deliverable)
 
 Date: 2026-08-14. Stack: Next.js 16, React 19, Tailwind CSS v4 (`@theme` in
 `app/globals.css`), `lucide-react`, `recharts`.
 
 Sources, in order: `mobile/DESIGN.md` (the shipped, reconciled source of truth) →
-`mobile/design-system/medistore/MASTER.md` → `front/design-system/medistore-web/MASTER.md`
+`mobile/design-system/ayuvo/MASTER.md` → `front/design-system/ayuvo-web/MASTER.md`
 (generated 2026-08-14). The generated web master is the base; every deviation is
 in §8. No raw hex and no ad-hoc spacing in a component file, ever — tokens only.
 
@@ -198,7 +198,7 @@ message.
 
 ## 8. Deliberate departures
 
-### From the generated web master (`front/design-system/medistore-web/MASTER.md`)
+### From the generated web master (`front/design-system/ayuvo-web/MASTER.md`)
 
 | Departure | Why |
 |---|---|

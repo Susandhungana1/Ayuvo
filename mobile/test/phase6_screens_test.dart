@@ -4,9 +4,9 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/features/care/presentation/caretakers_screen.dart';
-import 'package:medistore/features/search/presentation/search_screen.dart';
-import 'package:medistore/features/shell/presentation/more_screen.dart';
+import 'package:ayuvo/features/care/presentation/caretakers_screen.dart';
+import 'package:ayuvo/features/search/presentation/search_screen.dart';
+import 'package:ayuvo/features/shell/presentation/more_screen.dart';
 
 import 'support/fake_api.dart';
 import 'support/harness.dart';

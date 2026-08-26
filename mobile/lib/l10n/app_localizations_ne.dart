@@ -181,7 +181,7 @@ class AppL10nNe extends AppL10n {
 
   @override
   String get settingsRemindersDenied =>
-      'MediStore का लागि सूचना बन्द छ। फोनको सेटिङबाट खोलेर फर्किनुहोस्।';
+      'Ayuvo का लागि सूचना बन्द छ। फोनको सेटिङबाट खोलेर फर्किनुहोस्।';
 
   @override
   String settingsRemindersScheduled(int count) {
@@ -207,7 +207,7 @@ class AppL10nNe extends AppL10n {
 
   @override
   String get settingsRemindersTestFailed =>
-      'परीक्षण सम्झना मिलाउन सकिएन। MediStore का लागि सूचना अनुमति जाँच गर्नुहोस्।';
+      'परीक्षण सम्झना मिलाउन सकिएन। Ayuvo का लागि सूचना अनुमति जाँच गर्नुहोस्।';
 
   @override
   String get searchTitle => 'खोज';

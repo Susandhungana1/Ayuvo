@@ -7,10 +7,10 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/core/config/env.dart';
-import 'package:medistore/features/sharing/domain/share_link.dart';
-import 'package:medistore/features/sharing/presentation/share_screen.dart';
-import 'package:medistore/features/shell/presentation/more_screen.dart';
+import 'package:ayuvo/core/config/env.dart';
+import 'package:ayuvo/features/sharing/domain/share_link.dart';
+import 'package:ayuvo/features/sharing/presentation/share_screen.dart';
+import 'package:ayuvo/features/shell/presentation/more_screen.dart';
 
 import 'support/fake_api.dart';
 import 'support/harness.dart';

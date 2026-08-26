@@ -56,9 +56,9 @@ def send_email(to: str, subject: str, text: str, html: str | None = None) -> Sen
 
 
 def _sender() -> tuple[str, str]:
-    """Split SMTP_FROM ("MediStore <a@b.com>" or "a@b.com") into name, address."""
+    """Split SMTP_FROM ("Ayuvo <a@b.com>" or "a@b.com") into name, address."""
     name, address = parseaddr(settings.smtp_from)
-    return name or "MediStore", address or settings.smtp_from
+    return name or "Ayuvo", address or settings.smtp_from
 
 
 def _send_via_brevo(to: str, subject: str, text: str, html: str | None) -> SendResult:

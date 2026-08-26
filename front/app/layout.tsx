@@ -22,23 +22,23 @@ const notoSans = Noto_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "MediStore - Your Personal Digital Health Store",
+  title: "Ayuvo - Your Personal Digital Health Store",
   description: "Securely manage, track, and share your medical records. Your personal digital health store for vitals, medicines, reports, and more.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "MediStore",
+    title: "Ayuvo",
   },
   icons: {
     icon: "/icon-32.png",
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
-    title: "MediStore - Your Personal Digital Health Store",
+    title: "Ayuvo - Your Personal Digital Health Store",
     description: "Securely manage, track, and share your medical records.",
     url: "https://medistore-health.vercel.app",
-    siteName: "MediStore",
+    siteName: "Ayuvo",
     type: "website",
     locale: "en_US",
     images: [
@@ -46,13 +46,13 @@ export const metadata: Metadata = {
         url: "/icon-512.png",
         width: 512,
         height: 512,
-        alt: "MediStore",
+        alt: "Ayuvo",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "MediStore - Your Personal Digital Health Store",
+    title: "Ayuvo - Your Personal Digital Health Store",
     description: "Securely manage, track, and share your medical records.",
     images: ["/icon-512.png"],
   },
@@ -101,7 +101,7 @@ export default function RootLayout({
                 {
                   "@type": "Organization",
                   "@id": "https://medistore-health.vercel.app/#organization",
-                  name: "MediStore",
+                  name: "Ayuvo",
                   url: "https://medistore-health.vercel.app",
                   logo: "https://medistore-health.vercel.app/icon-512.png",
                   email: "quorlytechnologies@gmail.com",
@@ -111,7 +111,7 @@ export default function RootLayout({
                   "@type": "WebSite",
                   "@id": "https://medistore-health.vercel.app/#website",
                   url: "https://medistore-health.vercel.app",
-                  name: "MediStore",
+                  name: "Ayuvo",
                   publisher: { "@id": "https://medistore-health.vercel.app/#organization" },
                 },
               ],

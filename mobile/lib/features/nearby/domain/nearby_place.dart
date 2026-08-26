@@ -1,6 +1,6 @@
 /// A hospital, clinic or pharmacy from OpenStreetMap.
 ///
-/// Not a MediStore model — nothing in `server/` knows these exist. The web app
+/// Not a Ayuvo model — nothing in `server/` knows these exist. The web app
 /// queries Overpass directly and so does this, which is why there is no
 /// freezed/json_serializable pair here: the shape belongs to somebody else's
 /// API and is decoded defensively rather than declared.

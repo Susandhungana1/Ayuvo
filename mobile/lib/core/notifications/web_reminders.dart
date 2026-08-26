@@ -198,7 +198,7 @@ class WebReminders implements Reminders {
       // iOS only exposes PushManager inside a Home Screen web app; in a
       // Safari tab this is undefined and every reminder stays silent.
       _setupNote =
-          'Open MediStore from your Home Screen to receive '
+          'Open Ayuvo from your Home Screen to receive '
           'notifications (this browser tab cannot).';
       return false;
     }
@@ -247,7 +247,7 @@ class WebReminders implements Reminders {
       // iOS only exposes PushManager inside a Home Screen web app; in a
       // Safari tab this is undefined and every reminder stays silent.
       _setupNote =
-          'Open MediStore from your Home Screen to receive '
+          'Open Ayuvo from your Home Screen to receive '
           'notifications (this browser tab cannot).';
       return null;
     }

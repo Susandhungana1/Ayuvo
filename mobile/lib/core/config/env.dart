@@ -1,7 +1,7 @@
 /// Build-time configuration.
 ///
 /// Nothing here is a secret and nothing here is a user's data: the only knob is
-/// which MediStore backend to talk to, supplied at build time.
+/// which Ayuvo backend to talk to, supplied at build time.
 ///
 /// Production is the default for iOS and web. For local dev, pass:
 ///   flutter run --dart-define=API_BASE_URL=http://127.0.0.1:3001

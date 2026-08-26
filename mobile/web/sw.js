@@ -1,4 +1,4 @@
-// MediStore web service worker — shows medicine reminders pushed from the
+// Ayuvo web service worker — shows medicine reminders pushed from the
 // server's Web Push scheduler, and lets the user answer them.
 //
 // This is the Flutter web build's counterpart to `front/public/sw.js` (the

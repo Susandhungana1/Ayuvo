@@ -119,7 +119,7 @@ class _OfflineNotice extends ConsumerWidget {
       child: MessageBanner(
         tone: BannerTone.notice,
         message: 'Showing what was saved ${MediTime.ago(status.savedAt!)}. '
-            'MediStore could not be reached, so anything added since is '
+            'Ayuvo could not be reached, so anything added since is '
             'missing.',
       ),
     );

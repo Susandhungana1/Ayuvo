@@ -424,7 +424,7 @@ abstract class AppL10n {
   /// No description provided for @settingsRemindersDenied.
   ///
   /// In en, this message translates to:
-  /// **'Notifications are switched off for MediStore. Turn them on in your phone\'s settings, then come back.'**
+  /// **'Notifications are switched off for Ayuvo. Turn them on in your phone\'s settings, then come back.'**
   String get settingsRemindersDenied;
 
   /// No description provided for @settingsRemindersScheduled.
@@ -454,7 +454,7 @@ abstract class AppL10n {
   /// No description provided for @settingsRemindersTestFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not schedule a test reminder. Check that notifications are allowed for MediStore.'**
+  /// **'Could not schedule a test reminder. Check that notifications are allowed for Ayuvo.'**
   String get settingsRemindersTestFailed;
 
   /// No description provided for @searchTitle.

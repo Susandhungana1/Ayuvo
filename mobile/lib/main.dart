@@ -1,4 +1,4 @@
-/// MediStore — your personal digital health record.
+/// Ayuvo — your personal digital health record.
 ///
 ///   flutter run                                    # local dev backend
 ///   flutter run --dart-define=API_BASE_URL=...     # any other backend
@@ -27,5 +27,5 @@ void main() async {
     FirebaseMessaging.onBackgroundMessage(fcmBackgroundHandler);
   }
 
-  runApp(const ProviderScope(child: MediStoreApp()));
+  runApp(const ProviderScope(child: AyuvoApp()));
 }

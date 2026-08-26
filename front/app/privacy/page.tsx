@@ -2,8 +2,8 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy - MediStore',
-  description: 'Privacy Policy for MediStore digital health platform',
+  title: 'Privacy Policy - Ayuvo',
+  description: 'Privacy Policy for Ayuvo digital health platform',
   robots: { index: true, follow: true },
 };
 
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold text-[var(--color-ink)] mb-3">1. Introduction</h2>
             <p>
-              Welcome to MediStore, a product of Quorlyn (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). We are committed to protecting your personal information
+              Welcome to Ayuvo, a product of Quorlyn (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). We are committed to protecting your personal information
               and your right to privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your
               information when you use our digital health platform, including our website and mobile application.
             </p>

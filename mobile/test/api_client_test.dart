@@ -4,9 +4,9 @@ library;
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/core/network/api_client.dart';
-import 'package:medistore/core/network/api_exception.dart';
-import 'package:medistore/features/auth/data/auth_repository.dart';
+import 'package:ayuvo/core/network/api_client.dart';
+import 'package:ayuvo/core/network/api_exception.dart';
+import 'package:ayuvo/features/auth/data/auth_repository.dart';
 
 import 'support/fake_http.dart';
 
@@ -211,7 +211,7 @@ void main() {
             .having((e) => e.kind, 'kind', ApiErrorKind.network)
             .having((e) => e.isRetryable, 'isRetryable', isTrue)
             .having((e) => e.message, 'message',
-                contains("Couldn't reach MediStore")),
+                contains("Couldn't reach Ayuvo")),
       ),
     );
     // Unreachable is not the same as unauthorized: nobody gets signed out.

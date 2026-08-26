@@ -7,8 +7,8 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/features/doctors/domain/doctor.dart';
-import 'package:medistore/features/doctors/presentation/doctor_controllers.dart';
+import 'package:ayuvo/features/doctors/domain/doctor.dart';
+import 'package:ayuvo/features/doctors/presentation/doctor_controllers.dart';
 
 AvailabilityWindow _window({
   String id = 'a-1',

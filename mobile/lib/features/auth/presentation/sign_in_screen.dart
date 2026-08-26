@@ -140,7 +140,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           ),
           const SizedBox(height: AppSpacing.xl),
           _FooterPrompt(
-            question: 'New to MediStore?',
+            question: 'New to Ayuvo?',
             action: 'Create an account',
             onPressed: () => context.push(Routes.register),
           ),

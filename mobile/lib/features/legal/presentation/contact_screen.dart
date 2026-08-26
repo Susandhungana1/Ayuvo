@@ -1,4 +1,4 @@
-/// Contact MediStore — mirrors the web page at /contact.
+/// Contact Ayuvo — mirrors the web page at /contact.
 library;
 
 import 'package:flutter/material.dart';
@@ -25,7 +25,7 @@ class ContactScreen extends StatelessWidget {
         ),
         children: [
           Text(
-            'Have questions about MediStore? Need help setting up your account? Reach out and we will get back to you as soon as possible.',
+            'Have questions about Ayuvo? Need help setting up your account? Reach out and we will get back to you as soon as possible.',
             style: textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               height: 1.6,
@@ -51,7 +51,7 @@ class ContactScreen extends StatelessWidget {
                 final opened = await launchUrl(
                   Uri.parse(
                     'mailto:quorlytechnologies@gmail.com'
-                    '?subject=MediStore support',
+                    '?subject=Ayuvo support',
                   ),
                   mode: LaunchMode.externalApplication,
                 );

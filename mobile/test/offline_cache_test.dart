@@ -5,9 +5,9 @@ library;
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/core/cache/cached_list.dart';
-import 'package:medistore/core/cache/offline_cache.dart';
-import 'package:medistore/core/storage/local_store.dart';
+import 'package:ayuvo/core/cache/cached_list.dart';
+import 'package:ayuvo/core/cache/offline_cache.dart';
+import 'package:ayuvo/core/storage/local_store.dart';
 
 const _me = '#hos014';
 const _someoneElse = '#hos099';

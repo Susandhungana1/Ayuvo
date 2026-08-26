@@ -88,7 +88,7 @@ class MoreScreen extends ConsumerWidget {
           route: Routes.about,
           icon: Icons.business_outlined,
           title: 'About Us',
-          subtitle: 'Quorlyn and the team behind MediStore',
+          subtitle: 'Quorlyn and the team behind Ayuvo',
         ),
         _Destination(
           route: Routes.contact,
@@ -112,7 +112,7 @@ class MoreScreen extends ConsumerWidget {
           route: Routes.terms,
           icon: Icons.description_outlined,
           title: 'Terms of Service',
-          subtitle: 'Rules for using MediStore',
+          subtitle: 'Rules for using Ayuvo',
         ),
       ];
 

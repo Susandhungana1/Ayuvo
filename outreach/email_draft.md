@@ -1,4 +1,4 @@
-# MediStore — Full Outreach Email Draft
+# Ayuvo — Full Outreach Email Draft
 
 **Subject:** A customizable digital health platform for [Hospital Name] — medicine reminders, patient report storage & more (free demo)
 
@@ -6,14 +6,14 @@
 
 Dear [Hospital Name] Team,
 
-My name is **Susan Dhungana**. I've built **MediStore** — a secure digital health
+My name is **Susan Dhungana**. I've built **Ayuvo** — a secure digital health
 platform designed for Nepal's healthcare context that helps hospitals support
 their patients between visits, and gives patients one safe place for their
 medicines and medical records.
 
 You can try it live here: **https://medistore-health.vercel.app**
 
-### What MediStore does today
+### What Ayuvo does today
 
 - **💊 Smart medicine reminders** — patients get alerts on their phone even when
   the app is closed or the phone is locked, improving treatment adherence for
@@ -40,7 +40,7 @@ You can try it live here: **https://medistore-health.vercel.app**
 
 ### We can tailor it to [Hospital Name]'s needs
 
-MediStore is flexible — I can customize it around how your hospital works:
+Ayuvo is flexible — I can customize it around how your hospital works:
 
 - **Your branding** — hospital logo, name, and colors (white-label).
 - **Use it as your patient report portal** — patients of [Hospital Name] store
@@ -68,7 +68,7 @@ Warm regards,
 📞 [Your phone] · ✉️ susandhungana20@gmail.com
 🔗 App: https://medistore-health.vercel.app
 🌐 Portfolio: https://www.susandhungana.com.np/
-MediStore
+Ayuvo
 
 ---
 
@@ -78,7 +78,7 @@ MediStore
 
 Dear [Hospital Name] Team,
 
-I'm Susan Dhungana, creator of **MediStore** (https://medistore-health.vercel.app)
+I'm Susan Dhungana, creator of **Ayuvo** (https://medistore-health.vercel.app)
 — a secure app where patients store their medical reports, get automatic medicine
 reminders (even when the app is closed), and receive plain-language explanations
 of their lab results.

@@ -10,12 +10,12 @@ class FaqScreen extends StatelessWidget {
 
   static const _faqs = [
     (
-      q: 'Is my medical data safe with MediStore?',
+      q: 'Is my medical data safe with Ayuvo?',
       a: 'Yes. Your data is stored securely in an encrypted database, locked behind your account, and never sold or shared without your consent. You control exactly what you share and for how long.',
     ),
     (
-      q: 'Is MediStore a medical service?',
-      a: 'No. MediStore is a storage and management tool for your health records. It does not provide medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider for medical decisions.',
+      q: 'Is Ayuvo a medical service?',
+      a: 'No. Ayuvo is a storage and management tool for your health records. It does not provide medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider for medical decisions.',
     ),
     (
       q: 'Who can see my records?',
@@ -26,7 +26,7 @@ class FaqScreen extends StatelessWidget {
       a: 'You generate a secure link with an expiry time and send it to a doctor or family member. The link opens a read-only view of that single report and stops working once it expires.',
     ),
     (
-      q: 'Is MediStore free?',
+      q: 'Is Ayuvo free?',
       a: 'Yes. Creating an account and using all core features — vitals, medicines, reports, appointments, and sharing — is free.',
     ),
     (
@@ -34,8 +34,8 @@ class FaqScreen extends StatelessWidget {
       a: 'Browse available doctors, check their availability, pick a free time slot, and confirm. The system validates the slot is still free at the moment you book, so double-booking is prevented.',
     ),
     (
-      q: 'Can I use MediStore on my phone?',
-      a: 'Yes. MediStore has a mobile app for Android and iOS alongside the website, so your records are available wherever you are.',
+      q: 'Can I use Ayuvo on my phone?',
+      a: 'Yes. Ayuvo has a mobile app for Android and iOS alongside the website, so your records are available wherever you are.',
     ),
     (
       q: 'How do I delete my account and data?',
@@ -59,7 +59,7 @@ class FaqScreen extends StatelessWidget {
         ),
         children: [
           Text(
-            'Answers to the questions people ask before trusting MediStore with their records.',
+            'Answers to the questions people ask before trusting Ayuvo with their records.',
             style: textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

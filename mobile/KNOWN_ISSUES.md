@@ -505,7 +505,7 @@ the app is opened, and that is genuinely all the freeze allows. Three limits
 follow, none of them fixable client-side:
 
 - **Reinstall or a new phone loses every alarm** until the app is opened again.
-- **A phone that does not open MediStore for eight days runs out** of scheduled
+- **A phone that does not open Ayuvo for eight days runs out** of scheduled
   reminders and goes quiet, with no signal that it has.
 - **A caretaker is never notified.** `reminder_scheduler.py` fans out to Web
   Push subscriptions; a caretaker on Android has none, so the patient's doses
@@ -584,13 +584,13 @@ should be an explicit, deletable thing, not a side effect of a cache.
 
 ### P6-10 · The map depends on a free service that is often busy — **Watch**
 
-Nearby care has no MediStore endpoint behind it. Tiles come from OpenStreetMap
+Nearby care has no Ayuvo endpoint behind it. Tiles come from OpenStreetMap
 and places from Overpass, a donated public service that rate-limits and returns
 429/504 under load. Three mirrors are tried in order, the map still renders with
 the user's own pin when all three refuse, and the message says the data service
 is busy rather than blaming the connection. There is no fallback beyond that.
 OSM's tile policy also expects an identifiable user agent; the app sends
-`com.medistore.app`, and a real deployment should keep that accurate.
+`com.ayuvo.health`, and a real deployment should keep that accurate.
 
 ### P6-11 · Four new platform channels, none of them run on a device — **Ship**
 

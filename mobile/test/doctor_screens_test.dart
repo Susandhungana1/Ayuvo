@@ -7,7 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:medistore/core/widgets/coming_soon.dart';
+import 'package:ayuvo/core/widgets/coming_soon.dart';
 
 import 'support/fake_api.dart';
 import 'support/fakes.dart';

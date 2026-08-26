@@ -7,7 +7,7 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:medistore/features/sharing/domain/shared_record.dart';
+import 'package:ayuvo/features/sharing/domain/shared_record.dart';
 
 const _wholeRecordJson = {
   'user_name': 'Hari Prasad',

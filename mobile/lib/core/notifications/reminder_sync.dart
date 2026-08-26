@@ -8,7 +8,7 @@
 ///
 /// Mounted by the app shell, so the window rolls forward every time the app is
 /// opened. That is also the honest limit of scheduling on the device: a phone
-/// that never opens MediStore for eight days runs out of reminders.
+/// that never opens Ayuvo for eight days runs out of reminders.
 library;
 
 import 'package:flutter/foundation.dart';

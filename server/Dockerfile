@@ -1,4 +1,4 @@
-# MediStore API image.
+# Ayuvo API image.
 #
 # Why Docker (vs Render's native Python runtime): report OCR uses pytesseract,
 # which is only a Python wrapper around the `tesseract` *system binary*. The

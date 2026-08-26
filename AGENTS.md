@@ -1,6 +1,29 @@
-# MediStore - Personal Digital Health Store
+# Ayuvo - Personal Digital Health Store
 
-FastAPI backend for the MediStore web application.
+FastAPI backend for the Ayuvo web application.
+
+## Naming: Ayuvo (renamed from MediStore, Aug 2026)
+
+The product is now **Ayuvo**. Several infrastructure identifiers still carry the
+old `medistore` name and are CORRECT — do not "fix" them:
+
+| Identifier | Why it stays |
+|---|---|
+| `medistore-api-vwyr.onrender.com` | Render service URL (not renamable) |
+| `medistore-health.vercel.app` | Vercel project + CORS regex |
+| `medistore-share-*.vercel.app` | Share reader deploys |
+| `front-medistore-app.vercel.app` | Flutter web deploy |
+| `medistore-files` | S3 bucket (contains data) |
+| `medistore-57598` | Firebase project ID |
+
+Renamed in code: package `ayuvo`, app id `com.ayuvo.health`, all UI strings,
+emails, PDFs, ICS UIDs, storage keys, channel IDs.
+
+**Firebase note:** `google-services.json` deliberately contains BOTH
+`com.ayuvo.health` and the legacy `com.medistore.medistore` client entries so
+FCM works under the existing project. Creating a dedicated `ayuvo-health`
+Firebase project (and swapping in its google-services.json +
+serviceAccountKey.json) is a pending manual step.
 
 ## Quick Start
 

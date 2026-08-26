@@ -6,8 +6,8 @@
 
 ---
 
-**Project:** MediStore Web
-**Generated:** 2026-08-14 18:11:11
+**Project:** Ayuvo
+**Generated:** 2026-08-06 09:30:34
 **Category:** Healthcare App
 **Design Dials:** Variance 4/10 (Balanced / Modern) | Motion 3/10 (Subtle) | Density 6/10 (Standard)
 
@@ -20,34 +20,28 @@
 | Role | Hex | CSS Variable |
 |------|-----|--------------|
 | Primary | `#0891B2` | `--color-primary` |
-| On Primary | `#000000` | `--color-on-primary` |
+| On Primary | `#FFFFFF` | `--color-on-primary` |
 | Secondary | `#22D3EE` | `--color-secondary` |
-| On Secondary | `#0F172A` | `--color-on-secondary` |
 | Accent/CTA | `#059669` | `--color-accent` |
-| On Accent/CTA | `#000000` | `--color-on-accent` |
 | Background | `#ECFEFF` | `--color-background` |
 | Foreground | `#164E63` | `--color-foreground` |
-| Card | `#FFFFFF` | `--color-card` |
-| Card Foreground | `#164E63` | `--color-card-foreground` |
 | Muted | `#E8F1F6` | `--color-muted` |
-| Muted Foreground | `#475569` | `--color-muted-foreground` |
 | Border | `#A5F3FC` | `--color-border` |
 | Destructive | `#DC2626` | `--color-destructive` |
-| On Destructive | `#FFFFFF` | `--color-on-destructive` |
 | Ring | `#0891B2` | `--color-ring` |
 
 **Color Notes:** Calm cyan + health green
 
 ### Typography
 
-- **Heading Font:** Atkinson Hyperlegible
-- **Body Font:** Atkinson Hyperlegible
-- **Mood:** accessible, readable, inclusive, WCAG, dyslexia-friendly, clear
-- **Google Fonts:** [Atkinson Hyperlegible + Atkinson Hyperlegible](https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap)
+- **Heading Font:** Figtree
+- **Body Font:** Noto Sans
+- **Mood:** medical, clean, accessible, professional, healthcare, trustworthy
+- **Google Fonts:** [Figtree + Noto Sans](https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;700&display=swap)
 
 **CSS Import:**
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;700&display=swap');
 ```
 
 ### Spacing Variables
@@ -167,37 +161,37 @@
 
 ## Style Guidelines
 
-**Style:** Neumorphism
+**Style:** Enterprise SaaS (Mobile)
 
-**Keywords:** Soft UI, embossed, debossed, convex, concave, light source, subtle depth, rounded (12-16px), monochromatic
+**Keywords:** enterprise, saas, b2b, professional, indigo, violet, gradient, polished, trustworthy, clean, approachable, spring, haptic
 
-**Best For:** Health/wellness apps, meditation platforms, fitness trackers, minimal interaction UIs
+**Best For:** B2B backend management, productivity tools, government and finance mobile apps, SaaS companion apps, enterprise dashboards
 
-**Key Effects:** Soft box-shadow (multiple: -5px -5px 15px, 5px 5px 15px), smooth press (150ms), inner subtle shadow
+**Key Effects:** Indigo→Violet gradient primary CTAs + active tab highlights, colored card shadows rgba(79,70,229,0.08), pill buttons or 12pt radius, full-width CTA at screen bottom, spring press scale 0.97, floating label inputs with animated focus border, skeletal loading pulses (Indigo/Slate tint), Bottom Sheets with drag dismiss, swipe-to-action list cards, scroll-linked title collapse
 
 ### Page Pattern
 
-**Pattern Name:** Hero + Testimonials + CTA
+**Pattern Name:** App Store Style Landing
 
-- **Conversion Strategy:** Social proof before CTA. Use a concise set of verified testimonials with photo, name, and role. CTA after social proof. Provide previous/next and pause controls; stop rotation on focus, hover, and reduced motion; announce slide position. Previous/next buttons and keyboard controls must expose every slide without dragging.
-- **CTA Placement:** Hero (sticky) + Post-testimonials
-- **Section Order:** Hero > Problem statement > Solution overview > Testimonials carousel > CTA
+- **Conversion Strategy:** Show real screenshots. Include ratings (4.5+ stars). QR code for mobile. Platform-specific CTAs.
+- **CTA Placement:** Download buttons prominent (App Store + Play Store) throughout
+- **Section Order:** 1. Hero with device mockup, 2. Screenshots carousel, 3. Features with icons, 4. Reviews/ratings, 5. Download CTAs
 
 ---
 
 ## Motion
 
-**Scroll Reveal** (Subtle) — Trigger: scroll (viewport enter) | Duration: 300-400ms | Easing: `power1.out`
+**Page Transition** (Subtle) — Trigger: route change | Duration: 200-300ms | Easing: `power1.inOut`
 
 ```js
-gsap.from(el, { opacity: 0, y: 12, duration: 0.35, ease: 'power1.out', scrollTrigger: { trigger: el, start: 'top 90%', toggleActions: 'play none none reverse' } });
+gsap.to(main, { opacity: 0, duration: 0.2, onComplete: () => { navigate(); gsap.fromTo(main, { opacity: 0 }, { opacity: 1, duration: 0.2 }); } });
 ```
 
-**Framework notes:** Requires the ScrollTrigger plugin registered once via gsap.registerPlugin(ScrollTrigger); Use matchMedia('(prefers-reduced-motion: reduce)') to skip non-essential motion and render the final state immediately
+**Framework notes:** Pair with the router's transition hooks (Next.js App Router transitions, React Router's useNavigate, Vue Router's beforeEach/afterEach)
 
-- ✅ Keep the y offset small (8-16px) so it reads as a fade, not a slide
-- ❌ Don't reveal below-the-fold content needed for SEO/crawlers as invisible-by-default without a no-JS fallback
-- ⚡ toggleActions 'play none none reverse' avoids re-triggering on every scroll direction change
+- ✅ Preload the destination route's critical assets before the exit tween finishes
+- ❌ Don't block navigation on animation; cap exit duration at ~250ms so the app never feels unresponsive
+- ⚡ Exit animation should always resolve faster than entrance (asymmetric timing) so back/forward feels snappy
 
 ---
 

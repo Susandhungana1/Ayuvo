@@ -10,16 +10,16 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/app.dart';
-import 'package:medistore/core/health/health_providers.dart';
-import 'package:medistore/core/network/api_exception.dart';
-import 'package:medistore/core/network/network_providers.dart';
-import 'package:medistore/core/notifications/reminders.dart';
-import 'package:medistore/core/session/session_controller.dart';
-import 'package:medistore/core/storage/local_store.dart';
-import 'package:medistore/core/storage/session_store.dart';
-import 'package:medistore/features/auth/data/auth_repository.dart';
-import 'package:medistore/features/shell/presentation/more_screen.dart';
+import 'package:ayuvo/app.dart';
+import 'package:ayuvo/core/health/health_providers.dart';
+import 'package:ayuvo/core/network/api_exception.dart';
+import 'package:ayuvo/core/network/network_providers.dart';
+import 'package:ayuvo/core/notifications/reminders.dart';
+import 'package:ayuvo/core/session/session_controller.dart';
+import 'package:ayuvo/core/storage/local_store.dart';
+import 'package:ayuvo/core/storage/session_store.dart';
+import 'package:ayuvo/features/auth/data/auth_repository.dart';
+import 'package:ayuvo/features/shell/presentation/more_screen.dart';
 
 import 'support/fake_api.dart';
 import 'support/fakes.dart';
@@ -60,7 +60,7 @@ Future<FakeAuthRepository> pumpApp(
           return client;
         }),
       ],
-      child: const MediStoreApp(),
+      child: const AyuvoApp(),
     ),
   );
   // Read the keystore, resolve the session, let the router redirect, then let

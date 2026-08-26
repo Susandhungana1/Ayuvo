@@ -5,8 +5,8 @@ import { RangeBar } from '@/components/ui/range-bar';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'About Us - MediStore',
-  description: 'MediStore is a product of Quorlyn — a secure platform to store medical records, track vital signs, manage medications, and share health data with doctors.',
+  title: 'About Us - Ayuvo',
+  description: 'Ayuvo is a product of Quorlyn — a secure platform to store medical records, track vital signs, manage medications, and share health data with doctors.',
 };
 
 const FOUNDERS = [
@@ -36,9 +36,9 @@ export default function About() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-20">
-          <h1 className="text-4xl md:text-5xl font-display font-bold text-on-surface mb-6">About MediStore</h1>
+          <h1 className="text-4xl md:text-5xl font-display font-bold text-on-surface mb-6">About Ayuvo</h1>
           <p className="text-lg text-on-surface-variant leading-relaxed">
-            MediStore is your personal digital health store — a secure platform to store
+            Ayuvo is your personal digital health store — a secure platform to store
             medical records, track vital signs, manage medications, book appointments,
             generate reports, and share your health data with doctors — all in one place.
           </p>
@@ -62,7 +62,7 @@ export default function About() {
               <div className="flex-1">
                 <h2 className="text-3xl font-display font-bold text-on-surface mb-4">Our Company</h2>
                 <p className="text-on-surface-variant leading-relaxed mb-4">
-                  MediStore is built and published by{' '}
+                  Ayuvo is built and published by{' '}
                   <a
                     href="https://www.quorlyn.com.np"
                     target="_blank"
@@ -86,7 +86,7 @@ export default function About() {
               </div>
               <div className="w-full md:w-64 h-40 rounded-lg bg-surface-card border border-outline flex flex-col items-center justify-center gap-2 shrink-0">
                 <p className="text-xl font-display font-bold text-on-surface">Quorlyn</p>
-                <p className="text-xs text-on-surface-variant">Building MediStore</p>
+                <p className="text-xs text-on-surface-variant">Building Ayuvo</p>
               </div>
             </div>
           </Card>
@@ -96,7 +96,7 @@ export default function About() {
         <div className="mb-24">
           <h2 className="text-3xl font-display font-bold text-on-surface text-center mb-4">Meet the Founders</h2>
           <p className="text-on-surface-variant text-center max-w-2xl mx-auto mb-12">
-            The three founders and directors behind Quorlyn, and the team that built MediStore.
+            The three founders and directors behind Quorlyn, and the team that built Ayuvo.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {FOUNDERS.map((founder) => (
@@ -117,7 +117,7 @@ export default function About() {
             <div className="flex-1">
               <h2 className="text-3xl font-display font-bold text-on-surface mb-6">What We Do</h2>
               <p className="text-on-surface-variant mb-4 leading-relaxed">
-                MediStore lets you upload and organize lab results, prescriptions, and
+                Ayuvo lets you upload and organize lab results, prescriptions, and
                 medical history, track vital signs like blood pressure, heart rate, blood
                 sugar, and weight, manage your medications with dose reminders, book
                 appointments with doctors, and share

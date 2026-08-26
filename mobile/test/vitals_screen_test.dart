@@ -6,7 +6,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/features/vitals/presentation/vitals_screen.dart';
+import 'package:ayuvo/features/vitals/presentation/vitals_screen.dart';
 
 import 'support/fake_api.dart';
 import 'support/harness.dart';

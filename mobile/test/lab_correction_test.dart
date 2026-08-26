@@ -9,7 +9,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/features/reports/presentation/widgets/lab_findings_view.dart';
+import 'package:ayuvo/features/reports/presentation/widgets/lab_findings_view.dart';
 
 import 'support/fake_api.dart';
 import 'support/harness.dart';

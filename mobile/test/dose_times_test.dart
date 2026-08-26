@@ -3,9 +3,9 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/features/medicines/domain/dose_schedule.dart';
-import 'package:medistore/features/medicines/domain/dose_times.dart';
-import 'package:medistore/features/medicines/domain/medicine.dart';
+import 'package:ayuvo/features/medicines/domain/dose_schedule.dart';
+import 'package:ayuvo/features/medicines/domain/dose_times.dart';
+import 'package:ayuvo/features/medicines/domain/medicine.dart';
 
 Medicine medicine({
   String id = 'med-1',

@@ -31,13 +31,13 @@ abstract final class CalendarInvite {
     final lines = <String>[
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//MediStore//Appointments//EN',
+      'PRODID:-//Ayuvo//Appointments//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
       'BEGIN:VEVENT',
       // Stable per appointment, so re-sharing updates the entry rather than
       // creating a second one.
-      'UID:${appointment.id}@medistore',
+      'UID:${appointment.id}@ayuvo',
       'DTSTAMP:${_utcStamp(DateTime.now())}',
       'DTSTART:${_floating(start)}',
       'DTEND:${_floating(end)}',

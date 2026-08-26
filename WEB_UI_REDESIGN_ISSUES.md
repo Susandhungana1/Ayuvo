@@ -1,4 +1,4 @@
-# MediStore Web Redesign — Known Issues & Blockers
+# Ayuvo Web Redesign — Known Issues & Blockers
 
 Open issues found during the redesign (WEB_UI_REDESIGN_PROMPT.md). Anything
 unfixable or deferred goes here, with the reason. This file is honest reporting,

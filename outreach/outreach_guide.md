@@ -1,4 +1,4 @@
-# MediStore — Hospital Outreach Kit
+# Ayuvo — Hospital Outreach Kit
 
 ## The email (copy-paste, personalize the **[bracketed]** bits)
 
@@ -6,7 +6,7 @@
 
 Dear [Hospital Name] Team,
 
-My name is Susan Dhungana, and I've built **MediStore** — a web app that helps
+My name is Susan Dhungana, and I've built **Ayuvo** — a web app that helps
 patients manage medicines and medical reports, designed for Nepal's healthcare
 context.
 
@@ -27,7 +27,7 @@ Thank you for the care you provide. I'd be grateful for your feedback.
 Warm regards,
 Susan Dhungana
 [Your phone] · susandhungana090@gmail.com
-MediStore
+Ayuvo
 
 ---
 

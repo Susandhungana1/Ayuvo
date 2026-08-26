@@ -11,9 +11,9 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/core/theme/app_theme.dart';
-import 'package:medistore/core/widgets/range_bar.dart';
-import 'package:medistore/dev/design_gallery.dart';
+import 'package:ayuvo/core/theme/app_theme.dart';
+import 'package:ayuvo/core/widgets/range_bar.dart';
+import 'package:ayuvo/dev/design_gallery.dart';
 
 /// The narrowest phone worth supporting (iPhone SE / small Android). The height
 /// is deliberately huge: it makes the ListView lay out every section in one

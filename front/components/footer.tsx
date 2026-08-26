@@ -58,7 +58,7 @@ export function Footer() {
         </div>
         
         <div className="border-t border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)] mt-12 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-[var(--color-ink-variant)]">
-          <p>&copy; {currentYear} MediStore by Quorlyn. All rights reserved.</p>
+          <p>&copy; {currentYear} Ayuvo by Quorlyn. All rights reserved.</p>
           <div className="mt-4 md:mt-0 flex flex-col items-center md:items-end gap-1">
             <p>quorlytechnologies@gmail.com | +977 9812345678</p>
             <a href="https://www.quorlyn.com.np" target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] hover:underline">

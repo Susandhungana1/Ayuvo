@@ -1,6 +1,6 @@
 /// Pumping the real app with a scripted backend behind it.
 ///
-/// Widget tests here drive `MediStoreApp` itself — the real router, the real
+/// Widget tests here drive `AyuvoApp` itself — the real router, the real
 /// shell, the real controllers — with only the socket replaced. That is what
 /// makes an assertion about a screen worth something: the row it shows came
 /// out of JSON the server would really send.
@@ -14,16 +14,16 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/app.dart';
-import 'package:medistore/core/health/health_providers.dart';
-import 'package:medistore/core/health/health_status.dart';
-import 'package:medistore/core/network/network_providers.dart';
-import 'package:medistore/core/notifications/reminders.dart';
-import 'package:medistore/core/session/session_controller.dart';
-import 'package:medistore/core/storage/local_store.dart';
-import 'package:medistore/core/storage/session_store.dart';
-import 'package:medistore/features/auth/data/auth_repository.dart';
-import 'package:medistore/features/auth/domain/auth_user.dart';
+import 'package:ayuvo/app.dart';
+import 'package:ayuvo/core/health/health_providers.dart';
+import 'package:ayuvo/core/health/health_status.dart';
+import 'package:ayuvo/core/network/network_providers.dart';
+import 'package:ayuvo/core/notifications/reminders.dart';
+import 'package:ayuvo/core/session/session_controller.dart';
+import 'package:ayuvo/core/storage/local_store.dart';
+import 'package:ayuvo/core/storage/session_store.dart';
+import 'package:ayuvo/features/auth/data/auth_repository.dart';
+import 'package:ayuvo/features/auth/domain/auth_user.dart';
 
 import 'fake_api.dart';
 import 'fakes.dart';
@@ -108,7 +108,7 @@ Future<void> settle(WidgetTester tester) async {
           return client;
         }),
       ],
-      child: const MediStoreApp(),
+      child: const AyuvoApp(),
     ),
   );
   await settle(tester);

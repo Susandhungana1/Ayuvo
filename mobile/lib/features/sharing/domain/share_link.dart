@@ -54,7 +54,7 @@ abstract class ShareLink with _$ShareLink {
   }
 
   /// The URL a recipient opens. The public reader is a `front/` page, not a
-  /// screen in this app: whoever you share with does not have MediStore
+  /// screen in this app: whoever you share with does not have Ayuvo
   /// installed, which is the entire point of sharing.
   String get url => isWholeRecord
       ? '${Env.webBaseUrl}/share/qr-code/$token'

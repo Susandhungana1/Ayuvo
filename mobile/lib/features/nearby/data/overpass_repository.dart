@@ -1,9 +1,9 @@
 /// Nearby care, from OpenStreetMap.
 ///
 /// **Deliberately not through `ApiClient`.** This is a third-party service on a
-/// different origin, and it must never see a MediStore bearer token. It gets
+/// different origin, and it must never see a Ayuvo bearer token. It gets
 /// its own dio with no interceptors, so a 401 from a busy Overpass mirror can
-/// never sign anyone out of MediStore.
+/// never sign anyone out of Ayuvo.
 ///
 /// Overpass is a free public service run on donated hardware. It rate-limits,
 /// it returns 429 and 504 under load, and any given mirror is sometimes simply
@@ -35,7 +35,7 @@ class OverpassUnreachable implements Exception {
 }
 
 /// The dio Overpass calls go through. Overridden in tests; never shared with
-/// the MediStore client.
+/// the Ayuvo client.
 final overpassDioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(

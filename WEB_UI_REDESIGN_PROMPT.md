@@ -1,4 +1,4 @@
-# Master Prompt — Redesign the MediStore Web UI (`front/`)
+# Master Prompt — Redesign the Ayuvo Web UI (`front/`)
 
 > Paste everything below the line into a fresh agent session opened at the repo root
 > (`C:\Users\user\Desktop\Medicare`).
@@ -84,8 +84,8 @@ Audited 2026-08-14. Fix these, don't preserve them:
 
 ## Design direction — one brand, two platforms
 
-Read, in order: `mobile/DESIGN.md` → `mobile/design-system/medistore/MASTER.md` →
-`front/design-system/medistore-web/MASTER.md` (generated for this task on 2026-08-14
+Read, in order: `mobile/DESIGN.md` → `mobile/design-system/ayuvo/MASTER.md` →
+`front/design-system/ayuvo-web/MASTER.md` (generated for this task on 2026-08-14
 with `ui-ux-pro-max`, variance 4 / motion 3 / density 6). The web re-verifies the
 mobile decisions and documents its departures. Non-negotiable, carried from mobile:
 
@@ -142,7 +142,7 @@ Skills are installed on this machine. Use them, then write the choice down:
 
 ```powershell
 # ui-ux-pro-max — the primary source
-python "C:\Users\user\.claude\skills\ui-ux-pro-max\scripts\search.py" "calm trustworthy healthcare patient records web app" --design-system --variance 4 --motion 3 --density 6 -p "MediStore Web" -f markdown
+python "C:\Users\user\.claude\skills\ui-ux-pro-max\scripts\search.py" "calm trustworthy healthcare patient records web app" --design-system --variance 4 --motion 3 --density 6 -p "Ayuvo Web" -f markdown
 python "C:\Users\user\.claude\skills\ui-ux-pro-max\scripts\search.py" "status chip range indicator health data" --domain ux
 python "C:\Users\user\.claude\skills\ui-ux-pro-max\scripts\search.py" "dashboard data density spacing" --domain ux
 python "C:\Users\user\.claude\skills\ui-ux-pro-max\scripts\search.py" "nextjs tailwind v4 tokens" --stack nextjs
@@ -150,7 +150,7 @@ python "C:\Users\user\.claude\skills\ui-ux-pro-max\scripts\search.py" "chart leg
 ```
 
 The web design system was already persisted at
-`front/design-system/medistore-web/MASTER.md` — re-run only if the direction
+`front/design-system/ayuvo-web/MASTER.md` — re-run only if the direction
 changes, and read the mobile master before overriding anything.
 
 **Deliverable**: `front/WEB_DESIGN.md` — the chosen tokens translated into Tailwind

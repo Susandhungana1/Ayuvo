@@ -43,7 +43,7 @@ export function Logo({ variant = 'full', size = 'md', href = '/' }: LogoProps) {
     <span
       className={`font-heading font-semibold text-text-main tracking-tight leading-none ${s.text}`}
     >
-      MediStore
+      Ayuvo
     </span>
   );
 

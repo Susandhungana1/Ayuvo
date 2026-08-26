@@ -1,11 +1,11 @@
-# MediStore — Design System
+# Ayuvo — Design System
 
 Phase 1.5 deliverable. Every screen built from here on references these tokens.
 **No raw hex and no ad-hoc padding in a widget file, ever.**
 
 Sources: `ui-ux-pro-max` (palette, type pairing, the 52-rule Flutter guideline set),
 `frontend-design` (direction), `dataviz` (charts), with the generated system kept
-verbatim at `design-system/medistore/MASTER.md` for reconciliation. Where this
+verbatim at `design-system/ayuvo/MASTER.md` for reconciliation. Where this
 document departs from that file, §9 says so and why.
 
 ---

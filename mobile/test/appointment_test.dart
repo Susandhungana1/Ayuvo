@@ -7,9 +7,9 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medistore/features/appointments/domain/appointment.dart';
-import 'package:medistore/features/appointments/domain/calendar_invite.dart';
-import 'package:medistore/features/appointments/presentation/appointments_controller.dart';
+import 'package:ayuvo/features/appointments/domain/appointment.dart';
+import 'package:ayuvo/features/appointments/domain/calendar_invite.dart';
+import 'package:ayuvo/features/appointments/presentation/appointments_controller.dart';
 
 Appointment _appointment({
   String id = 'apt-1',
@@ -164,7 +164,7 @@ void main() {
 
     test('the UID is stable, so re-sharing updates one entry', () {
       final ics = CalendarInvite.of(_appointment(id: 'apt-9'));
-      expect(ics, contains('UID:apt-9@medistore\r\n'));
+      expect(ics, contains('UID:apt-9@ayuvo\r\n'));
     });
 
     test('commas in a name are escaped, not left to truncate the field', () {

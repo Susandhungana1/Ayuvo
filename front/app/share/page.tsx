@@ -279,7 +279,7 @@ export default function Share() {
               <li>5. You can revoke the link at any time</li>
               <li>6. Use QR Code to share all reports at once — the reader asks for the 6-digit PIN that comes with it</li>
               <li>
-                7. A recipient signed in to MediStore can save the share to keep
+                7. A recipient signed in to Ayuvo can save the share to keep
                 it after the link expires — you&apos;ll see them listed below
               </li>
             </ul>

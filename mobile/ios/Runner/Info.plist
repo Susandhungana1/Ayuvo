@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>MediStore</string>
+	<string>Ayuvo</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>medistore</string>
+	<string>ayuvo</string>
 	<!-- Lets a simulator or device reach a dev server on the local network over
 	     plain http. It does not weaken transport security for anything else:
 	     production is https to Render, which ATS allows unconditionally.

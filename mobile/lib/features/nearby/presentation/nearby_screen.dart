@@ -1,6 +1,6 @@
 /// Hospitals, clinics and pharmacies within 4 km.
 ///
-/// The one screen in the app with no MediStore endpoint behind it: the tiles
+/// The one screen in the app with no Ayuvo endpoint behind it: the tiles
 /// come from OpenStreetMap and the places from Overpass. Two consequences
 /// follow, and both are visible on screen — the "© OpenStreetMap contributors"
 /// line is required by the ODbL and is not decoration, and a failure here says
@@ -109,7 +109,7 @@ class _Map extends StatelessWidget {
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           // OSM's tile usage policy requires an identifiable agent. A generic
           // Dart user agent is the kind of thing that gets an app blocked.
-          userAgentPackageName: 'com.medistore.app',
+          userAgentPackageName: 'com.ayuvo.health',
           maxZoom: 19,
         ),
         MarkerLayer(

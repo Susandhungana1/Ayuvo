@@ -6,15 +6,15 @@ import 'core/settings/app_settings.dart';
 import 'core/theme/app_theme.dart';
 import 'l10n/app_localizations.dart';
 
-class MediStoreApp extends ConsumerWidget {
-  const MediStoreApp({super.key});
+class AyuvoApp extends ConsumerWidget {
+  const AyuvoApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(currentSettingsProvider);
 
     return MaterialApp.router(
-      title: 'MediStore',
+      title: 'Ayuvo',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
