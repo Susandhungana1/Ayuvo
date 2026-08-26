@@ -51,7 +51,7 @@ jobs:
           if [ "$open" = "0" ]; then
             gh issue create \
               --title "Uptime alert: /health returned non-200" \
-              --body "The production health endpoint at $BASE_URL failed a scheduled check. Investigate the service on Render (medistore-api) and the DB connection on Supabase. This issue stays open until the API recovers." \
+              --body "The production health endpoint at $BASE_URL failed a scheduled check. Investigate the service on Render (ayuvo-api) and the DB connection on Supabase. This issue stays open until the API recovers." \
               || echo "Could not create issue."
           else
             echo "An uptime alert issue is already open — not creating a duplicate."

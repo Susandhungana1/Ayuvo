@@ -14,7 +14,7 @@
 # this file said "true".
 #
 # So: after adding any variable here, also add it by hand in
-# Render > medistore-api > Environment. Treat this file as documentation of
+# Render > ayuvo-api > Environment. Treat this file as documentation of
 # what the service needs, not as something that configures it in place.
 #
 # The free plan gives HTTPS + a *.onrender.com domain automatically. Free web
@@ -22,7 +22,7 @@
 # pilot; upgrade to keep it warm.
 services:
   - type: web
-    name: medistore-api
+    name: ayuvo-api
     # Docker runtime so the image can install the `tesseract` OCR binary that
     # pytesseract needs (the native python runtime can't apt-install it, which
     # broke image/scanned-PDF report extraction in prod). Build + start come

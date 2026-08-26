@@ -36,7 +36,7 @@ no equivalent for (the 2FA challenge, "paste your reset code") are marked **new*
 
 | Fact | Detail |
 |---|---|
-| Base URL | local `http://127.0.0.1:3001`; Android emulator `http://10.0.2.2:3001`; prod `https://medistore-api-vwyr.onrender.com` |
+| Base URL | local `http://127.0.0.1:3001`; Android emulator `http://10.0.2.2:3001`; prod `https://ayuvo-api-vwyr.onrender.com` |
 | Auth | `Authorization: Bearer <jwt>`; HS256, `sub` = user id, **7-day expiry, no refresh** |
 | Login | `POST /api/auth/login` — **form-encoded** `username`/`password`, TOTP in `client_secret` |
 | 2FA signal | 401 + header `X-2FA-Required: true` → prompt for code, resubmit |

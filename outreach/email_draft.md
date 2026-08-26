@@ -11,7 +11,7 @@ platform designed for Nepal's healthcare context that helps hospitals support
 their patients between visits, and gives patients one safe place for their
 medicines and medical records.
 
-You can try it live here: **https://medistore-health.vercel.app**
+You can try it live here: **https://ayuvo-health.vercel.app**
 
 ### What Ayuvo does today
 
@@ -59,14 +59,14 @@ glad to build or adjust it.
 
 I'd value **10 minutes** to give a live demo and hear what would help
 [Hospital Name] most. Please reply with a convenient time, or simply try it at
-**https://medistore-health.vercel.app**.
+**https://ayuvo-health.vercel.app**.
 
 Thank you for the care you provide to our communities.
 
 Warm regards,
 **Susan Dhungana**
 📞 [Your phone] · ✉️ susandhungana20@gmail.com
-🔗 App: https://medistore-health.vercel.app
+🔗 App: https://ayuvo-health.vercel.app
 🌐 Portfolio: https://www.susandhungana.com.np/
 Ayuvo
 
@@ -78,7 +78,7 @@ Ayuvo
 
 Dear [Hospital Name] Team,
 
-I'm Susan Dhungana, creator of **Ayuvo** (https://medistore-health.vercel.app)
+I'm Susan Dhungana, creator of **Ayuvo** (https://ayuvo-health.vercel.app)
 — a secure app where patients store their medical reports, get automatic medicine
 reminders (even when the app is closed), and receive plain-language explanations
 of their lab results.

@@ -48,12 +48,13 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Beyond the explicit CORS_ORIGINS allowlist, also accept THIS project's Vercel
 # domains via regex: the production alias (front-*.vercel.app, incl.
-# front-five-woad-12), the medistore-health.vercel.app rename, the Share
-# reader's standalone app (medistore-share-*.vercel.app), and git preview
-# deploys. Scoped to our own project's subdomains — NOT all of *.vercel.app — so
-# renaming or redeploying the frontend never silently breaks API calls, without
-# hand-editing CORS_ORIGINS on Render each time.
-VERCEL_ORIGIN_REGEX = r"^https://(medistore-health|medistore-share[\w-]*|front-medistore-app|front-git-[\w-]*susan[\w-]*|front-five-woad-12)\.vercel\.app$"
+# front-five-woad-12), the Ayuvo web (ayuvo-health.vercel.app, legacy
+# medistore-health), the Share reader's standalone app
+# (ayuvo-share-*.vercel.app, legacy medistore-share-*.vercel.app), and git
+# preview deploys. Scoped to our own project's subdomains — NOT all of
+# *.vercel.app — so renaming or redeploying the frontend never silently
+# breaks API calls, without hand-editing CORS_ORIGINS on Render each time.
+VERCEL_ORIGIN_REGEX = r"^https://(ayuvo-health|ayuvo-share[\w-]*|front-ayuvo-app|medistore-health|medistore-share[\w-]*|front-medistore-app|front-git-[\w-]*susan[\w-]*|front-five-woad-12)\.vercel\.app$"
 
 app.add_middleware(
     CORSMiddleware,

@@ -4,20 +4,24 @@ FastAPI backend for the Ayuvo web application.
 
 ## Naming: Ayuvo (renamed from MediStore, Aug 2026)
 
-The product is now **Ayuvo**. Several infrastructure identifiers still carry the
-old `medistore` name and are CORRECT — do not "fix" them:
+The product is now **Ayuvo**. Domains were renamed in Aug 2026:
+
+| Service | Current | Legacy alias (kept as redirect) |
+|---|---|---|
+| API (Render) | `ayuvo-api-vwyr.onrender.com` | `medistore-api-vwyr.onrender.com` |
+| Web (Vercel) | `ayuvo-health.vercel.app` | `medistore-health.vercel.app` |
+| Share readers | `ayuvo-share-*.vercel.app` | `medistore-share-*.vercel.app` |
+| Flutter web | `front-ayuvo-app.vercel.app` | `front-medistore-app.vercel.app` |
+
+Infrastructure that still carries `medistore` and is CORRECT (contains data):
 
 | Identifier | Why it stays |
 |---|---|
-| `medistore-api-vwyr.onrender.com` | Render service URL (not renamable) |
-| `medistore-health.vercel.app` | Vercel project + CORS regex |
-| `medistore-share-*.vercel.app` | Share reader deploys |
-| `front-medistore-app.vercel.app` | Flutter web deploy |
 | `medistore-files` | S3 bucket (contains data) |
 | `medistore-57598` | Firebase project ID |
 
 Renamed in code: package `ayuvo`, app id `com.ayuvo.health`, all UI strings,
-emails, PDFs, ICS UIDs, storage keys, channel IDs.
+emails, PDFs, ICS UIDs, storage keys, channel IDs, CORS regex, sitemap.
 
 **Firebase note:** `google-services.json` deliberately contains BOTH
 `com.ayuvo.health` and the legacy `com.medistore.medistore` client entries so
@@ -130,12 +134,12 @@ documents, reports and AI are unreachable through it.
 
 | | URL |
 |---|---|
-| Frontend (Vercel) | https://medistore-health.vercel.app |
-| API (Render) | https://medistore-api-vwyr.onrender.com |
+| Frontend (Vercel) | https://ayuvo-health.vercel.app |
+| API (Render) | https://ayuvo-api-vwyr.onrender.com |
 
 **The API hostname is not derivable from `render.yaml`.** The blueprint declares
-`name: medistore-api`, but Render appended a random suffix when it created the
-service, so the live host is `medistore-api-vwyr`. Worse, `*.onrender.com` is a
+`name: ayuvo-api`, but Render appended a random suffix when it created the
+service, so the live host is `ayuvo-api-vwyr`. Worse, `*.onrender.com` is a
 wildcard: the wrong hostname still resolves in DNS and then hangs until timeout
 instead of failing fast, which reads exactly like a suspended service. Do not
 conclude the backend is down from a timeout plus a successful DNS lookup —
@@ -145,9 +149,9 @@ If it changes, recover it from Vercel's `NEXT_PUBLIC_API_URL`, or from the
 deployed bundle:
 
 ```bash
-curl -s https://medistore-health.vercel.app/dashboard \
+curl -s https://ayuvo-health.vercel.app/dashboard \
   | grep -oE '/_next/static/[^"]+\.js' | sort -u \
-  | while read c; do curl -s "https://medistore-health.vercel.app$c"; done \
+  | while read c; do curl -s "https://ayuvo-health.vercel.app$c"; done \
   | grep -oE 'https://[a-z0-9-]+\.onrender\.com' | sort -u
 ```
 
@@ -158,7 +162,7 @@ Push to `main` — Render and Vercel both auto-deploy from it.
 **Adding an env var to `render.yaml` does not create it on the running
 service.** Render applies that file's variables when the service is created
 from the blueprint, not on subsequent pushes. Add the key by hand in
-Render > medistore-api > Environment as well, or the code deploys while the
+Render > ayuvo-api > Environment as well, or the code deploys while the
 variable stays absent and the app quietly uses its default — which is how
 `CARETAKER_ENABLED` read `false` in production for an hour while the blueprint
 said `"true"`.
@@ -167,7 +171,7 @@ Feature flags are visible at `/health` (`caretaker`, `email`) precisely so this
 is one curl to check rather than a guess:
 
 ```bash
-curl -s https://medistore-api-vwyr.onrender.com/health
+curl -s https://ayuvo-api-vwyr.onrender.com/health
 ```
 
 Schema changes need care: startup runs `SQLModel.metadata.create_all()`, which

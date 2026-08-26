@@ -20,7 +20,7 @@ For your patients and staff it offers:
 
 I'd value 10 minutes to show you a live demo and hear whether it could support
 [Hospital Name]'s patients. You can also try it directly here:
-**https://medistore-health.vercel.app**
+**https://ayuvo-health.vercel.app**
 
 Thank you for the care you provide. I'd be grateful for your feedback.
 

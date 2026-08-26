@@ -37,7 +37,7 @@ abstract final class Env {
     return _production;
   }
 
-  static const String _productionWeb = 'https://medistore-health.vercel.app';
+  static const String _productionWeb = 'https://ayuvo-health.vercel.app';
 
   static String get webBaseUrl => _webOverride.isEmpty
       ? _productionWeb

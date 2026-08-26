@@ -674,7 +674,7 @@ documents branch.
    if it is ever turned on. Adding it to `render.yaml` does not create it on
    the running service — that is how `CARETAKER_ENABLED` read `false` in
    production for an hour while the blueprint said `"true"`.
-3. **Verify:** `curl -s https://medistore-api-vwyr.onrender.com/health` —
+3. **Verify:** `curl -s https://ayuvo-api-vwyr.onrender.com/health` —
    `doctor_confirms_bookings` and `frontend_url` are both surfaced there.
 4. **Deploy** is yours to trigger. New behaviour lands behind a flag defaulting
    off, so shipping the code and enabling it stay separate acts.

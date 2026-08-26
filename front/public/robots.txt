@@ -4,4 +4,4 @@ Disallow: /api/
 Disallow: /auth/
 Disallow: /care/
 
-Sitemap: https://medistore-health.vercel.app/sitemap.xml
+Sitemap: https://ayuvo-health.vercel.app/sitemap.xml
