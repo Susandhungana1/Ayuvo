@@ -2,7 +2,7 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -205,6 +205,7 @@ async def register(request: Request, user_data: UserCreate, db: Session = Depend
 async def login(
     request: Request,
     form: OAuth2PasswordRequestForm = Depends(),
+    totp_code: Optional[str] = Form(None),
     db: Session = Depends(get_session)
 ):
     user = db.exec(select(User).where(User.email == form.username)).first()
@@ -212,10 +213,11 @@ async def login(
         record_access(db, "auth.login.failed", request=request, detail=form.username)
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    # Second factor: OAuth2 password form has no TOTP field, so the client sends
-    # the 6-digit code in the optional `client_secret` form field.
+    # Second factor: prefer explicit totp_code field or X-TOTP-Code header;
+    # fall back to client_secret for backward compat with older clients.
     if user.totp_enabled:
-        code = (form.client_secret or "").strip()
+        header_code = request.headers.get("X-TOTP-Code", "")
+        code = (totp_code or header_code or form.client_secret or "").strip()
         if not code:
             # Signal the client to collect a code and retry. 401 keeps it generic.
             raise HTTPException(

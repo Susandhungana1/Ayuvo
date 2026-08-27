@@ -30,7 +30,14 @@ abstract final class Env {
   static const String _androidEmulator = 'http://10.0.2.2:3001';
 
   static String get apiBaseUrl {
-    if (_override.isNotEmpty) return _stripTrailingSlash(_override);
+    if (_override.isNotEmpty) {
+      final url = _stripTrailingSlash(_override);
+      assert(
+        url.startsWith('https://') || url.contains('127.0.0.1') || url.contains('localhost') || url.contains('10.0.2.2'),
+        'Production API_BASE_URL must be https:// — cleartext http is debug only',
+      );
+      return url;
+    }
     // Android emulator gets its own alias; everything else gets production.
     // Pass --dart-define=API_BASE_URL=http://127.0.0.1:3001 for local dev.
     if (!kIsWeb && Platform.isAndroid) return _androidEmulator;
