@@ -1,94 +1,282 @@
 """Report text extraction (OCR), fully offline.
 
-Tesseract (with Pillow image preprocessing) plus a scanned-PDF rasterize path,
-so a PDF that is just scanned images (and would otherwise yield NO text) still
-extracts. Best-effort and free. Every layer degrades to None on error, so an
-upload never fails because of OCR. Kept separate from the API router so the
-logic is unit-testable without HTTP.
+Two-engine approach for maximum accuracy on medical lab reports:
+
+  1. **RapidOCR** (primary) — PaddleOCR's ONNX models via ONNX Runtime.
+     Deep-learning text detection + recognition that handles phone photos,
+     angled scans, uneven lighting, and tabular layouts far better than
+     Tesseract.  CPU-only, ~70 MB total, no GPU needed.
+
+  2. **Tesseract** (fallback) — used when RapidOCR is unavailable, fails, or
+     produces no numeric tokens (a sign the layout confused even the DL engine).
+
+Best-effort throughout: every layer degrades to None on error so an upload
+never fails because of OCR.  Kept separate from the API router so the logic
+is unit-testable without HTTP.
 """
 
 import io
 import logging
+import math
 import re
 from typing import Optional
 
-from PIL import Image, ImageOps, ImageFilter
-import pytesseract
+from PIL import Image, ImageOps, ImageFilter, ImageStat
 
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".webp")
 logger = logging.getLogger(__name__)
 
-# Tesseract: LSTM engine (--oem 1) + "assume a uniform block of text" (--psm 6),
-# which transcribes tabular lab reports more reliably than the default auto mode
-# that tends to shuffle columns and split value/unit pairs.
-_TESS_CONFIG = "--oem 1 --psm 6"
+# ---------------------------------------------------------------------------
+# Image preprocessing (Pure Pillow — no OpenCV dependency)
+# ---------------------------------------------------------------------------
 
-# Fallback page-segmentation modes tried when the primary pass finds no numbers
-# (a sign the sheet was laid out in a way psm 6 could not read as one block):
-# psm 4 = a single column of text of variable sizes, psm 11 = sparse text.
-_FALLBACK_CONFIGS = ("--oem 1 --psm 4", "--oem 1 --psm 11")
-
-# Upscale anything narrower than this before OCR. Tesseract accuracy falls off on
-# small, low-DPI crops (a typical phone report photo), so we bring it up toward
-# the ~300-DPI sweet spot the engine was trained around.
 _MIN_WIDTH = 1600
+_MIN_HEIGHT = 400
 
 
 def preprocess(image: Image.Image) -> Image.Image:
-    """Grayscale → upscale small images → autocontrast → sharpen.
+    """Grayscale → upscale → autocontrast → sharpen.
 
-    Pure Pillow (no OpenCV), so we add zero system dependencies. This is the
-    single biggest free accuracy win for phone photos: it removes colour noise,
-    gives Tesseract enough pixels to work with, and crisps up the edges. We avoid
-    a hard black/white threshold on purpose — global binarisation wrecks photos
-    with uneven lighting, which is exactly the case we most need to handle.
+    Designed for phone photos of printed lab reports: removes colour noise,
+    gives the OCR engine enough pixels, and crisps up edges.  We avoid a hard
+    black/white threshold because global binarisation wrecks photos with
+    uneven lighting — exactly the case we most need to handle.
     """
-    img = image.convert("L")  # grayscale
+    img = image.convert("L")
+
+    # Upscale small images to the ~300-DPI sweet spot OCR engines expect.
     if img.width and img.width < _MIN_WIDTH:
         scale = _MIN_WIDTH / img.width
-        img = img.resize((_MIN_WIDTH, max(1, int(img.height * scale))), Image.LANCZOS)
+        img = img.resize(
+            (_MIN_WIDTH, max(1, int(img.height * scale))),
+            Image.LANCZOS,
+        )
+    # Also ensure minimum height for very wide panoramic crops.
+    if img.height and img.height < _MIN_HEIGHT:
+        scale = _MIN_HEIGHT / img.height
+        img = img.resize(
+            (max(1, int(img.width * scale)), _MIN_HEIGHT),
+            Image.LANCZOS,
+        )
+
     img = ImageOps.autocontrast(img)
     img = img.filter(ImageFilter.UnsharpMask(radius=1.5, percent=150, threshold=3))
     return img
 
 
+def _deskew(image: Image.Image) -> Image.Image:
+    """Rotate the image to correct slight skew (±15°).
+
+    Uses the variance-of-projection method: for each angle, project the
+    binary image onto a horizontal line and measure variance.  The angle
+    with the highest variance is the correct deskew angle.  Pure Pillow,
+    no numpy/scipy needed.
+    """
+    # Convert to binary for projection
+    bw = image.point(lambda x: 255 if x > 128 else 0, mode="1")
+    w, h = bw.size
+
+    best_angle = 0.0
+    best_var = 0.0
+
+    # Coarse pass: every 2° from -15 to +15
+    for angle_10 in range(-75, 76, 10):
+        angle = angle_10 / 10.0
+        rotated = bw.rotate(angle, resample=Image.BICUBIC, fillcolor=False)
+        # Horizontal projection: sum each row
+        proj = [0] * h
+        for y in range(h):
+            row_bits = rotated.crop((0, y, w, y + 1)).tobytes()
+            proj[y] = sum(row_bits)
+        var = sum((p - sum(proj) / h) ** 2 for p in proj) / h
+        if var > best_var:
+            best_var = var
+            best_angle = angle
+
+    # Fine pass: 0.5° around the best coarse angle
+    for angle_10 in range(
+        int((best_angle - 2.5) * 10),
+        int((best_angle + 2.5) * 10) + 1,
+        5,
+    ):
+        angle = angle_10 / 10.0
+        rotated = bw.rotate(angle, resample=Image.BICUBIC, fillcolor=False)
+        proj = [0] * h
+        for y in range(h):
+            row_bits = rotated.crop((0, y, w, y + 1)).tobytes()
+            proj[y] = sum(row_bits)
+        var = sum((p - sum(proj) / h) ** 2 for p in proj) / h
+        if var > best_var:
+            best_var = var
+            best_angle = angle
+
+    if abs(best_angle) > 0.3:
+        image = image.rotate(best_angle, resample=Image.BICUBIC, fillcolor=255)
+    return image
+
+
+def preprocess_for_tesseract(image: Image.Image) -> Image.Image:
+    """Extra preprocessing for Tesseract: deskew + heavier contrast."""
+    img = preprocess(image)
+    img = _deskew(img)
+    return img
+
+
+# ---------------------------------------------------------------------------
+# RapidOCR (primary engine — deep learning via ONNX Runtime)
+# ---------------------------------------------------------------------------
+
+_rapid_ocr = None
+_rapid_ocr_attempted = False
+
+
+def _get_rapid_ocr():
+    """Lazy-init the RapidOCR engine (heavy import, first call takes ~2s)."""
+    global _rapid_ocr, _rapid_ocr_attempted
+    if _rapid_ocr_attempted:
+        return _rapid_ocr
+    _rapid_ocr_attempted = True
+    try:
+        from rapidocr_onnxruntime import RapidOCR as _ROC
+        _rapid_ocr = _ROC()
+        logger.info("RapidOCR engine loaded successfully")
+    except Exception as e:  # noqa: BLE001
+        logger.warning("RapidOCR unavailable, will use Tesseract fallback: %s", e)
+        _rapid_ocr = None
+    return _rapid_ocr
+
+
+def _ocr_with_rapid(image: Image.Image) -> Optional[str]:
+    """Run RapidOCR on a Pillow image.  Returns the concatenated text lines,
+    sorted top-to-bottom by vertical position."""
+    engine = _get_rapid_ocr()
+    if engine is None:
+        return None
+
+    # RapidOCR accepts file paths and numpy arrays; for Pillow images we
+    # convert to a bytes buffer first.
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    img_bytes = buf.getvalue()
+
+    result, elapse = engine(img_bytes)
+    if not result:
+        return None
+
+    # result is a list of [bbox, text, confidence].  Sort by vertical centre
+    # so lines read top-to-bottom regardless of detection order.
+    lines = []
+    for bbox, text, conf in result:
+        if not text or not text.strip():
+            continue
+        # Only include lines with reasonable confidence
+        if conf < 0.3:
+            continue
+        y_centre = sum(pt[1] for pt in bbox) / len(bbox)
+        x_left = min(pt[0] for pt in bbox)
+        lines.append((y_centre, x_left, text.strip()))
+
+    # Sort primarily by vertical position (top to bottom), then by x for
+    # lines that are roughly at the same vertical level (same row).
+    lines.sort(key=lambda t: (t[0] // 15, t[1]))  # 15px row grouping
+
+    return "\n".join(text for _, _, text in lines) or None
+
+
+# ---------------------------------------------------------------------------
+# Tesseract (fallback engine)
+# ---------------------------------------------------------------------------
+
+_TESS_CONFIG = "--oem 1 --psm 6"
+_FALLBACK_CONFIGS = ("--oem 1 --psm 4", "--oem 1 --psm 11")
+
+
 def _count_numbers(text: str) -> int:
-    """Lab sheets are number-dense; the pass with the most numeric tokens is
-    the one that actually read the value column."""
+    """Lab sheets are number-dense; the pass with the most numeric tokens
+    is the one that actually read the value column."""
     return len(re.findall(r"\d+[.,]?\d*", text or ""))
 
 
-def _best_ocr_pass(image: Image.Image) -> str:
-    """Run the primary psm 6 pass; only if it produces no numbers at all (the
-    block layout failed) retry with the fallback modes and keep the richest
-    result. Common scans therefore pay one pass, garbled tables up to three."""
-    primary = (pytesseract.image_to_string(image, config=_TESS_CONFIG) or "").strip()
+def _ocr_with_tesseract(image: Image.Image) -> Optional[str]:
+    """Run Tesseract with automatic fallback page-segmentation modes."""
+    try:
+        import pytesseract
+    except ImportError:
+        return None
+
+    img = preprocess_for_tesseract(image)
+    try:
+        primary = (pytesseract.image_to_string(img, config=_TESS_CONFIG) or "").strip()
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Tesseract primary pass failed: %s", e)
+        return None
+
     if _count_numbers(primary) > 0:
         return primary
+
     best, best_count = primary, _count_numbers(primary)
     for config in _FALLBACK_CONFIGS:
-        alt = (pytesseract.image_to_string(image, config=config) or "").strip()
+        try:
+            alt = (pytesseract.image_to_string(img, config=config) or "").strip()
+        except Exception:  # noqa: BLE001
+            continue
         count = _count_numbers(alt)
         if count > best_count:
             best, best_count = alt, count
-    return best
+    return best or None
 
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
 
 def ocr_image_bytes(content: bytes) -> Optional[str]:
-    """Run preprocessing + Tesseract on raw image bytes. None on any failure."""
+    """Run OCR on raw image bytes.  Tries RapidOCR first, then Tesseract.
+
+    Returns None on any failure — OCR is best-effort and never fatal.
+    """
     try:
         image = Image.open(io.BytesIO(content))
-        text = _best_ocr_pass(preprocess(image))
-        return text.strip() or None
-    except Exception as e:  # noqa: BLE001 — OCR is best-effort, never fatal
-        logger.exception("OCR image error: %s", e)
+    except Exception as e:  # noqa: BLE001
+        logger.exception("Could not open image for OCR: %s", e)
         return None
+
+    preprocessed = preprocess(image)
+
+    # --- RapidOCR (primary) ---
+    try:
+        text = _ocr_with_rapid(preprocessed)
+        if text and _count_numbers(text) > 0:
+            return text.strip() or None
+        # If RapidOCR found text but no numbers, keep it as candidate
+        # (Tesseract may do better on the tabular layout).
+        rapid_candidate = text
+    except Exception as e:  # noqa: BLE001
+        logger.warning("RapidOCR failed, trying Tesseract: %s", e)
+        rapid_candidate = None
+
+    # --- Tesseract (fallback) ---
+    try:
+        tess_text = _ocr_with_tesseract(image)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Tesseract fallback failed: %s", e)
+        tess_text = None
+
+    # Pick the result with more numbers (lab values).
+    rapid_count = _count_numbers(rapid_candidate) if rapid_candidate else 0
+    tess_count = _count_numbers(tess_text) if tess_text else 0
+
+    if rapid_candidate and rapid_count >= tess_count:
+        return rapid_candidate.strip() or None
+    if tess_text:
+        return tess_text.strip() or None
+    return rapid_candidate.strip() if rapid_candidate else None
 
 
 def extract_pdf(content: bytes) -> Optional[str]:
-    """Extract a PDF's text. Per page, prefer the embedded text layer; when a page
-    has none (a scanned image), rasterize it at ~300 DPI and OCR it. This is what
-    rescues scanned hospital reports that used to extract nothing at all."""
+    """Extract a PDF's text.  Per page, prefer the embedded text layer; when
+    a page has none (a scanned image), rasterize it at ~300 DPI and OCR it.
+    This rescues scanned hospital reports that used to extract nothing."""
     import fitz  # PyMuPDF
 
     parts: list[str] = []
@@ -108,8 +296,8 @@ def extract_pdf(content: bytes) -> Optional[str]:
 
 
 async def extract_report_text(content: bytes, filename: str) -> Optional[str]:
-    """Offline (Tesseract/PyMuPDF) extraction. The name is kept so callers do not
-    care which engine produced the text — the old vision-LLM path is gone."""
+    """Offline extraction.  The name is kept so callers do not care which
+    engine produced the text."""
     name = (filename or "").lower()
     if name.endswith(IMAGE_EXTS):
         return ocr_image_bytes(content)

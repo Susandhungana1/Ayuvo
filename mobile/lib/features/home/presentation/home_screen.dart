@@ -230,7 +230,7 @@ int _adherenceStreak(
     for (final intake in intakeLog)
       if (intake.status == 'taken' && intake.recorded != null)
         '${intake.medicineId}-${intake.scheduledTime}'
-            '@${MediTime.dateOnly(intake.recorded!)}',
+            '-${MediTime.dateOnly(intake.recorded!)}',
   };
 
   var streak = 0;
@@ -239,9 +239,7 @@ int _adherenceStreak(
     final slots = DoseSchedule.forDay(medicines, day);
     if (slots.isEmpty) continue; // a day off neither breaks nor extends
     final allTaken = slots.every(
-      (slot) =>
-          taken.contains('${slot.key}@$day') ||
-          taken.contains('${slot.key}@${MediTime.dateOnly(day)}'),
+      (slot) => taken.contains(slot.key),
     );
     if (!allTaken) return streak;
     streak++;
@@ -273,7 +271,7 @@ class _Today extends ConsumerWidget {
       if (recorded == null) continue;
       final intakeDate = MediTime.dateOnly(recorded);
       if (intakeDate != todayKey) continue;
-      preTaken.add('${intake.medicineId}-${intake.scheduledTime}');
+      preTaken.add('${intake.medicineId}-${intake.scheduledTime}-$intakeDate');
     }
 
     final streak = _adherenceStreak(medicines, intakeLog, now);

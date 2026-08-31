@@ -54,7 +54,14 @@ class SecureSessionStore implements SessionStore {
   }
 
   @override
-  Future<void> write(String value) => _storage.write(key: _key, value: value);
+  Future<void> write(String value) async {
+    try {
+      await _storage.write(key: _key, value: value);
+    } on PlatformException catch (error) {
+      debugPrint('Secure storage write failed (${error.code}); signing out.');
+      await clear();
+    }
+  }
 
   @override
   Future<void> clear() async {

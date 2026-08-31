@@ -22,9 +22,18 @@ void main() async {
   // Firebase is only configured for Android (google-services.json).
   // On web, Firebase.initializeApp() needs firebase_options.dart which we
   // don't have — and reminders use local notifications on web anyway.
+  //
+  // On Android phones without Google Play Services (Huawei, some Chinese
+  // OEMs, older Android Go devices) Firebase.initializeApp() throws.
+  // Wrapping it in try-catch lets the app start normally — reminders
+  // degrade gracefully to local-only.
   if (!kIsWeb) {
-    await Firebase.initializeApp();
-    FirebaseMessaging.onBackgroundMessage(fcmBackgroundHandler);
+    try {
+      await Firebase.initializeApp();
+      FirebaseMessaging.onBackgroundMessage(fcmBackgroundHandler);
+    } catch (e) {
+      debugPrint('Firebase init skipped: $e');
+    }
   }
 
   runApp(const ProviderScope(child: AyuvoApp()));

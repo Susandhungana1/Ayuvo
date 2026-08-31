@@ -7,10 +7,6 @@
 ///   flutter run --dart-define=API_BASE_URL=http://127.0.0.1:3001
 library;
 
-import 'dart:io' show Platform;
-
-import 'package:flutter/foundation.dart' show kIsWeb;
-
 abstract final class Env {
   /// Set with `--dart-define=API_BASE_URL=...`. Empty means "use platform default".
   static const String _override = String.fromEnvironment('API_BASE_URL');
@@ -21,13 +17,10 @@ abstract final class Env {
   /// wallet card — so they point at `front/`, never at a deep link.
   static const String _webOverride = String.fromEnvironment('WEB_BASE_URL');
 
-  /// The production API.
+  /// The production API.  The hostname is *not* derivable from render.yaml —
+  /// Render appended a random suffix when the service was created.  A wrong
+  /// hostname resolves via wildcard and hangs instead of failing fast.
   static const String _production = 'https://medistore-api-vwyr.onrender.com';
-
-  /// The Android emulator does not: 10.0.2.2 is its alias for the host.
-  /// Getting this wrong looks like "the server is down" on one device only, so
-  /// the default picks it rather than making every run pass a dart-define.
-  static const String _androidEmulator = 'http://10.0.2.2:3001';
 
   static String get apiBaseUrl {
     if (_override.isNotEmpty) {
@@ -38,9 +31,9 @@ abstract final class Env {
       );
       return url;
     }
-    // Android emulator gets its own alias; everything else gets production.
-    // Pass --dart-define=API_BASE_URL=http://127.0.0.1:3001 for local dev.
-    if (!kIsWeb && Platform.isAndroid) return _androidEmulator;
+    // Production by default — real Android devices must hit the live API.
+    // For the Android emulator use: --dart-define=API_BASE_URL=http://10.0.2.2:3001
+    // (10.0.2.2 is the emulator's alias for the host; it is unreachable on a real device).
     return _production;
   }
 

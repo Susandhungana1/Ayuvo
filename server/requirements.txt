@@ -29,12 +29,16 @@ slowapi==0.1.9
 sentry-sdk[fastapi]==2.19.2
 
 # OCR / document text extraction (used by reports.py)
-# Pillow + pytesseract handle image OCR (pytesseract also needs the `tesseract`
-# system binary at runtime; without it, extraction degrades gracefully to None).
+# Primary: RapidOCR (PaddleOCR ONNX models) — deep-learning OCR that runs on
+# CPU via ONNX Runtime.  Much more accurate than Tesseract on phone photos,
+# angled scans, and tabular lab reports.  ~70 MB total, no GPU needed.
+# Fallback: Tesseract (pytesseract) — used when RapidOCR is unavailable or
+# fails.  Also needs the `tesseract` system binary at runtime.
 # PyMuPDF extracts text from PDFs and needs no system packages.
 Pillow==12.3.0
 pytesseract==0.3.13
 PyMuPDF==1.24.14
+rapidocr-onnxruntime>=1.4.0
 
 # HTTP Client for AI
 httpx==0.28.1

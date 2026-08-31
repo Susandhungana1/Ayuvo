@@ -115,7 +115,7 @@ class _VitalFormSheetState extends ConsumerState<VitalFormSheet> {
       initialTime: TimeOfDay.fromDateTime(_measuredAt),
       helpText: 'Time it was taken',
     );
-    if (time == null) return;
+    if (time == null || !mounted) return;
 
     setState(() {
       _measuredAt =

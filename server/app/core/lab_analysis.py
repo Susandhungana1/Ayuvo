@@ -20,8 +20,8 @@ REFERENCE_RANGES: dict[str, tuple[list[str], str, list[tuple[str, Optional[float
     # Blood Count
     "Hemoglobin": (["hemoglobin", "haemoglobin", "hgb", "hb"], "Blood Count", [("g/dL", 12.0, 17.5)]),
     "Hematocrit": (["hematocrit", "haematocrit", "hct", "pcv"], "Blood Count", [("%", 38.0, 50.0)]),
-    "WBC": (["wbc", "white blood cell", "leukocyte", "total leucocyte", "tlc"], "Blood Count", [("x10^9/L", 4.0, 11.0)]),
-    "RBC": (["rbc", "red blood cell"], "Blood Count", [("x10^12/L", 4.2, 5.9)]),
+    "WBC": (["wbc", "white blood cell", "white blood cells", "leukocyte", "total leucocyte", "tlc"], "Blood Count", [("x10^9/L", 4.0, 11.0)]),
+    "RBC": (["rbc", "red blood cell", "red blood cells"], "Blood Count", [("x10^12/L", 4.2, 5.9)]),
     "Platelets": (["platelet", "platelets", "plt"], "Blood Count", [("x10^9/L", 150.0, 450.0)]),
     "MCV": (["mcv", "mean corpuscular volume"], "Blood Count", [("fL", 80.0, 100.0)]),
     "MCH": (["mch", "mean corpuscular hemoglobin"], "Blood Count", [("pg", 27.0, 33.0)]),
@@ -136,20 +136,68 @@ def _detect_unit(context: str) -> Optional[str]:
 
 def _find_value(text_lower: str, alias: str) -> Optional[tuple[float, str]]:
     """Find the first number that appears shortly after `alias`, plus the text
-    that follows it (used to sniff the unit)."""
+    that follows it (used to sniff the unit).
+
+    Handles both Tesseract-style (alias and value on the same line) and
+    RapidOCR-style (each item on its own line; value may be on the line below
+    or above the alias).
+    """
     esc = re.escape(alias)
     boundary = r"\b" if alias in _SHORT else ""
-    # alias, then up to 20 non-value chars, then a number (allow commas), then
-    # up to _UNIT_CONTEXT chars of trailing context for unit detection.
+
+    # Pattern 1: same line (Tesseract) — alias, then up to 20 chars, then number.
     pattern = rf"{boundary}{esc}{boundary}[^0-9\-\n]{{0,20}}(-?\d[\d,]*\.?\d*)([^\n]{{0,{_UNIT_CONTEXT}}})"
     m = re.search(pattern, text_lower)
-    if not m:
-        return None
-    raw = m.group(1).replace(",", "")
-    try:
-        return float(raw), m.group(2)
-    except ValueError:
-        return None
+    if m:
+        raw = m.group(1).replace(",", "")
+        try:
+            return float(raw), m.group(2)
+        except ValueError:
+            pass
+
+    # Pattern 2: value on the NEXT line after the alias (RapidOCR common).
+    # If that line turns out to be a reference range (e.g. "32.0 - 36.0"),
+    # skip it and check the line after that.
+    pattern_next = rf"{boundary}{esc}{boundary}\s*\n\s*(-?\d[\d,]*\.?\d*)([^\n]{{0,{_UNIT_CONTEXT}}})"
+    m = re.search(pattern_next, text_lower)
+    if m:
+        raw = m.group(1).replace(",", "")
+        trailing = m.group(2).strip()
+        # If trailing looks like a reference range, the actual value is on the
+        # next line.  Try it.
+        if trailing.startswith("-") or " - " in trailing:
+            skip_pattern = rf"{boundary}{esc}{boundary}\s*\n\s*\d[^\n]*\n\s*(-?\d[\d,]*\.?\d*)([^\n]{{0,{_UNIT_CONTEXT}}})"
+            m2 = re.search(skip_pattern, text_lower)
+            if m2:
+                raw = m2.group(1).replace(",", "")
+                try:
+                    return float(raw), m2.group(2)
+                except ValueError:
+                    pass
+        else:
+            try:
+                return float(raw), m.group(2)
+            except ValueError:
+                pass
+
+    # Pattern 3: value on a PREVIOUS line before the alias (RapidOCR sometimes
+    # detects the value before the label, with unit/range lines in between).
+    # Allow up to 3 intervening lines for short aliases to avoid false matches.
+    if alias in _SHORT or len(alias) <= 12:
+        pattern_prev = rf"\n\s*(-?\d[\d,]*\.?\d*)(?:\n[^\n]{{0,30}}){{0,3}}\n\s*{re.escape(alias)}\b"
+        m = re.search(pattern_prev, text_lower)
+        if m:
+            raw = m.group(1).replace(",", "")
+            # Context: get the line after the matched number for unit detection.
+            num_end = m.end(1)
+            line_end = text_lower.find("\n", num_end)
+            context = text_lower[num_end:line_end] if line_end > 0 else ""
+            try:
+                return float(raw), context
+            except ValueError:
+                pass
+
+    return None
 
 
 def _range_for(name: str, unit: str) -> tuple[Optional[float], Optional[float]]:

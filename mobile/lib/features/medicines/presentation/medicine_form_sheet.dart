@@ -89,7 +89,7 @@ class _MedicineFormSheetState extends ConsumerState<MedicineFormSheet> {
       lastDate: DateTime(_today.year + 5),
       helpText: 'Start date',
     );
-    if (picked == null) return;
+    if (picked == null || !mounted) return;
     setState(() {
       _startDate = picked;
       // An end before the start is not a state the user can be left in.
@@ -105,7 +105,8 @@ class _MedicineFormSheetState extends ConsumerState<MedicineFormSheet> {
       lastDate: DateTime(_today.year + 5),
       helpText: 'End date',
     );
-    if (picked != null) setState(() => _endDate = picked);
+    if (picked == null || !mounted) return;
+    setState(() => _endDate = picked);
   }
 
   Future<void> _addTime() async {
@@ -114,7 +115,7 @@ class _MedicineFormSheetState extends ConsumerState<MedicineFormSheet> {
       initialTime: const TimeOfDay(hour: 8, minute: 0),
       helpText: 'Dose time',
     );
-    if (picked == null) return;
+    if (picked == null || !mounted) return;
     final value = MediTime.clock(picked.hour, picked.minute);
     if (_times.contains(value)) return;
     setState(() => _times = [..._times, value]..sort());
