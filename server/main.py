@@ -155,6 +155,8 @@ async def health():
     # way to confirm a flag flip actually reached the running process. Reports
     # the flag's state, which is not a secret.
     from app.core.fcm import fcm_available
+    from app.core.webpush import push_available
+    from app.core.reminder_scheduler import reminders_available, is_running
 
     return Response(
         content=json.dumps({
@@ -165,6 +167,8 @@ async def health():
             "doctor_confirms_bookings": settings.doctor_confirms_bookings,
             "frontend_url": settings.frontend_url,
             "fcm": fcm_available(),
+            "webpush": push_available(),
+            "scheduler": is_running(),
         }),
         media_type="application/json",
         status_code=200 if db_ok else 503,

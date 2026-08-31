@@ -772,7 +772,10 @@ def start_scheduler() -> None:
     if _task is not None:
         return
     if not reminders_available():
-        logger.info("No push transport configured — reminder scheduler disabled")
+        logger.warning(
+            "No push transport configured (VAPID keys or Firebase credentials missing) "
+            "— reminder scheduler DISABLED. Medicine reminders will NOT be sent."
+        )
         return
     _task = asyncio.create_task(_loop())
 
@@ -782,3 +785,8 @@ def stop_scheduler() -> None:
     if _task is not None:
         _task.cancel()
         _task = None
+
+
+def is_running() -> bool:
+    """Whether the background reminder loop is active."""
+    return _task is not None and not _task.done()
