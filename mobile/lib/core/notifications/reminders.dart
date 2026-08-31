@@ -35,6 +35,7 @@ import '../../features/medicines/domain/dose_schedule.dart';
 import '../../features/medicines/domain/medicine.dart';
 import '../network/network_providers.dart';
 import '../time/medi_time.dart';
+import 'pending_intakes.dart';
 import 'web_reminders_stub.dart'
     if (dart.library.js_interop) 'web_reminders.dart' as web_reminders;
 
@@ -163,8 +164,19 @@ class LocalReminders implements Reminders {
           requestSoundPermission: false,
         ),
       ),
+      onDidReceiveNotificationResponse: _handleNotificationTap,
     );
     _ready = true;
+  }
+
+  /// Sets a callback invoked when the user taps a local notification.
+  /// The callback receives `(medId, time)` extracted from the payload.
+  void _handleNotificationTap(NotificationResponse response) {
+    final payload = response.payload;
+    if (payload == null || payload.isEmpty) return;
+    final parts = payload.split('|');
+    if (parts.length < 2) return;
+    addPendingIntake(parts[0], parts[1]);
   }
 
   AndroidFlutterLocalNotificationsPlugin? get _android =>

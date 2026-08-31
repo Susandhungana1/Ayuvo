@@ -659,3 +659,39 @@ async def totp_disable(
     db.commit()
     record_access(db, "auth.2fa.disabled", actor_id=current_user.id, request=request)
     return TotpStatusResponse(enabled=False)
+
+
+# ---------------------------------------------------------------------------
+# Change password (signed-in user)
+# ---------------------------------------------------------------------------
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def password_min_length(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        return v
+
+
+@router.post("/change-password")
+@limiter.limit("5/minute")
+async def change_password(
+    request: Request,
+    data: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """Change the signed-in user's password. Requires the current password."""
+    if not pwd_context.verify(data.current_password, current_user.password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    current_user.password = pwd_context.hash(data.new_password)
+    current_user.updated_at = utcnow()
+    db.add(current_user)
+    db.commit()
+    record_access(db, "auth.change_password", actor_id=current_user.id, request=request)
+    return {"message": "Password updated"}

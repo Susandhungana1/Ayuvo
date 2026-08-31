@@ -22,6 +22,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../network/api_client.dart';
 import '../network/network_providers.dart';
 import '../session/session_controller.dart';
+import 'pending_intakes.dart';
 
 /// Top-level background handler. Must be a top-level function (not a closure
 /// or method), and must be registered before any FCM subscription.
@@ -82,6 +83,17 @@ Future<void> _showForegroundNotification(RemoteMessage message) async {
   }
 }
 
+/// Handles an FCM notification tap when the app was backgrounded or killed.
+/// Extracts medId|time from the data payload and records intake.
+void _onMessageOpenedApp(RemoteMessage message) {
+  final data = message.data;
+  final medId = data['medId'] as String?;
+  final time = data['time'] as String?;
+  if (medId == null || time == null) return;
+  debugPrint('FCM notification tapped: medId=$medId time=$time');
+  addPendingIntake(medId, time);
+}
+
 /// Manages the FCM lifecycle: token, foreground messages, and server
 /// registration. No-ops on web where Firebase is not initialized.
 class FcmService {
@@ -111,6 +123,17 @@ class FcmService {
     // Foreground delivery: without this, pushes arriving while the app is
     // open vanish — Android only auto-displays them when backgrounded.
     FirebaseMessaging.onMessage.listen(_showForegroundNotification);
+
+    // Background/killed tap: when the user taps an FCM notification that
+    // opened the app, extract medId|time and record intake.
+    FirebaseMessaging.onMessageOpenedApp.listen(_onMessageOpenedApp);
+
+    // Also handle the case where the app was opened by tapping a notification
+    // while it was fully killed (initialMessage).
+    final initialMessage = await messaging.getInitialMessage();
+    if (initialMessage != null) {
+      _onMessageOpenedApp(initialMessage);
+    }
 
     final settings = await messaging.requestPermission(
       alert: true,

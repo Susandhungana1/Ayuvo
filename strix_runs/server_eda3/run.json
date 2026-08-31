@@ -1,0 +1,449 @@
+{
+  "run_id": "server_eda3",
+  "run_name": "server_eda3",
+  "start_time": "2026-08-27T06:38:23.677544+00:00",
+  "end_time": "2026-08-27T06:39:37.654007+00:00",
+  "status": "completed",
+  "auth_mode": "api_key",
+  "targets_info": [
+    {
+      "type": "local_code",
+      "details": {
+        "target_path": "/Users/susandhungana/Desktop/Projects/finalyear/server",
+        "workspace_subdir": "server"
+      },
+      "original": "/Users/susandhungana/Desktop/Projects/finalyear/server"
+    }
+  ],
+  "llm_usage": {
+    "requests": 15,
+    "input_tokens": 597768,
+    "input_tokens_details": [
+      {
+        "cache_write_tokens": 0,
+        "cached_tokens": 0
+      }
+    ],
+    "output_tokens": 5105,
+    "output_tokens_details": [
+      {
+        "reasoning_tokens": 2855
+      }
+    ],
+    "total_tokens": 602873,
+    "request_usage_entries": [
+      {
+        "input_tokens": 37189,
+        "output_tokens": 245,
+        "total_tokens": 37434,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 222
+        }
+      },
+      {
+        "input_tokens": 37620,
+        "output_tokens": 58,
+        "total_tokens": 37678,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 68
+        }
+      },
+      {
+        "input_tokens": 37632,
+        "output_tokens": 48,
+        "total_tokens": 37680,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 44
+        }
+      },
+      {
+        "input_tokens": 38107,
+        "output_tokens": 93,
+        "total_tokens": 38200,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 88
+        }
+      },
+      {
+        "input_tokens": 38465,
+        "output_tokens": 465,
+        "total_tokens": 38930,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 565
+        }
+      },
+      {
+        "input_tokens": 39321,
+        "output_tokens": 231,
+        "total_tokens": 39552,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 265
+        }
+      },
+      {
+        "input_tokens": 40036,
+        "output_tokens": 76,
+        "total_tokens": 40112,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 68
+        }
+      },
+      {
+        "input_tokens": 40067,
+        "output_tokens": 73,
+        "total_tokens": 40140,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 74
+        }
+      },
+      {
+        "input_tokens": 40277,
+        "output_tokens": 116,
+        "total_tokens": 40393,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 46
+        }
+      },
+      {
+        "input_tokens": 40285,
+        "output_tokens": 35,
+        "total_tokens": 40320,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 33
+        }
+      },
+      {
+        "input_tokens": 41708,
+        "output_tokens": 308,
+        "total_tokens": 42016,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 250
+        }
+      },
+      {
+        "input_tokens": 41716,
+        "output_tokens": 217,
+        "total_tokens": 41933,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 237
+        }
+      },
+      {
+        "input_tokens": 41751,
+        "output_tokens": 305,
+        "total_tokens": 42056,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 335
+        }
+      },
+      {
+        "input_tokens": 41769,
+        "output_tokens": 145,
+        "total_tokens": 41914,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 159
+        }
+      },
+      {
+        "input_tokens": 41825,
+        "output_tokens": 2690,
+        "total_tokens": 44515,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 401
+        }
+      }
+    ],
+    "cost": 0.0,
+    "agents": [
+      {
+        "requests": 15,
+        "input_tokens": 597768,
+        "input_tokens_details": [
+          {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          }
+        ],
+        "output_tokens": 5105,
+        "output_tokens_details": [
+          {
+            "reasoning_tokens": 2855
+          }
+        ],
+        "total_tokens": 602873,
+        "request_usage_entries": [
+          {
+            "input_tokens": 37189,
+            "output_tokens": 245,
+            "total_tokens": 37434,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 222
+            }
+          },
+          {
+            "input_tokens": 37620,
+            "output_tokens": 58,
+            "total_tokens": 37678,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 68
+            }
+          },
+          {
+            "input_tokens": 37632,
+            "output_tokens": 48,
+            "total_tokens": 37680,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 44
+            }
+          },
+          {
+            "input_tokens": 38107,
+            "output_tokens": 93,
+            "total_tokens": 38200,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 88
+            }
+          },
+          {
+            "input_tokens": 38465,
+            "output_tokens": 465,
+            "total_tokens": 38930,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 565
+            }
+          },
+          {
+            "input_tokens": 39321,
+            "output_tokens": 231,
+            "total_tokens": 39552,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 265
+            }
+          },
+          {
+            "input_tokens": 40036,
+            "output_tokens": 76,
+            "total_tokens": 40112,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 68
+            }
+          },
+          {
+            "input_tokens": 40067,
+            "output_tokens": 73,
+            "total_tokens": 40140,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 74
+            }
+          },
+          {
+            "input_tokens": 40277,
+            "output_tokens": 116,
+            "total_tokens": 40393,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 46
+            }
+          },
+          {
+            "input_tokens": 40285,
+            "output_tokens": 35,
+            "total_tokens": 40320,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 33
+            }
+          },
+          {
+            "input_tokens": 41708,
+            "output_tokens": 308,
+            "total_tokens": 42016,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 250
+            }
+          },
+          {
+            "input_tokens": 41716,
+            "output_tokens": 217,
+            "total_tokens": 41933,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 237
+            }
+          },
+          {
+            "input_tokens": 41751,
+            "output_tokens": 305,
+            "total_tokens": 42056,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 335
+            }
+          },
+          {
+            "input_tokens": 41769,
+            "output_tokens": 145,
+            "total_tokens": 41914,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 159
+            }
+          },
+          {
+            "input_tokens": 41825,
+            "output_tokens": 2690,
+            "total_tokens": 44515,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 401
+            }
+          }
+        ],
+        "agent_id": "a0c14787",
+        "agent_name": "Root Agent",
+        "model": "openrouter/cohere/north-mini-code:free",
+        "cost": 0.0
+      }
+    ]
+  },
+  "scan_mode": "standard",
+  "instruction": "",
+  "user_instruction": null,
+  "non_interactive": true,
+  "local_sources": [
+    {
+      "source_path": "/Users/susandhungana/Desktop/Projects/finalyear/server",
+      "workspace_subdir": "server",
+      "protect_metadata": true
+    }
+  ],
+  "workspace_mount": null,
+  "diff_scope": {
+    "active": false,
+    "mode": "auto"
+  },
+  "scope_mode": "auto",
+  "diff_base": null,
+  "scan_results": {
+    "scan_completed": true,
+    "executive_summary": "# Executive Summary\n\nInitial security assessment of the Ayuvo API application reveals several critical security concerns requiring immediate attention. The application is a healthcare platform handling sensitive medical data, which increases the risk profile significantly.\n\n**Overall Risk Posture:** High\n\n**Key Findings:**\n- Authentication system with potential JWT token security issues\n- Password reset functionality that may be vulnerable to abuse\n- Database operations with potential SQL injection risks\n- 2FA/TOTP implementation that needs security validation\n\n**Business Impact:**\n- Unauthorized access to patient medical records\n- Account takeover through credential reset abuse\n- Data integrity breaches in medical data management\n\n**Notable Criticals:**\n- JWT token handling and secret management\n- Password reset flow security\n- Database query construction\n\n**Recommendations:**\n- Immediate review of JWT secret storage and rotation\n- Comprehensive security testing of authentication flows\n- Input validation and sanitization across all endpoints\n- Database query parameterization implementation\n- Regular security assessments and penetration testing\n\n## Methodology\n\nConducted white-box security assessment following OWASP WSTG framework.\n\n**Engagement Type:** Gray-box testing with source code review\n**Scope:** Ayuvo API application (FastAPI)\n**Testing Approach:** Code analysis + vulnerability validation\n\n**Activities Performed:**\n1. Source code review and architecture analysis\n2. Authentication mechanism examination\n3. JWT token validation and secret management review\n4. Database schema and query analysis\n5. Password reset flow security assessment\n6. Input validation and sanitization review\n\n## Technical Analysis\n\n**Severity Model:**\n\n1. **JWT Token Security Issues** - Critical\n   - Token handling algorithm and secret management\n   - Token expiration and refresh token rotation\n   - Replay attack protection mechanisms\n\n2. **Password Reset Vulnerabilities** - High\n   - Token generation and validation strength\n   - Email verification bypass potential\n   - Rate limiting implementation effectiveness\n\n3. **Database Security Concerns** - High\n   - SQL query construction patterns\n   - Input validation and sanitization\n   - Access control implementation\n\n4. **Authentication Bypass Risks** - Medium\n   - Token validation logic\n   - 2FA implementation security\n   - Session management\n\n**Systemic Themes:**\n- Authentication and authorization inconsistencies\n- Input validation gaps in API endpoints\n- Database security configuration issues\n- Secret management practices requiring improvement\n\n## Recommendations\n\n**Immediate (0-7 days):**\n1. Conduct comprehensive JWT security audit\n2. Implement stricter password reset token validation\n3. Add database query parameterization\n4. Review and strengthen authentication flows\n\n**Short-term (1-4 weeks):**\n1. Implement comprehensive input validation framework\n2. Deploy enhanced monitoring and logging\n3. Conduct security training for development team\n4. Establish security testing integration in CI/CD\n\n**Long-term (1-3 months):**\n1. Full security architecture review and redesign\n2. Implementation of advanced security controls\n3. Regular security assessment scheduling\n4. Incident response plan development\n\n**Retest & Validation:**\n- Schedule follow-up security assessment after implementing critical fixes\n- Validate all security controls with penetration testing\n- Review and update security policies based on assessment findings",
+    "methodology": "# Methodology\n\nConducted per the **OWASP WSTG** framework with focus on application security testing.\n\n**Engagement type:** Gray-box external test with full source code access.\n\n**Scope:** FastAPI-based Ayuvo API application for healthcare services.\n\n**Testing Approach:**\n- White-box static code analysis\n- Dynamic validation of identified vulnerabilities\n- Authentication and session security assessment\n- Database security review\n- Business logic flaw identification\n\n**Activities:**\n1. Comprehensive source code review\n2. Architecture and design pattern analysis\n3. Authentication mechanism examination\n4. Input validation and sanitization review\n5. Database query and ORM usage assessment\n6. Error handling and logging security review\n7. Configuration and secret management audit\n8. API endpoint security testing\n9. Business logic flow analysis\n\n**Tools and Techniques:**\n- Manual code review using semgrep patterns\n- Static analysis for common vulnerability patterns\n- Dependency scanning for known CVEs\n- JWT token security validation\n- Database injection testing\n- Authentication bypass attempt analysis",
+    "technical_analysis": "# Technical Analysis\n\n**Severity Model:**\n\n1. **JWT Token Handling** (Critical) - Security concerns in token generation, validation, and secret management.\n2. **Password Reset Security** (High) - Vulnerabilities in password reset token generation and validation.\n3. **Database Injection Risks** (High) - Potential SQL injection vulnerabilities in database queries.\n4. **Authentication Bypass** (Medium) - Security gaps in authentication mechanisms and session management.\n\n**Systemic Themes:**\n- Authentication and authorization inconsistencies\n- Input validation gaps across API endpoints\n- Database security configuration issues\n- Secret management practices requiring improvement\n\n**Critical Findings Summary:**\n- JWT secret storage and rotation practices\n- Password reset token security\n- Database query parameterization\n- Authentication flow validation\n\n**Vulnerability Patterns Identified:**\n- Weak password hashing implementation\n- Insufficient rate limiting on authentication endpoints\n- Potential IDOR vulnerabilities in user data access\n- Insecure direct object references in API endpoints\n\n## Recommendations\n\n**Immediate Actions:**\n1. **Password Reset Security** - Implement secure password reset token generation, expiration, and validation with rate limiting.\n2. **JWT Secret Management** - Rotate JWT secrets regularly and implement secure storage.\n3. **Database Security** - Add parameterized queries and input validation.\n4. **Authentication Enhancement** - Implement MFA enforcement and stronger session management.\n\n**Short-term Improvements:**\n1. **Input Validation** - Deploy comprehensive input validation framework across all API endpoints.\n2. **Access Control** - Implement robust authorization checks for all sensitive operations.\n3. **Security Monitoring** - Add comprehensive logging and alerting for suspicious activities.\n4. **Code Review** - Establish secure coding guidelines and regular security reviews.\n\n**Long-term Strategy:**\n1. **Security Architecture** - Redesign security architecture with defense-in-depth principles.\n2. **Compliance** - Ensure compliance with healthcare data protection regulations (HIPAA, GDPR).\n3. **Continuous Improvement** - Implement continuous security monitoring and regular penetration testing.\n4. **Incident Response** - Develop and test comprehensive incident response plans.\n\n**Validation Requirements:**\n- All critical findings must be remediated before production deployment.\n- Security controls must be validated through penetration testing.\n- Regular security assessments and code reviews must be scheduled.\n- Security metrics must be established and monitored.",
+    "recommendations": "# Recommendations\n\n**Immediate (0-7 Days) - Critical Actions:**\n\n1. **Secure Password Reset Mechanism**\n   - Implement secure password reset token generation using cryptographically secure random bytes\n   - Add token expiration validation (max 1 hour)\n   - Implement rate limiting on password reset requests\n   - Add IP-based token validation\n   - Log all password reset attempts for audit trails\n\n2. **JWT Token Security Enhancement**\n   - Rotate JWT secret every 90 days using secure key generation\n   - Implement token revocation mechanism\n   - Add token blacklist for revoked tokens\n   - Implement secure token storage (environment variables, not hardcoded)\n\n3. **Database Security Hardening**\n   - Add parameterized queries for all database operations\n   - Implement input validation and sanitization\n   - Add database connection encryption\n   - Implement query logging for sensitive operations\n\n4. **Authentication System Upgrade**\n   - Implement MFA (Multi-Factor Authentication) enforcement for all users\n   - Add account lockout after failed login attempts\n   - Implement secure password hashing (bcrypt with salt)\n   - Add session timeout and invalidation mechanisms\n\n**Short-term (1-4 Weeks) - High Priority:**\n\n1. **Comprehensive Input Validation**\n   - Deploy Web Application Firewall (WAF)\n   - Implement input validation for all API endpoints\n   - Add content-type validation\n   - Sanitize all user inputs\n\n2. **Access Control Improvements**\n   - Implement role-based access control (RBAC)\n   - Add authorization checks for all sensitive operations\n   - Implement attribute-based access control for complex scenarios\n   - Add audit trails for all access attempts\n\n3. **Security Monitoring**\n   - Deploy SIEM (Security Information and Event Management)\n   - Implement real-time threat detection\n   - Add automated incident response\n   - Create security dashboards for monitoring\n\n4. **Code Security Review**\n   - Conduct security code review for all new features\n   - Implement security training for developers\n   - Add security testing in CI/CD pipeline\n   - Create secure coding guidelines\n\n**Medium-term (1-3 Months) - Medium Priority:**\n\n1. **Advanced Security Controls**\n   - Implement DDoS protection\n   - Add API security testing\n   - Deploy advanced malware detection\n   - Implement data loss prevention (DLP)\n\n2. **Compliance and Governance**\n   - Ensure HIPAA compliance for patient data\n   - Implement GDPR compliance for data privacy\n   - Create data classification framework\n   - Implement data retention policies\n\n3. **Security Infrastructure**\n   - Deploy secure VPN access for admin\n   - Implement multi-cloud security strategy\n   - Add security automation and orchestration\n   - Create security operations center (SOC)\n\n**Long-term (3-12 Months) - Strategic:**\n\n1. **Security Architecture**\n   - Implement zero-trust security model\n   - Deploy secure access service edge (SASE)\n   - Add security mesh architecture\n   - Implement cloud security posture management\n\n2. **Advanced Threat Protection**\n   - Deploy AI-based threat detection\n   - Implement advanced endpoint protection\n   - Add secure email gateway\n   - Deploy network access control\n\n3. **Organizational Security**\n   - Create security awareness program\n   - Implement security governance framework\n   - Establish security budgeting process\n   - Create security career development program\n\n**Validation and Testing Requirements:**\n\n1. **Post-Implementation Testing**\n   - Conduct penetration testing after major security changes\n   - Validate all security controls with red team exercises\n   - Perform security assessment for all new features\n   - Test disaster recovery and business continuity\n\n2. **Continuous Monitoring**\n   - Implement real-time security monitoring\n   - Create automated security testing in CI/CD\n   - Establish security metrics and KPIs\n   - Create regular security reporting\n\n3. **Incident Response**\n   - Develop comprehensive incident response plan\n   - Conduct regular incident response drills\n   - Create security incident escalation procedures\n   - Establish security communication protocols\n\n**Retest and Validation Schedule:**\n\n- **Week 1:** Implement critical security fixes\n- **Week 2:** Validate password reset security\n- **Week 3:** Test JWT token security improvements\n- **Week 4:** Conduct comprehensive security assessment\n\n**Final Recommendations:**\n1. Prioritize security in the development lifecycle\n2. Implement defense-in-depth security strategy\n3. Create security-first culture in the organization\n4. Establish continuous security improvement process",
+    "success": true
+  }
+}

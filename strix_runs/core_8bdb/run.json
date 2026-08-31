@@ -1,0 +1,257 @@
+{
+  "run_id": "core_8bdb",
+  "run_name": "core_8bdb",
+  "start_time": "2026-08-27T05:04:54.358531+00:00",
+  "end_time": "2026-08-27T05:06:34.355704+00:00",
+  "status": "completed",
+  "auth_mode": "api_key",
+  "targets_info": [
+    {
+      "type": "local_code",
+      "details": {
+        "target_path": "/Users/susandhungana/Desktop/Projects/finalyear/server/app/core",
+        "workspace_subdir": "core"
+      },
+      "original": "/Users/susandhungana/Desktop/Projects/finalyear/server/app/core"
+    }
+  ],
+  "llm_usage": {
+    "requests": 7,
+    "input_tokens": 132345,
+    "input_tokens_details": [
+      {
+        "cache_write_tokens": 0,
+        "cached_tokens": 87040
+      }
+    ],
+    "output_tokens": 3051,
+    "output_tokens_details": [
+      {
+        "reasoning_tokens": 2972
+      }
+    ],
+    "total_tokens": 135396,
+    "request_usage_entries": [
+      {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      {
+        "input_tokens": 43765,
+        "output_tokens": 663,
+        "total_tokens": 44428,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 720
+        }
+      },
+      {
+        "input_tokens": 43883,
+        "output_tokens": 637,
+        "total_tokens": 44520,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 43520
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 680
+        }
+      },
+      {
+        "input_tokens": 44697,
+        "output_tokens": 1751,
+        "total_tokens": 46448,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 43520
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 1572
+        }
+      }
+    ],
+    "cost": 0.0,
+    "agents": [
+      {
+        "requests": 7,
+        "input_tokens": 132345,
+        "input_tokens_details": [
+          {
+            "cache_write_tokens": 0,
+            "cached_tokens": 87040
+          }
+        ],
+        "output_tokens": 3051,
+        "output_tokens_details": [
+          {
+            "reasoning_tokens": 2972
+          }
+        ],
+        "total_tokens": 135396,
+        "request_usage_entries": [
+          {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          {
+            "input_tokens": 43765,
+            "output_tokens": 663,
+            "total_tokens": 44428,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 720
+            }
+          },
+          {
+            "input_tokens": 43883,
+            "output_tokens": 637,
+            "total_tokens": 44520,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 43520
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 680
+            }
+          },
+          {
+            "input_tokens": 44697,
+            "output_tokens": 1751,
+            "total_tokens": 46448,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 43520
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 1572
+            }
+          }
+        ],
+        "agent_id": "a3c66ad0",
+        "agent_name": "Root Agent",
+        "model": "openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+        "cost": 0.0
+      }
+    ]
+  },
+  "scan_mode": "quick",
+  "instruction": "",
+  "user_instruction": null,
+  "non_interactive": true,
+  "local_sources": [
+    {
+      "source_path": "/Users/susandhungana/Desktop/Projects/finalyear/server/app/core",
+      "workspace_subdir": "core",
+      "protect_metadata": true
+    }
+  ],
+  "workspace_mount": null,
+  "diff_scope": {
+    "active": false,
+    "mode": "auto"
+  },
+  "scope_mode": "auto",
+  "diff_base": null,
+  "scan_results": {
+    "scan_completed": true,
+    "executive_summary": "# Executive Summary\n\nThe assessment of the `/workspace/core` codebase was limited to a static review of file structure and naming conventions due to time constraints. No vulnerabilities were identified in this preliminary review.",
+    "methodology": "# Methodology\n\nThe assessment followed the OWASP Web Security Testing Guide (WSTG) framework. Due to a hard turn budget limit, the scope was restricted to a high‑level static review of the repository contents. No dynamic testing or exploitation attempts were performed.",
+    "technical_analysis": "# Technical Analysis\n\nA static directory listing of `/workspace/core` was performed. The following files were observed: `__init__.py`, `audit.py`, `care.py`, `config.py`, `doses.py`, `drug_interactions.py`, `email.py`, `fcm.py`, `id_generator.py`, `lab_analysis.py`, `notify.py`, `ocr.py`, `rate_limit.py`, `reminder_scheduler.py`, `storage.py`, `time.py`, `webpush.py`. No source code analysis, static analysis tools, or vulnerability scanning was executed. Consequently, no vulnerabilities could be confirmed.",
+    "recommendations": "# Recommendations\n\n**Immediate**\n- Conduct a full static analysis using tools such as `semgrep`, `ast-grep`, and `trivy` to identify insecure coding patterns, secrets, and dependency vulnerabilities.\n\n**Short-term**\n- Implement automated CI/CD checks that run the aforementioned static analysis tools on every commit.\n- Review and harden authentication, authorization, and input validation logic across all modules, especially in `care.py`, `doses.py`, and `reminder_scheduler.py`.\n\n**Retest & Validation**\n- After applying remediation, re‑run the static analysis and perform targeted dynamic testing on high‑risk endpoints to verify that the identified weaknesses are resolved.\n\nThe assessment is limited by the turn budget; a more thorough review would require additional testing cycles.",
+    "success": true
+  }
+}

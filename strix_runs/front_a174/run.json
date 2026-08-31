@@ -1,0 +1,449 @@
+{
+  "run_id": "front_a174",
+  "run_name": "front_a174",
+  "start_time": "2026-08-27T05:09:59.540683+00:00",
+  "end_time": "2026-08-27T05:11:22.512692+00:00",
+  "status": "completed",
+  "auth_mode": "api_key",
+  "targets_info": [
+    {
+      "type": "local_code",
+      "details": {
+        "target_path": "/Users/susandhungana/Desktop/Projects/finalyear/front",
+        "workspace_subdir": "front"
+      },
+      "original": "/Users/susandhungana/Desktop/Projects/finalyear/front"
+    }
+  ],
+  "llm_usage": {
+    "requests": 15,
+    "input_tokens": 659040,
+    "input_tokens_details": [
+      {
+        "cache_write_tokens": 0,
+        "cached_tokens": 602752
+      }
+    ],
+    "output_tokens": 3495,
+    "output_tokens_details": [
+      {
+        "reasoning_tokens": 3104
+      }
+    ],
+    "total_tokens": 662535,
+    "request_usage_entries": [
+      {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      {
+        "input_tokens": 43765,
+        "output_tokens": 250,
+        "total_tokens": 44015,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 4352
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 242
+        }
+      },
+      {
+        "input_tokens": 44796,
+        "output_tokens": 337,
+        "total_tokens": 45133,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 43520
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 355
+        }
+      },
+      {
+        "input_tokens": 45247,
+        "output_tokens": 95,
+        "total_tokens": 45342,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 43520
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 79
+        }
+      },
+      {
+        "input_tokens": 46236,
+        "output_tokens": 61,
+        "total_tokens": 46297,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 43520
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 42
+        }
+      },
+      {
+        "input_tokens": 46551,
+        "output_tokens": 145,
+        "total_tokens": 46696,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 45696
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 142
+        }
+      },
+      {
+        "input_tokens": 46722,
+        "output_tokens": 56,
+        "total_tokens": 46778,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 45696
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 22
+        }
+      },
+      {
+        "input_tokens": 47050,
+        "output_tokens": 119,
+        "total_tokens": 47169,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 45696
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 94
+        }
+      },
+      {
+        "input_tokens": 47554,
+        "output_tokens": 649,
+        "total_tokens": 48203,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 45696
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 437
+        }
+      },
+      {
+        "input_tokens": 47902,
+        "output_tokens": 88,
+        "total_tokens": 47990,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 45696
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 69
+        }
+      },
+      {
+        "input_tokens": 48248,
+        "output_tokens": 88,
+        "total_tokens": 48336,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 47872
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 65
+        }
+      },
+      {
+        "input_tokens": 48450,
+        "output_tokens": 117,
+        "total_tokens": 48567,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 47872
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 88
+        }
+      },
+      {
+        "input_tokens": 48718,
+        "output_tokens": 136,
+        "total_tokens": 48854,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 47872
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 129
+        }
+      },
+      {
+        "input_tokens": 48816,
+        "output_tokens": 291,
+        "total_tokens": 49107,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 47872
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 311
+        }
+      },
+      {
+        "input_tokens": 48985,
+        "output_tokens": 1063,
+        "total_tokens": 50048,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 47872
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 1029
+        }
+      }
+    ],
+    "cost": 0.0,
+    "agents": [
+      {
+        "requests": 15,
+        "input_tokens": 659040,
+        "input_tokens_details": [
+          {
+            "cache_write_tokens": 0,
+            "cached_tokens": 602752
+          }
+        ],
+        "output_tokens": 3495,
+        "output_tokens_details": [
+          {
+            "reasoning_tokens": 3104
+          }
+        ],
+        "total_tokens": 662535,
+        "request_usage_entries": [
+          {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          {
+            "input_tokens": 43765,
+            "output_tokens": 250,
+            "total_tokens": 44015,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 4352
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 242
+            }
+          },
+          {
+            "input_tokens": 44796,
+            "output_tokens": 337,
+            "total_tokens": 45133,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 43520
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 355
+            }
+          },
+          {
+            "input_tokens": 45247,
+            "output_tokens": 95,
+            "total_tokens": 45342,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 43520
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 79
+            }
+          },
+          {
+            "input_tokens": 46236,
+            "output_tokens": 61,
+            "total_tokens": 46297,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 43520
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 42
+            }
+          },
+          {
+            "input_tokens": 46551,
+            "output_tokens": 145,
+            "total_tokens": 46696,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 45696
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 142
+            }
+          },
+          {
+            "input_tokens": 46722,
+            "output_tokens": 56,
+            "total_tokens": 46778,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 45696
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 22
+            }
+          },
+          {
+            "input_tokens": 47050,
+            "output_tokens": 119,
+            "total_tokens": 47169,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 45696
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 94
+            }
+          },
+          {
+            "input_tokens": 47554,
+            "output_tokens": 649,
+            "total_tokens": 48203,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 45696
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 437
+            }
+          },
+          {
+            "input_tokens": 47902,
+            "output_tokens": 88,
+            "total_tokens": 47990,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 45696
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 69
+            }
+          },
+          {
+            "input_tokens": 48248,
+            "output_tokens": 88,
+            "total_tokens": 48336,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 47872
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 65
+            }
+          },
+          {
+            "input_tokens": 48450,
+            "output_tokens": 117,
+            "total_tokens": 48567,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 47872
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 88
+            }
+          },
+          {
+            "input_tokens": 48718,
+            "output_tokens": 136,
+            "total_tokens": 48854,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 47872
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 129
+            }
+          },
+          {
+            "input_tokens": 48816,
+            "output_tokens": 291,
+            "total_tokens": 49107,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 47872
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 311
+            }
+          },
+          {
+            "input_tokens": 48985,
+            "output_tokens": 1063,
+            "total_tokens": 50048,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 47872
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 1029
+            }
+          }
+        ],
+        "agent_id": "97e86b0e",
+        "agent_name": "Root Agent",
+        "model": "openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+        "cost": 0.0
+      }
+    ]
+  },
+  "scan_mode": "quick",
+  "instruction": "",
+  "user_instruction": null,
+  "non_interactive": true,
+  "local_sources": [
+    {
+      "source_path": "/Users/susandhungana/Desktop/Projects/finalyear/front",
+      "workspace_subdir": "front",
+      "protect_metadata": true
+    }
+  ],
+  "workspace_mount": null,
+  "diff_scope": {
+    "active": false,
+    "mode": "auto"
+  },
+  "scope_mode": "auto",
+  "diff_base": null,
+  "scan_results": {
+    "scan_completed": true,
+    "executive_summary": "# Executive Summary\n\nAn assessment of the Next.js application identified an Insecure Direct Object Reference (IDOR) vulnerability in the appointments DELETE endpoint. This allows any authenticated user to delete appointments belonging to other users, posing a critical risk of unauthorized data modification and privacy violations.",
+    "methodology": "# Methodology\n\nConducted a white-box assessment of the Next.js application located at /workspace/front. The review included source code inspection, API route analysis, and validation of authentication and authorization logic. Focus areas included endpoints handling sensitive operations and access control checks.",
+    "technical_analysis": "# Technical Analysis\n\nThe DELETE /api/appointments/:id endpoint in `app/api/appointments/route.ts` lacks ownership verification. Only an Authorization header is required, with no validation that the authenticated user owns the appointment being deleted. This enables IDOR where any authenticated user can delete another user's appointment by ID, resulting in unauthorized data modification.",
+    "recommendations": "# Recommendations\n\n**Immediate**: Implement ownership verification in the DELETE handler to ensure users can only delete their own appointments. **Short-term**: Add authorization middleware to enforce access control on all appointment-related endpoints. **Retest**: Verify the fix resolves the IDOR vulnerability.",
+    "success": true
+  }
+}

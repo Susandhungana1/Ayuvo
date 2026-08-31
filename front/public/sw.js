@@ -98,7 +98,16 @@ self.addEventListener("notificationclick", (event) => {
         if (focused) {
           await focused.focus();
         } else if (self.clients.openWindow) {
-          await self.clients.openWindow("/medicines");
+          // Encode the action in the URL so the page can pick it up on load
+          // when there was no open client to receive postMessage.
+          const qs = new URLSearchParams({
+            na: action,
+            medId: data.medId || "",
+            time: data.time || "",
+            name: data.name || "",
+            dosage: data.dosage || "",
+          });
+          await self.clients.openWindow(`/medicines?${qs}`);
         }
       }
     })(),

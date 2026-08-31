@@ -402,6 +402,42 @@ export function MedicineAlarm() {
     return () => navigator.serviceWorker.removeEventListener("message", onMessage);
   }, []);
 
+  // Pick up a pending notification action from URL params (cold start).
+  // When the SW opens /medicines?na=taken&medId=...&time=... there is no
+  // open client to receive postMessage, so the action is encoded in the URL.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get("na");
+    if (!action) return;
+
+    const medId = params.get("medId") || "";
+    const time = params.get("time") || "";
+    const name = params.get("name") || "";
+    const dosage = params.get("dosage") || "";
+
+    // Strip the query params so a refresh doesn't re-fire the action.
+    const clean = window.location.pathname;
+    window.history.replaceState({}, "", clean);
+
+    if (action === "taken" && medId && time) {
+      recordIntake(medId, time, "taken");
+    } else if (action === "snooze" && medId && time) {
+      recordIntake(medId, time, "snoozed");
+      const timerKey = `${medId}-${time}`;
+      const existing = snoozeTimers.current.get(timerKey);
+      if (existing) clearTimeout(existing);
+      const timer = setTimeout(
+        () => {
+          snoozeTimers.current.delete(timerKey);
+          showAlarm({ id: medId, name, dosage }, time, `${medId}-${time}-snooze-${Date.now()}`);
+        },
+        SNOOZE_MINUTES * 60 * 1000,
+      );
+      snoozeTimers.current.set(timerKey, timer);
+    }
+  }, []);
+
   // Poll medicines + tick the clock.
   useEffect(() => {
     fetchMedicines();

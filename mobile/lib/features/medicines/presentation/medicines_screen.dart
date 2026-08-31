@@ -6,11 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/notifications/pending_intakes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/widgets/load_more_button.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/states.dart';
+import '../data/medicine_repository.dart';
 import '../domain/medicine.dart';
 import 'medicine_form_sheet.dart';
 import 'medicine_history_screen.dart';
@@ -18,7 +20,7 @@ import 'medicines_controller.dart';
 import 'widgets/interaction_banner.dart';
 import 'widgets/medicine_card.dart';
 
-class MedicinesScreen extends ConsumerWidget {
+class MedicinesScreen extends ConsumerStatefulWidget {
   const MedicinesScreen({
     super.key,
     this.patientId,
@@ -45,26 +47,57 @@ class MedicinesScreen extends ConsumerWidget {
   final void Function(Object error)? onScopeLost;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final medicines = ref.watch(medicinesProvider(patientId));
+  ConsumerState<MedicinesScreen> createState() => _MedicinesScreenState();
+}
 
-    if (onScopeLost != null) {
-      ref.listen(medicinesProvider(patientId), (_, next) {
+class _MedicinesScreenState extends ConsumerState<MedicinesScreen> {
+  bool _pendingConsumed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Consume any pending intake from a notification tap (cold start).
+    // Only applies to the patient's own list.
+    if (widget.patientId == null && !_pendingConsumed) {
+      _pendingConsumed = true;
+      final pending = consumePendingIntakes();
+      if (pending.isNotEmpty) {
+        // Delay until the controller is ready (first frame).
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final repo = ref.read(medicineRepositoryProvider);
+          for (final intake in pending) {
+            repo.recordIntake(
+              intake.medId,
+              scheduledTime: intake.time,
+              status: 'taken',
+            );
+          }
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final medicines = ref.watch(medicinesProvider(widget.patientId));
+
+    if (widget.onScopeLost != null) {
+      ref.listen(medicinesProvider(widget.patientId), (_, next) {
         if (next case AsyncError(:final error)
             when ApiException.from(error).kind == ApiErrorKind.forbidden) {
-          onScopeLost!(error);
+          widget.onScopeLost!(error);
         }
       });
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(title ?? 'Medicines'),
+        title: Text(widget.title ?? 'Medicines'),
         // A different colour from the app's own, so a caretaker can never
         // mistake somebody else's list for their own. `front/` uses amber for
         // the same reason; this is the theme's caution container.
         backgroundColor:
-            patientId == null ? null : context.status.cautionContainer,
+            widget.patientId == null ? null : context.status.cautionContainer,
         actions: [
           IconButton(
             onPressed: () => _openHistory(context),
@@ -75,32 +108,34 @@ class MedicinesScreen extends ConsumerWidget {
       ),
       floatingActionButton: medicines.hasValue && medicines.value!.isNotEmpty
           ? FloatingActionButton.extended(
-              onPressed: () => showMedicineSheet(context, patientId: patientId),
+              onPressed: () =>
+                  showMedicineSheet(context, patientId: widget.patientId),
               icon: const Icon(Icons.add),
               label: const Text('Add'),
             )
           : null,
       body: Column(
         children: [
-          ?banner,
+          ?widget.banner,
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () =>
-                  ref.read(medicinesProvider(patientId).notifier).refresh(),
+              onRefresh: () => ref
+                  .read(medicinesProvider(widget.patientId).notifier)
+                  .refresh(),
               child: switch (medicines) {
                 AsyncData(:final value) when value.isEmpty => _Empty(
-                    onAdd: () =>
-                        showMedicineSheet(context, patientId: patientId),
+                    onAdd: () => showMedicineSheet(context,
+                        patientId: widget.patientId),
                   ),
-                AsyncData(:final value) =>
-                  _List(medicines: value, patientId: patientId),
+                AsyncData(:final value) => _List(
+                    medicines: value, patientId: widget.patientId),
                 AsyncError(:final error) => ListView(
                     padding: AppSpacing.screen,
                     children: [
                       ErrorView(
                         error: error,
                         onRetry: () => ref
-                            .read(medicinesProvider(patientId).notifier)
+                            .read(medicinesProvider(widget.patientId).notifier)
                             .refresh(),
                       ),
                     ],
@@ -117,7 +152,7 @@ class MedicinesScreen extends ConsumerWidget {
   void _openHistory(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => MedicineHistoryScreen(patientId: patientId),
+        builder: (_) => MedicineHistoryScreen(patientId: widget.patientId),
       ),
     );
   }
