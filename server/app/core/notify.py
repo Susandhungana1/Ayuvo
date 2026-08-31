@@ -1,9 +1,9 @@
-"""One-off Web Push notices about care-link and medicine activity.
+"""One-off Web Push + FCM notices about care-link and medicine activity.
 
 Separate from the reminder scheduler: those are recurring, deduplicated dose
 alarms driven by a ledger, whereas these are single events fired inline from a
-request handler. Both ride the same Web Push channel — this feature introduces
-no new delivery mechanism.
+request handler. Both ride the same push channels — this feature introduces no
+new delivery mechanism.
 
 Every function here is best-effort and never raises: failing to announce a link
 change must not fail the request that caused it.
@@ -16,27 +16,63 @@ from typing import Optional
 
 from sqlmodel import Session, select
 
+from app.core.fcm import fcm_available, send_fcm
 from app.core.webpush import push_available, send_push
-from app.models.models import PushSubscription, User
+from app.models.models import FcmToken, PushSubscription, User
 
 logger = logging.getLogger("care_notify")
 
 
 def _push_to_user(db: Session, user_id: str, payload: dict) -> int:
-    """Fan a payload out to every device the user has registered."""
-    if not push_available():
-        return 0
+    """Fan a payload out to every device the user has registered.
 
+    Sends to both Web Push subscriptions and FCM tokens (mobile), matching
+    the reminder scheduler's dual-channel approach.
+    """
     sent = 0
-    subs = db.exec(
-        select(PushSubscription).where(PushSubscription.user_id == user_id)
-    ).all()
-    for sub in subs:
+
+    # Web Push (browser)
+    if push_available():
+        subs = db.exec(
+            select(PushSubscription).where(PushSubscription.user_id == user_id)
+        ).all()
+        for sub in subs:
+            try:
+                result = send_push(sub.endpoint, sub.p256dh, sub.auth, payload)
+                if result.ok:
+                    sent += 1
+                elif result.gone:
+                    try:
+                        db.delete(sub)
+                    except Exception:
+                        pass
+            except Exception:  # pragma: no cover - defensive
+                logger.exception("care web push notification failed")
+
+    # FCM (mobile app)
+    if fcm_available():
+        fcms = db.exec(
+            select(FcmToken).where(FcmToken.user_id == user_id)
+        ).all()
+        for fcm in fcms:
+            try:
+                result = send_fcm(fcm.token, payload)
+                if result.ok:
+                    sent += 1
+                elif result.invalid_token:
+                    try:
+                        db.delete(fcm)
+                    except Exception:
+                        pass
+            except Exception:  # pragma: no cover - defensive
+                logger.exception("care FCM notification failed")
+
+    if sent:
         try:
-            if send_push(sub.endpoint, sub.p256dh, sub.auth, payload).ok:
-                sent += 1
-        except Exception:  # pragma: no cover - defensive
-            logger.exception("care notification failed")
+            db.commit()
+        except Exception:
+            pass
+
     return sent
 
 
