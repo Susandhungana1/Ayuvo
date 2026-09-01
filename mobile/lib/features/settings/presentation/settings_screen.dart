@@ -42,6 +42,10 @@ class SettingsScreen extends ConsumerWidget {
           SizedBox(height: AppSpacing.xl),
           _Reminders(),
           SizedBox(height: AppSpacing.xl),
+          _TwoFactorAuth(),
+          SizedBox(height: AppSpacing.xl),
+          _ChangePassword(),
+          SizedBox(height: AppSpacing.xl),
           _DeleteAccount(),
         ],
       ),
@@ -316,6 +320,380 @@ final reminderPermissionProvider =
   await ref.watch(reminderSyncProvider.future);
   return ref.watch(remindersProvider).status();
 });
+
+/// Change the signed-in user's password using the server's authenticated
+/// endpoint. This mirrors the web settings flow and keeps the session in place
+/// when the update succeeds.
+class _ChangePassword extends ConsumerWidget {
+  const _ChangePassword();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return _Section(
+      title: 'Change password',
+      blurb: 'Use your current password to set a new one.',
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: () => _prompt(context, ref),
+            icon: const Icon(Icons.lock_reset_outlined),
+            label: const Text('Change password'),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _prompt(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final currentController = TextEditingController();
+    final newController = TextEditingController();
+    final confirmController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change password'),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: currentController,
+                  decoration: const InputDecoration(
+                    labelText: 'Current password',
+                  ),
+                  obscureText: true,
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextField(
+                  controller: newController,
+                  decoration: const InputDecoration(
+                    labelText: 'New password',
+                  ),
+                  obscureText: true,
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextField(
+                  controller: confirmController,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirm new password',
+                  ),
+                  obscureText: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => Navigator.of(context).pop(true),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    final currentPassword = currentController.text.trim();
+    final newPassword = newController.text.trim();
+    final confirmPassword = confirmController.text.trim();
+
+    if (currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Please fill in all password fields.')),
+      );
+      return;
+    }
+    if (newPassword != confirmPassword) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('New passwords do not match.')),
+      );
+      return;
+    }
+    if (newPassword.length < 8) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('New password must be at least 8 characters.')),
+      );
+      return;
+    }
+
+    try {
+      final message = await ref.read(authRepositoryProvider).changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      messenger.showSnackBar(SnackBar(content: Text(message)));
+    } catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text(ErrorText.of(error))));
+    }
+  }
+}
+
+/// Two-factor auth (TOTP) management for the signed-in user.
+class _TwoFactorAuth extends ConsumerStatefulWidget {
+  const _TwoFactorAuth();
+
+  @override
+  ConsumerState<_TwoFactorAuth> createState() => _TwoFactorAuthState();
+}
+
+class _TwoFactorAuthState extends ConsumerState<_TwoFactorAuth> {
+  bool _loading = true;
+  bool _enabled = false;
+  bool _busy = false;
+  bool _setupMode = false;
+  Map<String, String>? _setup;
+  final _codeController = TextEditingController();
+  String? _error;
+  String? _notice;
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadStatus() async {
+    try {
+      final enabled = await ref.read(authRepositoryProvider).twoFactorStatus();
+      if (mounted) setState(() => _enabled = enabled);
+    } catch (_) {
+      // Leave the default as off if the server is unreachable.
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatus();
+  }
+
+  Future<void> _startSetup() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+      _notice = null;
+    });
+    try {
+      final setup = await ref.read(authRepositoryProvider).setupTwoFactor();
+      if (!mounted) return;
+      setState(() {
+        _setup = setup;
+        _setupMode = true;
+        _codeController.clear();
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = ErrorText.of(error));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _verifyEnable() async {
+    final code = _codeController.text.trim();
+    if (code.length != 6) {
+      setState(() => _error = 'Enter the 6-digit code from your authenticator app.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final enabled = await ref.read(authRepositoryProvider).verifyTwoFactor(code: code);
+      if (!mounted) return;
+      setState(() {
+        _enabled = enabled;
+        _setupMode = false;
+        _setup = null;
+        _codeController.clear();
+        _notice = enabled ? 'Two-factor authentication is on.' : 'Two-factor authentication could not be enabled.';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = ErrorText.of(error));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _disable() async {
+    final code = _codeController.text.trim();
+    if (code.length != 6) {
+      setState(() => _error = 'Enter a current 6-digit code to confirm.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final enabled = await ref.read(authRepositoryProvider).disableTwoFactor(code: code);
+      if (!mounted) return;
+      setState(() {
+        _enabled = enabled;
+        _setupMode = false;
+        _setup = null;
+        _codeController.clear();
+        _notice = enabled ? 'Two-factor authentication is still on.' : 'Two-factor authentication is off.';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = ErrorText.of(error));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _Section(
+      title: 'Two-factor authentication',
+      blurb: 'Extra protection for your health records. You will need a code from your authenticator app when you sign in.',
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  _enabled ? Icons.shield_outlined : Icons.shield_rounded,
+                  color: _enabled ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  _enabled ? 'Enabled' : 'Disabled',
+                  style: context.texts.titleMedium,
+                ),
+              ],
+            ),
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.only(top: AppSpacing.md),
+                child: SizedBox(
+                  height: 20,
+                  width: 120,
+                  child: LinearProgressIndicator(minHeight: 4),
+                ),
+              )
+            else ...[
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.md),
+                  child: Text(
+                    _error!,
+                    style: context.texts.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              if (_notice != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.md),
+                  child: Text(
+                    _notice!,
+                    style: context.texts.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+              if (_setupMode && _setup != null) ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Scan this QR code with your authenticator app, then enter the code it shows to confirm.',
+                        style: context.texts.bodyMedium,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.sm),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Image.memory(
+                          Uri.parse(_setup!['qr_code_data_uri'] ?? '').data?.contentAsBytes ?? const <int>[],
+                          width: 160,
+                          height: 160,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        'Manual key: ${_setup!['secret']}',
+                        style: context.texts.bodySmall,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      TextField(
+                        controller: _codeController,
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
+                        decoration: const InputDecoration(
+                          labelText: '6-digit code',
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      FilledButton.icon(
+                        onPressed: _busy ? null : _verifyEnable,
+                        icon: const Icon(Icons.check_circle_outline),
+                        label: Text(_busy ? 'Verifying…' : 'Verify and enable'),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                const SizedBox(height: AppSpacing.md),
+                FilledButton.icon(
+                  onPressed: _busy ? null : (_enabled ? () async {
+                    final code = _codeController.text.trim();
+                    if (code.length != 6) {
+                      setState(() => _error = 'Enter a current 6-digit code to confirm.');
+                      return;
+                    }
+                    await _disable();
+                  } : _startSetup),
+                  icon: Icon(_enabled ? Icons.shield_off_outlined : Icons.shield_outlined),
+                  label: Text(_busy ? 'Working…' : (_enabled ? 'Disable 2FA' : 'Enable 2FA')),
+                ),
+                if (_enabled) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  TextField(
+                    controller: _codeController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    decoration: const InputDecoration(
+                      labelText: 'Current authenticator code',
+                    ),
+                  ),
+                ],
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 /// Erase the account, for real.
 ///

@@ -125,4 +125,55 @@ class AuthRepository {
     );
     return json['message'] as String;
   }
+
+  /// `GET /api/auth/2fa/status` — whether the signed-in account currently has
+  /// 2FA enabled.
+  Future<bool> twoFactorStatus() async {
+    final json = await _client.get<Map<String, dynamic>>('/api/auth/2fa/status');
+    return json['enabled'] as bool? ?? false;
+  }
+
+  /// `POST /api/auth/2fa/setup` — creates a new TOTP secret and QR code.
+  Future<Map<String, String>> setupTwoFactor() async {
+    final json = await _client.post<Map<String, dynamic>>('/api/auth/2fa/setup');
+    return {
+      'secret': json['secret'] as String,
+      'otpauth_url': json['otpauth_url'] as String,
+      'qr_code_data_uri': json['qr_code_data_uri'] as String,
+    };
+  }
+
+  /// `POST /api/auth/2fa/verify` — confirms the generated secret and turns it on.
+  Future<bool> verifyTwoFactor({required String code}) async {
+    final json = await _client.post<Map<String, dynamic>>(
+      '/api/auth/2fa/verify',
+      body: {'code': code},
+    );
+    return json['enabled'] as bool? ?? false;
+  }
+
+  /// `POST /api/auth/2fa/disable` — requires a fresh TOTP code to turn it off.
+  Future<bool> disableTwoFactor({required String code}) async {
+    final json = await _client.post<Map<String, dynamic>>(
+      '/api/auth/2fa/disable',
+      body: {'code': code},
+    );
+    return json['enabled'] as bool? ?? false;
+  }
+
+  /// `POST /api/auth/change-password` — requires the user's current password
+  /// and hashes the new one on the server.
+  Future<String> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final json = await _client.post<Map<String, dynamic>>(
+      '/api/auth/change-password',
+      body: {
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      },
+    );
+    return json['message'] as String;
+  }
 }
