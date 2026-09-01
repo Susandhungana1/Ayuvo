@@ -166,4 +166,54 @@ class FakeAuthRepository implements AuthRepository {
     required String newPassword,
   }) async =>
       'Password updated. You can now sign in with your new password.';
+
+  bool twoFactorEnabled = false;
+  int twoFactorStatusCalls = 0;
+  int setupTwoFactorCalls = 0;
+  int verifyTwoFactorCalls = 0;
+  int disableTwoFactorCalls = 0;
+
+  @override
+  Future<bool> twoFactorStatus() async {
+    twoFactorStatusCalls++;
+    return twoFactorEnabled;
+  }
+
+  @override
+  Future<Map<String, String>> setupTwoFactor() async {
+    setupTwoFactorCalls++;
+    return {
+      'secret': 'JBSWY3DPEHPK3PXP',
+      'otpauth_url': 'otpauth://totp/Ayuvo:test@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Ayuvo',
+      'qr_code_data_uri': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAF',
+    };
+  }
+
+  @override
+  Future<bool> verifyTwoFactor({required String code}) async {
+    verifyTwoFactorCalls++;
+    if (code.trim() != expectedCode) {
+      throw const ApiException(
+        ApiErrorKind.credentials,
+        'Invalid TOTP code',
+        statusCode: 401,
+      );
+    }
+    twoFactorEnabled = true;
+    return true;
+  }
+
+  @override
+  Future<bool> disableTwoFactor({required String code}) async {
+    disableTwoFactorCalls++;
+    if (code.trim() != expectedCode) {
+      throw const ApiException(
+        ApiErrorKind.credentials,
+        'Invalid TOTP code',
+        statusCode: 401,
+      );
+    }
+    twoFactorEnabled = false;
+    return false;
+  }
 }
