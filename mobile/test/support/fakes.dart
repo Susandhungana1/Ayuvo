@@ -216,4 +216,18 @@ class FakeAuthRepository implements AuthRepository {
     twoFactorEnabled = false;
     return false;
   }
+
+  int changePasswordCalls = 0;
+  ApiException? changePasswordError;
+
+  @override
+  Future<String> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    changePasswordCalls++;
+    final error = changePasswordError;
+    if (error != null) throw error;
+    return 'Password updated';
+  }
 }

@@ -8,6 +8,8 @@
 /// screen: a user must be able to erase the account from inside the app.
 library;
 
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -573,15 +575,19 @@ class _TwoFactorAuthState extends ConsumerState<_TwoFactorAuth> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   _enabled ? Icons.shield_outlined : Icons.shield_rounded,
                   color: _enabled ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                Text(
-                  _enabled ? 'Enabled' : 'Disabled',
-                  style: context.texts.titleMedium,
+                Flexible(
+                  child: Text(
+                    _enabled ? 'Enabled' : 'Disabled',
+                    style: context.texts.titleMedium,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -633,7 +639,9 @@ class _TwoFactorAuthState extends ConsumerState<_TwoFactorAuth> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Image.memory(
-                          Uri.parse(_setup!['qr_code_data_uri'] ?? '').data?.contentAsBytes ?? const <int>[],
+                          Uint8List.fromList(
+                            (Uri.parse(_setup!['qr_code_data_uri'] ?? '').data?.contentAsBytes as List<int>?) ?? const <int>[],
+                          ),
                           width: 160,
                           height: 160,
                         ),
@@ -672,7 +680,7 @@ class _TwoFactorAuthState extends ConsumerState<_TwoFactorAuth> {
                     }
                     await _disable();
                   } : _startSetup),
-                  icon: Icon(_enabled ? Icons.shield_off_outlined : Icons.shield_outlined),
+                  icon: Icon(_enabled ? Icons.shield : Icons.shield_outlined),
                   label: Text(_busy ? 'Working…' : (_enabled ? 'Disable 2FA' : 'Enable 2FA')),
                 ),
                 if (_enabled) ...[
