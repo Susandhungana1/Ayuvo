@@ -36,3 +36,10 @@ server/.venv/
 # Firebase — secrets that must not be committed
 server/serviceAccountKey.json
 mobile/android/app/google-services.json
+
+# Strix pentest run artifacts. NEVER commit these: `.state/agents.db` is the
+# agent's transcript, and an agent that read `server/.env` during a scan has
+# the whole file in its transcript. Committing them in c46d132 published every
+# secret in server/.env to a public repo. Reports are useful locally; nothing
+# under here belongs in git.
+strix_runs/
