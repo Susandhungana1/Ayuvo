@@ -19,13 +19,21 @@
   --color-muted: #EEF3F5;           /* muted backgrounds */
 
   /* ---- Outline / Borders ---- */
-  --color-outline: #C3D4DA;          /* slate */
+  --color-outline: #C3D4DA;          /* slate — hairlines: card edges, rules */
   --color-outline-subtle: #E5E7EB;   /* lighter variant */
+  /* SC 1.4.11 asks 3:1 of a *control* boundary — the border of an input is the
+     only thing saying where the input is. --color-outline is 1.53:1 on white
+     and stays that way, because a card edge carries no information; this step
+     is 3.13:1 and is what form controls use. */
+  --color-outline-strong: #7D95A3;
 
   /* ---- Text ---- */
   --color-ink: #0F2B33;              /* ink900 — primary text */
   --color-ink-variant: #4A6670;      /* ink500 — secondary text */
-  --color-ink-muted: #6B7280;        /* tertiary text */
+  /* WCAG 2.1 SC 1.4.3. Was #6B7280, which measures 4.32:1 on --color-muted
+     and fails; this is 4.57:1 there and 5.11:1 on white. It is the colour
+     input placeholders are drawn in, so the failure was on every form. */
+  --color-ink-muted: #686E7C;        /* tertiary text, placeholders */
 
   /* ---- Status: OK ---- */
   --color-ok: #046A4E;
@@ -129,10 +137,12 @@
 
   --color-outline: #32424A;
   --color-outline-subtle: #2A3840;
+  --color-outline-strong: #5E7581;
 
   --color-ink: #E6EEF1;
   --color-ink-variant: #9DB2BA;
-  --color-ink-muted: #64748B;
+  /* 3.19:1 on --color-muted before; 4.56:1 now. */
+  --color-ink-muted: #7F8EA3;
 
   --color-ok: #4ADBA4;
   --color-ok-container: #0C2A20;

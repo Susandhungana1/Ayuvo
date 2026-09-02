@@ -194,12 +194,30 @@ body {
 
 /* ============================================================
    Pressed state feedback for interactive elements
+
+   Anything tappable that is not a <button> — a card, a link that behaves as a
+   card, a list row — carries `.pressed`. Buttons have their own
+   `active:scale-[0.97]` in components/button.tsx.
+
+   `transform` and not `opacity`: a card dropping to 85% opacity lets the page
+   behind it show through, which on a health record reads as a rendering fault.
    ============================================================ */
 .pressed {
   transition: transform var(--duration-fast) var(--ease-enter);
 }
 .pressed:active {
   transform: scale(0.97);
+}
+
+/* A press must still be *felt* with reduced motion on, so the scale goes and
+   nothing replaces it — the browser's own :active and the focus ring remain. */
+@media (prefers-reduced-motion: reduce) {
+  .pressed {
+    transition: none;
+  }
+  .pressed:active {
+    transform: none;
+  }
 }
 
 /* ============================================================
@@ -239,6 +257,8 @@ body {
 
 /* Semantic borders */
 .border-outline { border-color: var(--color-outline); }
+/* The 3:1 control boundary — inputs, selects, textareas. See design-tokens.css. */
+.border-outline-strong { border-color: var(--color-outline-strong); }
 
 /* Display font (headings) */
 .font-display { font-family: var(--font-heading); }

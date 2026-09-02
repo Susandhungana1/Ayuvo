@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/time/medi_time.dart';
 import '../../../core/widgets/load_more_button.dart';
+import '../../../core/widgets/press_effect.dart';
 import '../../../core/widgets/range_bar.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/states.dart';
@@ -96,7 +97,7 @@ class _Loaded extends ConsumerWidget {
           Padding(
             key: ValueKey(report.id),
             padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: _ReportCard(report: report),
+            child: PressEffect(child: _ReportCard(report: report)),
           ),
         Consumer(
           builder: (context, ref, _) {

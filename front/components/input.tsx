@@ -21,7 +21,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           type={type}
           className={cn(
-            'flex h-12 w-full rounded-[var(--radius-md)] border border-[var(--color-outline)] bg-white dark:bg-[var(--color-card)] px-4 py-3 text-sm placeholder:text-[var(--color-ink-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-focus)] focus-visible:border-[var(--color-primary)] focus-visible:shadow-[var(--shadow-sm)] disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-[var(--duration-base)] shadow-[var(--shadow-xs)]',
+            'flex h-12 w-full rounded-[var(--radius-md)] border border-[var(--color-outline-strong)] bg-white dark:bg-[var(--color-card)] px-4 py-3 text-sm placeholder:text-[var(--color-ink-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-focus)] focus-visible:border-[var(--color-primary)] focus-visible:shadow-[var(--shadow-sm)] disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-[var(--duration-base)] shadow-[var(--shadow-xs)]',
             error && 'border-[var(--color-alert)] focus-visible:ring-[var(--color-alert)] focus-visible:border-[var(--color-alert)]',
             className
           )}

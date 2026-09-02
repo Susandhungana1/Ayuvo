@@ -7,6 +7,10 @@ import { Card } from '@/components/card';
 import { apiFetch, clearSession, API_URL } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { TwoFactorAuth } from '@/components/two-factor-auth';
+import {
+  MEDICAL_DISCLAIMER_BODY,
+  MEDICAL_DISCLAIMER_TITLE,
+} from '@/components/medical-disclaimer';
 
 
 
@@ -169,6 +173,19 @@ export default function Settings() {
               {pwLoading ? 'Updating…' : 'Update password'}
             </Button>
           </form>
+        </Card>
+
+        <div className="h-8" />
+
+        {/* The same words as the first-visit modal, from the same constants,
+            so an acknowledgement shown once is findable again afterwards. */}
+        <Card className="p-lg">
+          <h2 className="text-lg font-display font-semibold text-on-surface mb-2">
+            {MEDICAL_DISCLAIMER_TITLE}
+          </h2>
+          <p className="text-sm text-on-surface-variant">
+            {MEDICAL_DISCLAIMER_BODY}
+          </p>
         </Card>
 
         <div className="h-8" />

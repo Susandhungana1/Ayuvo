@@ -11,6 +11,8 @@
 /// intermediate states assertable.
 library;
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,6 +21,7 @@ import 'package:ayuvo/core/health/health_providers.dart';
 import 'package:ayuvo/core/health/health_status.dart';
 import 'package:ayuvo/core/network/network_providers.dart';
 import 'package:ayuvo/core/notifications/reminders.dart';
+import 'package:ayuvo/core/security/biometric_service.dart';
 import 'package:ayuvo/core/session/session_controller.dart';
 import 'package:ayuvo/core/storage/local_store.dart';
 import 'package:ayuvo/core/storage/session_store.dart';
@@ -68,10 +71,18 @@ Future<void> settle(WidgetTester tester) async {
 
 /// Boots the app already signed in, with [api] answering every request.
 ///
-/// Two things are replaced besides the socket, and both would otherwise hang
-/// rather than fail: [localStoreProvider], because `path_provider` is a method
-/// channel with nobody on the other end in a `flutter test`, and
-/// [remindersProvider], because scheduling one would need three more.
+/// Three things are replaced besides the socket, and all of them would
+/// otherwise hang rather than fail: [localStoreProvider], because
+/// `path_provider` is a method channel with nobody on the other end in a
+/// `flutter test`; [remindersProvider], because scheduling one would need three
+/// more; and [biometricServiceProvider], because `local_auth` is a fourth and
+/// its prompt would never return.
+///
+/// The medical disclaimer is pre-accepted, because it is a modal layer over
+/// every route and a test about the medicine list is not a test about the
+/// disclaimer. Pass `disclaimerAccepted: false` to get it, or a [biometrics]
+/// that reports an enrolled sensor to get the offer and the lock screen —
+/// `security_test.dart` does both.
  Future<void> pumpSignedIn(
   WidgetTester tester,
   FakeApi api, {
@@ -80,6 +91,8 @@ Future<void> settle(WidgetTester tester) async {
   LocalStore? store,
   Reminders? reminders,
   FakeAuthRepository? auth,
+  bool disclaimerAccepted = true,
+  BiometricService? biometrics,
 }) async {
   // Home reads the calendar and the report shelf too. Fallbacks only: a test
   // that scripts these routes itself keeps its own bodies.
@@ -93,6 +106,17 @@ Future<void> settle(WidgetTester tester) async {
     (_) => {'intakes': const []},
   );
 
+  final localStore = store ?? InMemoryLocalStore();
+  // Only when the caller has not written its own: a test that seeds
+  // `security.v1` to turn biometrics on is describing a returning user, and
+  // stamping a bare "disclaimer accepted" over it would erase that.
+  if (disclaimerAccepted && await localStore.read('security.v1') == null) {
+    await localStore.write(
+      'security.v1',
+      jsonEncode({'disclaimer_accepted': true}),
+    );
+  }
+
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -100,8 +124,11 @@ Future<void> settle(WidgetTester tester) async {
             .overrideWithValue(InMemorySessionStore(storedSession(user: user))),
         authRepositoryProvider.overrideWithValue(auth ?? FakeAuthRepository(user: user)),
         healthProvider.overrideWith((ref) async => health),
-        localStoreProvider.overrideWithValue(store ?? InMemoryLocalStore()),
+        localStoreProvider.overrideWithValue(localStore),
         remindersProvider.overrideWithValue(reminders ?? NoReminders()),
+        biometricServiceProvider.overrideWithValue(
+          biometrics ?? const UnavailableBiometricService(),
+        ),
         apiClientProvider.overrideWith((ref) {
           final client = api.client();
           ref.onDispose(client.close);

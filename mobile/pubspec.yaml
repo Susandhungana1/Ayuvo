@@ -61,6 +61,11 @@ dependencies:
   intl: ^0.20.2
   qr_flutter: ^4.1.0
   url_launcher: ^6.3.2
+  # Fingerprint / Face ID as a shortcut past the password screen. A convenience
+  # layer only: the server still authorises every request with the JWT, and a
+  # failed or unavailable scan falls back to signing in. See
+  # `lib/core/security/biometric_service.dart`.
+  local_auth: ^2.3.0
   share_plus: ^13.3.0
   # Phase 6. The four browser-only pieces the web app used, replaced:
   # Leaflet → flutter_map, Web Push → flutter_local_notifications (scheduled

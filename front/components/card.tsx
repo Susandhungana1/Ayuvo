@@ -15,7 +15,7 @@ export function Card({ hover = false, children, className = '', ...props }: Card
         p-7
         border border-[var(--color-outline-subtle)] dark:border-[var(--color-outline)]
         transition-all duration-[var(--duration-base)] ease-[var(--ease-standard)]
-        ${hover ? 'hover:shadow-[var(--shadow-lg)] hover:border-[var(--color-primary)] hover:-translate-y-0.5 cursor-pointer' : ''}
+        ${hover ? 'hover:shadow-[var(--shadow-lg)] hover:border-[var(--color-primary)] hover:-translate-y-0.5 cursor-pointer pressed' : ''}
         ${className}
       `}
       {...props}

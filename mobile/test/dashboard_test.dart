@@ -2,8 +2,12 @@
 ///
 /// The clock is the real one here — `_clockProvider` reads `DateTime.now()`
 /// and a widget test cannot move it — so every assertion below is written to
-/// hold at any hour. Anything that genuinely depends on the time of day is
-/// covered by `dose_times_test.dart` against `DoseSchedule` directly.
+/// hold at any hour. That constraint shapes the fixtures: the default medicine
+/// has dose times at 08:00 and 20:00, so at every moment of the day exactly two
+/// of its slots are on screen (overdue plus still-to-come), and the counter
+/// under them always reads "0 of 2 taken" because no intake is ever scripted.
+/// Anything that genuinely depends on the time of day is covered by
+/// `dose_times_test.dart` against `DoseSchedule` directly.
 library;
 
 import 'dart:convert';
@@ -22,32 +26,57 @@ FakeApi backend({
       ..json('GET /api/medicines', {'medicines': medicines})
       ..json('GET /api/vitals', {'vitals': vitals});
 
+/// The greeting is "Good morning/afternoon/evening, Ram" depending on the hour,
+/// so it is matched by its ending rather than in full.
+Finder greetingFor(String name) => find.byWidgetPredicate(
+      (widget) => widget is Text && (widget.data?.endsWith(', $name') ?? false),
+      description: 'greeting ending ", $name"',
+    );
+
 void main() {
-  testWidgets('an empty account is offered the two things it has none of',
+  testWidgets('an empty account is told what to add, not shown empty furniture',
       (tester) async {
     final api = backend();
     await pumpSignedIn(tester, api);
 
-    expect(find.text('Hello, Ram'), findsOneWidget);
-    expect(find.text('Nothing scheduled'), findsOneWidget);
-    expect(
-      find.text('Add a medicine with its dose times and the next one shows '
-          'up here.'),
-      findsOneWidget,
-    );
-    expect(find.text('Get started'), findsOneWidget);
-    expect(find.text('Record a reading'), findsOneWidget);
-    // Nothing else was fetched. The dashboard costs four requests, which is
-    // the whole reason it reuses the tabs' providers instead of having its
-    // own. Set-compare: launch order across four providers is not the contract.
-    expect(api.calls.length, 4);
+    expect(greetingFor('Ram'), findsOneWidget);
+    expect(find.text('No medicines yet'), findsOneWidget);
+    expect(find.text('Add your first medicine to get reminders'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Add a medicine'), findsOneWidget);
+
+    // Reports have their own empty state; activity hides itself entirely.
+    expect(find.text('Scan or upload a lab report to see it here'), findsOneWidget);
+    expect(find.text('Recent activity'), findsNothing);
+
+    // Five requests, which is the whole reason the dashboard reuses the tabs'
+    // providers instead of having its own. The intake log is the fifth: what
+    // "taken" means is read from it, and the summary card cannot count today's
+    // doses without it. Set-compared, because launch order is not the contract.
+    expect(api.calls.length, 5);
     expect(api.calls.toSet(), {
       'GET /api/medicines',
       'GET /api/vitals',
       'GET /api/appointments',
       'GET /api/reports',
+      'GET /api/medicines/intake/log',
     });
     expect(api.unmatched, isEmpty);
+  });
+
+  testWidgets('every core screen is one tap from home', (tester) async {
+    await pumpSignedIn(tester, backend());
+
+    for (final label in [
+      'Medicines',
+      'Scan report',
+      'Vitals',
+      'Appointments',
+      'Documents',
+    ]) {
+      expect(find.text(label), findsWidgets, reason: '$label quick action');
+    }
+    expect(find.text('Share your health record'), findsOneWidget);
+    expect(find.text('Recent reports'), findsOneWidget);
   });
 
   testWidgets('a medicine with dose times produces a countdown and a schedule',
@@ -56,10 +85,12 @@ void main() {
     await pumpSignedIn(tester, api);
 
     expect(find.text('Next dose'), findsOneWidget);
-    // Once in the countdown card and once per dose row.
+    // Once in the countdown headline, once per actionable row. Two of the
+    // day's slots are always actionable — see the library comment.
     expect(find.text('Amlodipine'), findsNWidgets(3));
-    expect(find.text('Today'), findsOneWidget);
+    expect(find.text('Today · 0 of 2 taken'), findsOneWidget);
     expect(find.text('Nothing scheduled'), findsNothing);
+    expect(find.text('No medicines yet'), findsNothing);
   });
 
   testWidgets('a medicine with no dose times says so instead of counting down',
@@ -75,13 +106,26 @@ void main() {
           'schedule to count down to.'),
       findsOneWidget,
     );
-    expect(find.widgetWithText(OutlinedButton, 'Set dose times'),
-        findsOneWidget);
-    // Today's list is empty, so it is absent rather than an empty card.
-    expect(find.text('Today'), findsNothing);
+    // No slots, so no counter and no rows — absent rather than an empty card.
+    expect(find.textContaining('Today ·'), findsNothing);
   });
 
-  testWidgets('marking a dose taken posts self-only and strikes the row',
+  testWidgets('a dose that came and went is called overdue, in the alert colour',
+      (tester) async {
+    // Midnight: past at every instant of the day except the very first
+    // microsecond of it, which is the closest a wall-clock slot can get to
+    // "always overdue" without the test owning the clock.
+    final api = backend(
+      medicines: [medicineRow(takingTimes: '["00:00"]')],
+    );
+    await pumpSignedIn(tester, api);
+
+    expect(find.text('1 dose overdue'), findsOneWidget);
+    // Named, not merely coloured.
+    expect(find.byIcon(Icons.error_outline), findsOneWidget);
+  });
+
+  testWidgets('marking a dose taken posts self-only and settles the row',
       (tester) async {
     final api = backend(medicines: [medicineRow(takingTimes: '["08:00"]')])
       ..json('POST /api/medicines/med-1/intake', {
@@ -132,7 +176,7 @@ void main() {
     ]);
     await pumpSignedIn(tester, api);
 
-    expect(find.text('Health'), findsOneWidget);
+    expect(find.byKey(const ValueKey('home.vitals-strip')), findsOneWidget);
     expect(find.text('118/76'), findsOneWidget);
     expect(find.text('72'), findsOneWidget);
     // Normal is the quiet default: the value and metric suffice.
@@ -159,9 +203,7 @@ void main() {
     ]);
     await pumpSignedIn(tester, api);
 
-    expect(find.text('Health'), findsNothing);
-    // And the shortcut comes back, because there is still nothing to show.
-    expect(find.text('Record a reading'), findsOneWidget);
+    expect(find.byKey(const ValueKey('home.vitals-strip')), findsNothing);
   });
 
   testWidgets('a backend that is down offers Retry rather than a blank screen',
@@ -172,8 +214,12 @@ void main() {
     await pumpSignedIn(tester, api);
 
     expect(find.widgetWithText(OutlinedButton, 'Try again'), findsOneWidget);
-    // Half a dashboard is not offered as a complete one.
-    expect(find.text('Get started'), findsNothing);
+    // Half a summary is not offered as a whole one.
+    expect(find.text('No medicines yet'), findsNothing);
+    expect(find.text('Next dose'), findsNothing);
+    // The rest of the screen still works: a dead medicines endpoint does not
+    // take the way to every other tab with it.
+    expect(find.text('Share your health record'), findsOneWidget);
   });
 
   testWidgets('the dashboard survives 2.0x text on a small phone',

@@ -1,11 +1,11 @@
-/// Language, appearance, dose reminders and the account's erasure.
+/// How the app looks and behaves, how it is secured, and how to leave.
 ///
-/// Deliberately four things and not a dumping ground. Profile editing
-/// (`PUT /api/users/me`) and two-factor setup are account operations that
-/// belong with the account, and are phase 8 — a settings screen that mixes
-/// "how the app looks" with "change my password" makes both harder to find.
-/// Deletion lives here because the Play Store review requirement names this
-/// screen: a user must be able to erase the account from inside the app.
+/// Still not a dumping ground: everything here is a per-device or per-account
+/// switch, never a health record. Deletion lives here because the Play Store
+/// review requirement names this screen — a user must be able to erase the
+/// account from inside the app — and the medical disclaimer lives here because
+/// an acknowledgement shown once on first launch has to be findable again
+/// afterwards.
 library;
 
 import 'package:flutter/material.dart';
@@ -14,12 +14,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/l10n/context_l10n.dart';
 import '../../../core/notifications/reminder_sync.dart';
 import '../../../core/notifications/reminders.dart';
+import '../../../core/security/biometric_service.dart';
+import '../../../core/security/security_preferences.dart';
 import '../../../core/session/session_controller.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/widgets/states.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../legal/presentation/medical_disclaimer.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -44,7 +47,11 @@ class SettingsScreen extends ConsumerWidget {
           SizedBox(height: AppSpacing.xl),
           _TwoFactorAuth(),
           SizedBox(height: AppSpacing.xl),
+          _Biometrics(),
+          SizedBox(height: AppSpacing.xl),
           _ChangePassword(),
+          SizedBox(height: AppSpacing.xl),
+          _About(),
           SizedBox(height: AppSpacing.xl),
           _DeleteAccount(),
         ],
@@ -702,6 +709,91 @@ class _TwoFactorAuthState extends ConsumerState<_TwoFactorAuth> {
 /// and nothing here can undo it. On success the session ends the way a
 /// sign-out does — tokens cleared locally — but with the notice that the
 /// account is gone, not just the session.
+/// Security → biometric unlock.
+///
+/// Absent entirely on a device with no enrolled sensor, rather than shown as a
+/// switch that cannot be moved: a disabled control invites people to work out
+/// why, and the answer ("enrol a fingerprint in your phone's settings") is not
+/// something this screen can do anything about.
+class _Biometrics extends ConsumerWidget {
+  const _Biometrics();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final availability = ref.watch(biometricAvailabilityProvider).valueOrNull;
+    if (availability != BiometricAvailability.ready) {
+      return const SizedBox.shrink();
+    }
+
+    final enabled = ref.watch(currentSecurityPreferencesProvider)
+        .biometricEnabled;
+
+    return _Section(
+      title: 'Security',
+      blurb: 'Unlock Ayuvo with the fingerprint or face already set up on this '
+          'phone. Your password still signs you in, and still works if the '
+          'sensor does not.',
+      child: SwitchListTile(
+        value: enabled,
+        title: const Text('Unlock with biometrics'),
+        subtitle: Text(
+          enabled
+              ? 'Asked for each time you open Ayuvo.'
+              : 'Off — Ayuvo opens straight to your record.',
+        ),
+        onChanged: (next) => ref
+            .read(securityPreferencesProvider.notifier)
+            .setBiometricEnabled(next),
+      ),
+    );
+  }
+}
+
+/// The medical disclaimer, findable on purpose.
+///
+/// The same words as the modal shown on first launch, from the same constant,
+/// so the two cannot drift apart.
+class _About extends StatelessWidget {
+  const _About();
+
+  @override
+  Widget build(BuildContext context) {
+    return _Section(
+      title: 'About',
+      child: Padding(
+        padding: AppSpacing.card,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 18,
+                  color: context.colors.primary,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    medicalDisclaimerTitle,
+                    style: context.texts.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              medicalDisclaimerBody,
+              style: context.texts.bodyMedium
+                  ?.copyWith(color: context.colors.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DeleteAccount extends ConsumerWidget {
   const _DeleteAccount();
 
