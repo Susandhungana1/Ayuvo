@@ -263,7 +263,10 @@ abstract final class AppTheme {
     surfaceContainer: AppPalette.card,
     surfaceContainerHigh: AppPalette.muted,
     surfaceContainerHighest: AppPalette.muted,
-    outline: AppPalette.slate,
+    // `outline` draws control boundaries (input borders, outlined buttons) and
+    // owes 3:1; `outlineVariant` draws hairlines (cards, dividers) and owes
+    // nothing. They were the same value, which put every input below the floor.
+    outline: AppPalette.slateStrong,
     outlineVariant: AppPalette.slate,
     error: AppPalette.alertLight,
     onError: AppPalette.white,
@@ -285,7 +288,7 @@ abstract final class AppTheme {
     surfaceContainer: AppPalette.nightCard,
     surfaceContainerHigh: AppPalette.nightMuted,
     surfaceContainerHighest: AppPalette.nightMuted,
-    outline: AppPalette.nightOutline,
+    outline: AppPalette.nightOutlineStrong,
     outlineVariant: AppPalette.nightOutline,
     error: AppPalette.alertDark,
     onError: AppPalette.alertDarkContainer,
@@ -297,6 +300,28 @@ abstract final class AppTheme {
     final isLight = brightness == Brightness.light;
     final text = _textTheme(scheme.onSurface, scheme.onSurfaceVariant);
     final focus = isLight ? AppPalette.cyan600 : AppPalette.cyanDark;
+
+    // Disabled controls, measured rather than inherited — see AppPalette.
+    final disabledInk =
+        isLight ? AppPalette.disabledInkLight : AppPalette.disabledInkDark;
+    final disabledFill =
+        isLight ? AppPalette.disabledFillLight : AppPalette.disabledFillDark;
+
+    // Press feedback. Material's default overlay is 10% and all but invisible
+    // on a white card; 16% reads as a press without reading as a selection.
+    // Applied as a WidgetStateProperty so hover and focus keep their own steps.
+    final pressOverlay = WidgetStateProperty.resolveWith<Color?>((states) {
+      if (states.contains(WidgetState.pressed)) {
+        return scheme.onSurface.withValues(alpha: 0.16);
+      }
+      if (states.contains(WidgetState.hovered)) {
+        return scheme.onSurface.withValues(alpha: 0.06);
+      }
+      if (states.contains(WidgetState.focused)) {
+        return scheme.onSurface.withValues(alpha: 0.10);
+      }
+      return null;
+    });
 
     return ThemeData(
       useMaterial3: true,
@@ -348,6 +373,8 @@ abstract final class AppTheme {
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.sm),
           textStyle: text.labelLarge,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+          disabledBackgroundColor: disabledFill,
+          disabledForegroundColor: disabledInk,
         ),
       ),
 
@@ -357,7 +384,8 @@ abstract final class AppTheme {
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.sm),
           textStyle: text.labelLarge,
           side: BorderSide(color: scheme.outline),
-        ),
+          disabledForegroundColor: disabledInk,
+        ).copyWith(overlayColor: pressOverlay),
       ),
 
       textButtonTheme: TextButtonThemeData(
@@ -365,7 +393,8 @@ abstract final class AppTheme {
           minimumSize: const Size(AppTouch.minTarget, AppTouch.minTarget),
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.sm),
           textStyle: text.labelLarge,
-        ),
+          disabledForegroundColor: disabledInk,
+        ).copyWith(overlayColor: pressOverlay),
       ),
 
       inputDecorationTheme: InputDecorationTheme(
@@ -459,6 +488,9 @@ abstract final class AppTheme {
         titleTextStyle: text.titleMedium,
         subtitleTextStyle: text.bodySmall,
         minVerticalPadding: AppSpacing.sm,
+        // Settings rows, report rows and activity rows are all ListTiles, and
+        // the stock 10% ripple is invisible on a white card in daylight.
+        splashColor: scheme.onSurface.withValues(alpha: 0.12),
       ),
 
       floatingActionButtonTheme: FloatingActionButtonThemeData(

@@ -25,6 +25,12 @@
          no recogniser is available, and the screen works by typing. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
+    <!-- Fingerprint / Face unlock as a shortcut past the password screen.
+         USE_BIOMETRIC is the API 28+ permission; local_auth degrades to the
+         deprecated USE_FINGERPRINT below that, which is why both are listed. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
+
     <application
         android:label="Ayuvo"
         android:name="${applicationName}"

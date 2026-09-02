@@ -6,6 +6,7 @@ import { Footer } from "@/components/footer";
 import { HideOnShare } from "@/components/hide-on-share";
 import { PwaRegister } from "@/components/pwa-register";
 import { MedicineAlarm } from "@/components/medicine-alarm";
+import { MedicalDisclaimer } from "@/components/medical-disclaimer";
 import { I18nProvider } from "@/lib/i18n";
 import { ThemeInit } from "@/components/theme-init";
 
@@ -89,6 +90,10 @@ export default function RootLayout({
           <HideOnShare><Footer /></HideOnShare>
           <PwaRegister />
           <MedicineAlarm />
+          {/* Wrapped like the navbar and footer: the public share readers are
+              somebody else's single report opened from a link, not a person
+              reading their own record, and they render without app chrome. */}
+          <HideOnShare><MedicalDisclaimer /></HideOnShare>
         </I18nProvider>
         {/* Structured data — Organization + WebSite so search engines can
             attribute the site correctly. Rendered server-side. */}

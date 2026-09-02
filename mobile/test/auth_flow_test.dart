@@ -7,6 +7,8 @@
 /// fail. Explicit pumps also make the intermediate states assertable.
 library;
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +17,7 @@ import 'package:ayuvo/core/health/health_providers.dart';
 import 'package:ayuvo/core/network/api_exception.dart';
 import 'package:ayuvo/core/network/network_providers.dart';
 import 'package:ayuvo/core/notifications/reminders.dart';
+import 'package:ayuvo/core/security/biometric_service.dart';
 import 'package:ayuvo/core/session/session_controller.dart';
 import 'package:ayuvo/core/storage/local_store.dart';
 import 'package:ayuvo/core/storage/session_store.dart';
@@ -39,9 +42,22 @@ Future<FakeAuthRepository> pumpApp(
   final api = FakeApi()
     ..json('GET /api/medicines', {'medicines': const []})
     ..json('GET /api/vitals', {'vitals': const []})
+    ..json('GET /api/appointments', {'appointments': const []})
+    ..json('GET /api/reports', {'reports': const [], 'total': 0})
+    ..json('GET /api/medicines/intake/log', {'intakes': const []})
     ..json('GET /api/appointments/doctor/my-appointments',
         {'appointments': const []})
     ..json('GET /api/doctors/availability', {'availability': const []});
+
+  // The medical disclaimer is a modal layer over every route on first launch,
+  // and it would cover the screens these tests are about. Pre-accepted here for
+  // the same reason `pumpSignedIn` pre-accepts it; `medical_disclaimer_test`
+  // is the one that leaves it unset.
+  final localStore = InMemoryLocalStore();
+  await localStore.write(
+    'security.v1',
+    jsonEncode({'disclaimer_accepted': true}),
+  );
 
   await tester.pumpWidget(
     ProviderScope(
@@ -52,8 +68,10 @@ Future<FakeAuthRepository> pumpApp(
         // Both are method channels with nobody answering in a `flutter test`,
         // and an unanswered channel hangs rather than throwing — which would
         // wedge the medicine list the dashboard is waiting on.
-        localStoreProvider.overrideWithValue(InMemoryLocalStore()),
+        localStoreProvider.overrideWithValue(localStore),
         remindersProvider.overrideWithValue(NoReminders()),
+        biometricServiceProvider
+            .overrideWithValue(const UnavailableBiometricService()),
         apiClientProvider.overrideWith((ref) {
           final client = api.client();
           ref.onDispose(client.close);
@@ -69,6 +87,13 @@ Future<FakeAuthRepository> pumpApp(
   await settle(tester);
   return repo;
 }
+
+/// "Good morning/afternoon/evening, Ram" — the hour is the machine's, so the
+/// assertion is on the ending.
+Finder greeting(String name) => find.byWidgetPredicate(
+      (widget) => widget is Text && (widget.data?.endsWith(', $name') ?? false),
+      description: 'greeting ending ", $name"',
+    );
 
 Future<void> signIn(
   WidgetTester tester, {
@@ -137,12 +162,11 @@ void main() {
 
     await signIn(tester);
 
-    expect(find.text('Hello, Ram'), findsOneWidget);
+    expect(greeting('Ram'), findsOneWidget);
     expect(find.text('Medicines'), findsOneWidget, reason: 'the bottom bar');
     // The dashboard loaded from the (empty) backend rather than sitting on a
     // skeleton: "Get started" renders only once both lists have arrived.
-    expect(find.text('Get started'), findsOneWidget);
-    expect(find.text('Nothing scheduled'), findsOneWidget);
+    expect(find.text('No medicines yet'), findsOneWidget);
   });
 
   testWidgets('a 2FA account is asked for a code, then let in', (tester) async {
@@ -154,7 +178,7 @@ void main() {
     await signIn(tester);
 
     expect(find.text('Two-factor code'), findsOneWidget);
-    expect(find.text('Hello, Ram'), findsNothing);
+    expect(greeting('Ram'), findsNothing);
 
     // A wrong code is rejected without losing the credentials.
     await tester.enterText(find.byType(TextFormField).first, '000000');
@@ -167,7 +191,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Verify'));
     await settle(tester);
 
-    expect(find.text('Hello, Ram'), findsOneWidget);
+    expect(greeting('Ram'), findsOneWidget);
     // Password sent twice, code only on the second attempt — the server needs
     // both together, which is what the challenge flow is for.
     expect(repo.loginCalls.map((c) => c.code).toList(),
@@ -191,7 +215,7 @@ void main() {
   testWidgets('a stored session opens straight into the app', (tester) async {
     await pumpApp(tester, stored: storedSession());
 
-    expect(find.text('Hello, Ram'), findsOneWidget);
+    expect(greeting('Ram'), findsOneWidget);
   });
 
   testWidgets('a doctor gets the doctor shell, not the patient one',

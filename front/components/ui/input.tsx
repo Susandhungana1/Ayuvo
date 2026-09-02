@@ -30,7 +30,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             "shadow-[var(--shadow-xs)] transition-all duration-[var(--duration-base)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-focus)] focus-visible:shadow-[var(--shadow-sm)]",
             error
               ? "border-[var(--color-alert)] focus-visible:border-[var(--color-alert)]"
-              : "border-[var(--color-outline)] focus-visible:border-[var(--color-primary)]",
+              : "border-[var(--color-outline-strong)] focus-visible:border-[var(--color-primary)]",
             className,
           )}
           {...props}

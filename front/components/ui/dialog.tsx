@@ -10,15 +10,21 @@ export interface DialogProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
+  /**
+   * Whether Escape and a backdrop click close it. False for a dialog that has
+   * to be answered — an acknowledgement dismissed by a stray click outside has
+   * not been given.
+   */
+  dismissible?: boolean;
 }
 
-export function Dialog({ open, onClose, title, children, footer, className }: DialogProps) {
+export function Dialog({ open, onClose, title, children, footer, className, dismissible = true }: DialogProps) {
   const panelRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && dismissible) onClose();
     };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
@@ -26,7 +32,7 @@ export function Dialog({ open, onClose, title, children, footer, className }: Di
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [open, onClose]);
+  }, [open, onClose, dismissible]);
 
   if (!open) return null;
 
@@ -39,7 +45,7 @@ export function Dialog({ open, onClose, title, children, footer, className }: Di
     >
       <div
         className="absolute inset-0 bg-black/50 animate-[fadeIn_200ms_ease-out]"
-        onClick={onClose}
+        onClick={dismissible ? onClose : undefined}
         aria-hidden="true"
       />
       <div

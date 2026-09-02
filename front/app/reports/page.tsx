@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { apiFetch, API_URL } from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import { FileText, Pencil, X } from 'lucide-react';
+import { ChevronDown, FileText, Pencil, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -69,7 +69,15 @@ interface TrendSeries {
   latest_status: 'HIGH' | 'LOW' | 'NORMAL';
 }
 
-const INPUT_CLASS = "flex w-full h-11 rounded-sm border border-outline bg-surface-card px-3.5 text-base text-on-surface placeholder:text-on-surface-variant/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring transition-colors";
+const INPUT_CLASS = "flex w-full h-11 rounded-sm border border-outline-strong bg-surface-card px-3.5 text-base text-on-surface placeholder:text-on-surface-variant/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring transition-colors";
+
+/** Colour is never the only signal — every dot sits beside the value, and any
+ *  row that is not normal also carries its band chip. */
+const FINDING_DOT: Record<LabFinding['status'], string> = {
+  HIGH: 'bg-[var(--color-alert)]',
+  LOW: 'bg-[var(--color-caution)]',
+  NORMAL: 'bg-[var(--color-ok)]',
+};
 
 function findingChip(status: 'HIGH' | 'LOW' | 'NORMAL') {
   if (status === 'HIGH') return <StatusChip level="alert" label="HIGH" trend="up" />;
@@ -373,7 +381,9 @@ export default function Reports() {
           <h1 className="text-3xl font-display font-bold text-on-surface">Medical Reports</h1>
         </div>
 
-        <Card className="p-lg mb-8">
+        {/* `id` so the home page's "Scan report" action lands on the form
+            itself rather than the top of the page. */}
+        <Card id="upload" className="p-lg mb-8 scroll-mt-8">
           <h2 className="text-xl font-display font-semibold text-on-surface mb-4">Upload Medical Report</h2>
           <p className="text-on-surface-variant text-sm mb-4">
             Upload a photo or PDF of your report. The text is read out of the
@@ -666,37 +676,60 @@ export default function Reports() {
                     {editError && <p className="text-alert text-xs mt-2">{editError}</p>}
                   </div>
                 )}
+                {/* One accordion per analyte. Closed, a row answers "am I all
+                    right?" and nothing else — dot, name, value. A panel is
+                    commonly fifteen of these, and fifteen gauges stacked up is
+                    a wall that hides the two rows that matter. Open, it carries
+                    the gauge, the reference range and the correction.
+
+                    Abnormal rows start open: a flagged value that needs a click
+                    before it can be understood has the disclosure backwards. */}
                 <div className="space-y-2">
                   {labAnalysis.findings.map((f, i) => (
-                    <div key={i} className="flex items-center gap-3 border border-outline rounded-sm px-3 py-2.5">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="font-medium text-on-surface text-sm truncate">{f.name}</p>
-                          <button
-                            onClick={() => startEdit(f)}
-                            className="text-on-surface-variant hover:text-primary transition-colors"
-                            title="Correct this value"
-                            aria-label={`Correct ${f.name}`}
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                    <details
+                      key={i}
+                      open={f.status !== 'NORMAL'}
+                      className="group border border-outline rounded-sm"
+                    >
+                      <summary className="pressed flex cursor-pointer list-none items-center gap-3 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
+                        <span
+                          className={`h-2.5 w-2.5 shrink-0 rounded-full ${FINDING_DOT[f.status]}`}
+                          aria-hidden="true"
+                        />
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-on-surface">{f.name}</span>
+                        <span className="shrink-0 text-sm font-semibold tabular-nums text-on-surface">
+                          {f.value} <span className="text-xs text-on-surface-variant">{f.unit}</span>
+                        </span>
+                        {/* Normal rows carry no chip: a column of green
+                            "NORMAL" pills hides the ones that are not. */}
+                        {f.status !== 'NORMAL' && findingChip(f.status)}
+                        <ChevronDown
+                          className="w-4 h-4 shrink-0 text-on-surface-variant transition-transform duration-[var(--duration-base)] group-open:rotate-180"
+                          aria-hidden="true"
+                        />
+                      </summary>
+                      <div className="border-t border-outline px-3 py-3">
                         <LabGauge
                           value={f.value}
                           unit={f.unit}
                           referenceRange={f.reference_range}
                           status={f.status}
-                          className="mt-2"
                         />
-                        <p className="text-[11px] text-on-surface-variant mt-1">{f.category} · Normal {f.reference_range} {f.unit}</p>
+                        <div className="mt-2 flex items-center justify-between gap-3">
+                          <p className="text-[11px] text-on-surface-variant">
+                            {f.category} · Normal {f.reference_range} {f.unit}
+                          </p>
+                          <button
+                            onClick={() => startEdit(f)}
+                            className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-on-surface-variant transition-colors hover:text-primary"
+                            aria-label={`Correct ${f.name}`}
+                          >
+                            <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
+                            Correct
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                        <span className="font-semibold text-on-surface text-sm tabular-nums">
-                          {f.value} <span className="text-xs text-on-surface-variant">{f.unit}</span>
-                        </span>
-                        {findingChip(f.status)}
-                      </div>
-                    </div>
+                    </details>
                   ))}
                 </div>
               </>

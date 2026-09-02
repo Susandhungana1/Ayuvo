@@ -6,6 +6,11 @@
 /// sends ("12–17.5", "< 200", "> 40"), so a reading's position on the band is
 /// visible; the pencil lets the user correct a value the OCR misread, which is
 /// then re-evaluated against the reference range on the server.
+///
+/// A panel is commonly fifteen analytes, so each row answers "am I all right?"
+/// on its face — status dot, name, value — and keeps the range bar, the
+/// reference range and the correction behind a tap. Rows that are out of range
+/// start open, because those are the ones somebody came to read.
 library;
 
 import 'package:flutter/material.dart';
@@ -129,7 +134,8 @@ class LabFindingsView extends ConsumerWidget {
         const SizedBox(height: AppSpacing.sm),
         Text(
           'Flagged against typical adult reference ranges — educational, not '
-          'a diagnosis. Tap the pencil to correct a misread value.',
+          'a diagnosis. Tap a row for its range, or to correct a value the '
+          'scan misread.',
           style: context.texts.bodySmall?.copyWith(
             color: context.colors.onSurfaceVariant,
           ),
@@ -181,14 +187,37 @@ class _Summary extends StatelessWidget {
   }
 }
 
-class _FindingRow extends ConsumerWidget {
+/// One analyte, answered twice over.
+///
+/// **Collapsed** is the whole answer for somebody who only wants to know
+/// whether they are all right: a status dot, the name, the number, and a band
+/// label on the rows that are not normal. Nothing else. A panel is fifteen of
+/// these, and fifteen range bars stacked up is a wall that hides the two rows
+/// that matter.
+///
+/// **Expanded** is for the person who wants to see it: the range bar with the
+/// reading's position on it, the reference range in full, and the pencil that
+/// corrects a value the OCR misread.
+///
+/// Rows that are out of range open by default — a flagged value that needs a
+/// tap to be understood is progressive disclosure applied to the one thing the
+/// user came for.
+class _FindingRow extends ConsumerStatefulWidget {
   const _FindingRow({required this.reportId, required this.finding});
 
   final String reportId;
   final LabFinding finding;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_FindingRow> createState() => _FindingRowState();
+}
+
+class _FindingRowState extends ConsumerState<_FindingRow> {
+  late bool _expanded = !widget.finding.isNormal;
+
+  @override
+  Widget build(BuildContext context) {
+    final finding = widget.finding;
     final (tone, direction, label) = switch (finding.status.toUpperCase()) {
       'HIGH' => (RangeStatus.alert, RangeDirection.above, 'High'),
       'LOW' => (RangeStatus.caution, RangeDirection.below, 'Low'),
@@ -196,81 +225,86 @@ class _FindingRow extends ConsumerWidget {
     };
     final bounds = parseRangeLabel(finding.referenceRange);
     final banded = bounds.low != null || bounds.high != null;
+    final window = _windowFor(finding.value, bounds.low, bounds.high);
+    final toneColour = switch (tone) {
+      RangeStatus.ok => context.status.ok,
+      RangeStatus.caution => context.status.caution,
+      RangeStatus.alert => context.status.alert,
+    };
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Theme(
+      // The stock ExpansionTile paints a divider above and below itself and
+      // tints its own header when open; both fight the card it sits in.
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        initiallyExpanded: _expanded,
+        onExpansionChanged: (open) => setState(() => _expanded = open),
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(bottom: AppSpacing.md),
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        // Colour is never the only signal: the dot is backed by the band name
+        // on any row that is not normal, and by the value itself on every row.
+        leading: Container(
+          width: 10,
+          height: 10,
+          margin: const EdgeInsets.only(top: AppSpacing.xs),
+          decoration: BoxDecoration(color: toneColour, shape: BoxShape.circle),
+        ),
+        title: Text(finding.name, style: context.texts.bodyMedium),
+        subtitle: finding.isNormal
+            ? null
+            : Text(
+                label,
+                style: context.texts.labelSmall?.copyWith(color: toneColour),
+              ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_number(finding.value), style: context.numerals.numericMedium),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              finding.unit,
+              style: context.texts.bodySmall?.copyWith(
+                color: context.colors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            AnimatedRotation(
+              turns: _expanded ? 0.5 : 0,
+              duration: AppMotion.of(context, AppMotion.base),
+              curve: AppMotion.standard,
+              child: const Icon(Icons.expand_more, size: 20),
+            ),
+          ],
+        ),
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        finding.name,
-                        style: context.texts.bodyMedium,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => _promptCorrection(context, ref),
-                      icon: const Icon(Icons.edit_outlined, size: 16),
-                      visualDensity: VisualDensity.compact,
-                      tooltip: 'Correct this value',
-                    ),
-                  ],
-                ),
-                if (banded) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  RangeBar(
-                    value: finding.value,
-                    min: _windowFor(finding.value, bounds.low, bounds.high).min,
-                    max: _windowFor(finding.value, bounds.low, bounds.high).max,
-                    normalLow: bounds.low ?? finding.value,
-                    normalHigh: bounds.high ?? finding.value,
-                    status: tone,
-                    direction: direction,
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Range ${finding.referenceRange} ${finding.unit}',
+          if (banded) ...[
+            RangeBar(
+              value: finding.value,
+              min: window.min,
+              max: window.max,
+              normalLow: bounds.low ?? finding.value,
+              normalHigh: bounds.high ?? finding.value,
+              status: tone,
+              direction: direction,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Normal range ${finding.referenceRange} ${finding.unit}',
                   style: context.texts.bodySmall?.copyWith(
                     color: context.colors.onSurfaceVariant,
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    _number(finding.value),
-                    style: context.numerals.numericMedium,
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Text(
-                    finding.unit,
-                    style: context.texts.bodySmall?.copyWith(
-                      color: context.colors.onSurfaceVariant,
-                    ),
-                  ),
-                ],
               ),
-              const SizedBox(height: AppSpacing.xxs),
-              // Normal values get no chip: a column of green "Normal" chips
-              // hides the two rows that are not.
-              if (!finding.isNormal)
-                StatusChip(label: label, status: tone, direction: direction),
+              TextButton.icon(
+                onPressed: () => _promptCorrection(context, ref),
+                icon: const Icon(Icons.edit_outlined, size: 16),
+                label: const Text('Correct'),
+              ),
             ],
           ),
         ],
@@ -279,6 +313,7 @@ class _FindingRow extends ConsumerWidget {
   }
 
   Future<void> _promptCorrection(BuildContext context, WidgetRef ref) async {
+    final finding = widget.finding;
     final messenger = ScaffoldMessenger.of(context);
     final valueController = TextEditingController(text: _number(finding.value));
     final unitController = TextEditingController(text: finding.unit);
@@ -326,13 +361,13 @@ class _FindingRow extends ConsumerWidget {
     if (corrected == null) return;
 
     try {
-      await ref.read(reportRepositoryProvider).correctValues(reportId, {
+      await ref.read(reportRepositoryProvider).correctValues(widget.reportId, {
         finding.name: {
           'value': corrected.value,
           'unit': corrected.unit.isEmpty ? null : corrected.unit,
         },
       });
-      ref.invalidate(labAnalysisProvider(reportId));
+      ref.invalidate(labAnalysisProvider(widget.reportId));
       ref.invalidate(reportTrendsProvider);
       messenger.showSnackBar(
         SnackBar(

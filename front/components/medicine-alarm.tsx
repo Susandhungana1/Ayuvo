@@ -196,6 +196,9 @@ async function recordIntake(
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ scheduled_time: time, status }),
     });
+    // Same-tab signal so an open dashboard re-reads the intake log instead of
+    // showing a dose as still due after the alarm has already logged it.
+    window.dispatchEvent(new Event("medicineIntakeRecorded"));
   } catch {
     /* offline — adherence log is best-effort */
   }

@@ -32,7 +32,7 @@ interface FileInfo {
   file_type: string;
 }
 
-const INPUT_CLASS = "flex w-full h-11 rounded-sm border border-outline bg-surface-card px-3.5 text-base text-on-surface placeholder:text-on-surface-variant/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring transition-colors";
+const INPUT_CLASS = "flex w-full h-11 rounded-sm border border-outline-strong bg-surface-card px-3.5 text-base text-on-surface placeholder:text-on-surface-variant/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring transition-colors";
 
 export default function Documents() {
   const router = useRouter();

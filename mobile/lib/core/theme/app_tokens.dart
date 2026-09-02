@@ -53,6 +53,32 @@ abstract final class AppPalette {
   static const nightInkVariant = Color(0xFF9DB2BA);
 
   static const white = Color(0xFFFFFFFF);
+
+  // ── Control boundaries (WCAG 2.1 SC 1.4.11) ─────────────────────────────
+  // `slate` and `nightOutline` are *hairlines*: card edges and dividers, which
+  // carry no information and have no contrast floor. The border of an input or
+  // an outlined button is different — it is the only thing that says where the
+  // control is, so it is a "user interface component" and owes 3:1 against its
+  // background. `slate` on white measures 1.53:1 and fails that; these two
+  // steps are the same hues taken down (and up) until they clear it.
+  //
+  //   slateStrong        on #FFFFFF → 3.13:1   on #FBFCFD → 3.05:1
+  //   nightOutlineStrong on #161D21 → 3.52:1   on #0F1417 → 3.83:1
+  static const slateStrong = Color(0xFF7D95A3);
+  static const nightOutlineStrong = Color(0xFF5E7581);
+
+  // ── Disabled controls ───────────────────────────────────────────────────
+  // WCAG 2.1 exempts inactive components from both 1.4.3 and 1.4.11, and
+  // Material's default (38% onSurface) lands at 2.27:1 in light — legible to
+  // nobody in bright sun. These pairs clear 4.5:1 against the disabled
+  // container while the flattened fill still reads as "not a button".
+  //
+  //   disabledInkLight on disabledFillLight → 5.04:1
+  //   disabledInkDark  on disabledFillDark  → 4.86:1
+  static const disabledInkLight = Color(0xFF4E6369);
+  static const disabledFillLight = Color(0xFFE2E6E7);
+  static const disabledInkDark = Color(0xFF9DA4A8);
+  static const disabledFillDark = Color(0xFF2F363A);
 }
 
 /// 4pt spacing scale. Density 6/10 — see DESIGN.md §4.

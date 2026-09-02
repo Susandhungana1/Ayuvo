@@ -80,13 +80,16 @@ void main() {
     });
   });
 
-  testWidgets('a finding renders its range as a gauge', (tester) async {
+  // An out-of-range finding opens itself, so its gauge and range are on screen
+  // without a tap — see `_FindingRow`.
+  testWidgets('an out-of-range finding opens with its range as a gauge',
+      (tester) async {
     final api = FakeApi()
       ..json('GET /api/reports/rep-1/lab-analysis', _originalAnalysis());
     await _openDetail(tester, api);
 
     expect(find.text('Haemoglobin'), findsOneWidget);
-    expect(find.text('Range 13.5 - 17.5 g/dL'), findsOneWidget);
+    expect(find.text('Normal range 13.5 - 17.5 g/dL'), findsOneWidget);
     // The band's own bounds are drawn as text under the track.
     expect(find.text('13.5'), findsWidgets);
     expect(find.text('17.5'), findsOneWidget);
@@ -112,7 +115,7 @@ void main() {
       });
     await _openDetail(tester, api);
 
-    await tester.tap(find.byTooltip('Correct this value'));
+    await tester.tap(find.widgetWithText(TextButton, 'Correct'));
     await settle(tester);
     await tester.enterText(find.widgetWithText(TextField, '11.2'), '13.5');
     await tester.tap(find.widgetWithText(FilledButton, 'Save'));
