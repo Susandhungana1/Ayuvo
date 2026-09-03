@@ -111,15 +111,13 @@ flutter:
   uses-material-design: true
 
   fonts:
+    # One variable file with a `wght` axis, not four static cuts. The four
+    # that were here were GitHub 404 pages saved as .ttf, so Figtree never
+    # rendered at all; the variable font is also 62KB against their 1.2MB.
+    # Weights are selected through `fontVariations` - see `app_theme.dart`.
     - family: Figtree
       fonts:
-        - asset: assets/fonts/Figtree-Regular.ttf
-        - asset: assets/fonts/Figtree-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/Figtree-SemiBold.ttf
-          weight: 600
-        - asset: assets/fonts/Figtree-Bold.ttf
-          weight: 700
+        - asset: assets/fonts/Figtree-Variable.ttf
     - family: Noto Sans
       fonts:
         - asset: assets/fonts/NotoSans-Regular.ttf

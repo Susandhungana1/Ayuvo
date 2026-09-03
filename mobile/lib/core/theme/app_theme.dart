@@ -161,12 +161,16 @@ class AppTypography extends ThemeExtension<AppTypography> {
   /// its digits change width.
   static const _tabular = [FontFeature.tabularFigures()];
 
+  /// Figtree is variable; see `_wght`. Const here because this extension is.
+  static const _semiBold = [FontVariation('wght', 600)];
+
   static const fallback = AppTypography(
     numericLarge: TextStyle(
       fontFamily: _heading,
       fontSize: 28,
       height: 34 / 28,
       fontWeight: FontWeight.w600,
+      fontVariations: _semiBold,
       letterSpacing: -0.5,
       fontFeatures: _tabular,
     ),
@@ -175,6 +179,7 @@ class AppTypography extends ThemeExtension<AppTypography> {
       fontSize: 16,
       height: 22 / 16,
       fontWeight: FontWeight.w600,
+      fontVariations: _semiBold,
       fontFeatures: _tabular,
     ),
   );
@@ -205,6 +210,15 @@ const _heading = 'Figtree';
 const _body = 'Noto Sans';
 const _fallback = <String>['Noto Sans Devanagari'];
 
+/// Figtree ships as a single variable file with a `wght` axis, so a weight has
+/// to be asked for on that axis by name. `fontWeight` alone picks between
+/// *static* faces and there is only one face here — leave it off and every
+/// heading renders at the default 400, which is what the design is not.
+///
+/// Both are set: `fontVariations` drives the rendering, `fontWeight` keeps
+/// `TextStyle.lerp`, `copyWith` and the semantics tree honest.
+List<FontVariation> _wght(double weight) => [FontVariation('wght', weight)];
+
 TextTheme _textTheme(Color ink, Color inkVariant) {
   TextStyle h(double size, double lineHeight, {double tracking = 0}) => TextStyle(
         fontFamily: _heading,
@@ -212,6 +226,7 @@ TextTheme _textTheme(Color ink, Color inkVariant) {
         fontSize: size,
         height: lineHeight / size,
         fontWeight: FontWeight.w600,
+        fontVariations: _wght(600),
         letterSpacing: tracking,
         color: ink,
       );

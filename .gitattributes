@@ -1,0 +1,19 @@
+# Fonts are binary. Without this, `core.autocrlf=true` (the Windows default,
+# and what this repo is checked out with) rewrites LF to CRLF *inside* the
+# file on checkout and quietly destroys it.
+#
+# This is not hypothetical here: the four Figtree "TTFs" committed to this
+# repo were GitHub 404 HTML pages saved with a .ttf extension, and autocrlf
+# then expanded their newlines on every checkout. Figtree never rendered —
+# every heading silently fell back to Noto Sans.
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.db binary

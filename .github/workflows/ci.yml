@@ -63,8 +63,11 @@ jobs:
       - name: Analyze
         run: flutter analyze --fatal-infos
 
+      # `golden` is excluded: those tests render PNGs for humans to look at,
+      # and text rasterises differently on every platform, so comparing a
+      # Windows-generated image on a Linux runner fails for no real reason.
       - name: Test
-        run: flutter test
+        run: flutter test --exclude-tags golden
 
       # The Vercel deployment is a `flutter build web` artifact. When that
       # build fails, Vercel keeps serving the last one that worked, so a broken
