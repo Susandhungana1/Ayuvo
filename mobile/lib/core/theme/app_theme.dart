@@ -328,6 +328,11 @@ abstract final class AppTheme {
       colorScheme: scheme,
       brightness: brightness,
       scaffoldBackgroundColor: scheme.surface,
+      // Settings rows, report rows and activity rows are all ListTiles, whose
+      // ink comes from the InkWell they build rather than from any slot on
+      // ListTileThemeData. Material's stock ripple is ~10% and invisible on a
+      // white card in daylight; this is the one place to darken it.
+      splashColor: scheme.onSurface.withValues(alpha: 0.12),
       textTheme: text,
       fontFamily: _body,
       fontFamilyFallback: _fallback,
@@ -488,9 +493,6 @@ abstract final class AppTheme {
         titleTextStyle: text.titleMedium,
         subtitleTextStyle: text.bodySmall,
         minVerticalPadding: AppSpacing.sm,
-        // Settings rows, report rows and activity rows are all ListTiles, and
-        // the stock 10% ripple is invisible on a white card in daylight.
-        splashColor: scheme.onSurface.withValues(alpha: 0.12),
       ),
 
       floatingActionButtonTheme: FloatingActionButtonThemeData(
