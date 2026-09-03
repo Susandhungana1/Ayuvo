@@ -37,10 +37,26 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: backup
 
-      - name: Install PostgreSQL
+      - name: Install PostgreSQL 17
+        # `pg_restore` refuses an archive written by a newer `pg_dump`, and
+        # db-backup.yml dumps with client 17 against Supabase's 17 server. The
+        # runner ships 16, so the restore fails on the archive's version header
+        # before it reads a single row — which fits this job being red since
+        # 31 Aug while "Database Backup" stayed green the whole time.
+        #
+        # The preinstalled 16 is purged rather than left alongside: PGDG would
+        # otherwise put 17 on a second port while `createdb` below still talks
+        # to 16 on 5432, and the job would keep failing for a new reason.
         run: |
+          set -euo pipefail
+          sudo systemctl stop postgresql || true
+          sudo apt-get -y --purge remove 'postgresql-*' || true
+          sudo rm -rf /var/lib/postgresql
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
           sudo apt-get update
-          sudo apt-get install -y postgresql
+          sudo apt-get install -y postgresql-17
+          pg_restore --version
 
       - name: Decrypt + restore into a throwaway database
         env:
@@ -56,6 +72,22 @@ jobs:
               --passphrase "$BACKUP_PASSPHRASE" \
               -d "$gpg_file" > /tmp/backup.dump
           echo "Decrypted dump size:"; ls -lh /tmp/backup.dump | awk '{print $5}'
+
+          # Two checks before the restore, so a failure names its own cause
+          # instead of surfacing as a wall of pg_restore output. A wrong
+          # passphrase leaves a short or non-PGDMP file; a version mismatch
+          # fails `--list` on the header while the file itself is perfectly
+          # fine. They need different fixes, so they should read differently.
+          [ -s /tmp/backup.dump ] || { echo "Decrypted dump is empty — check BACKUP_PASSPHRASE"; exit 1; }
+          if ! head -c 5 /tmp/backup.dump | grep -q 'PGDMP'; then
+            echo "Not a pg_dump custom archive — decryption probably produced garbage"
+            exit 1
+          fi
+          if ! pg_restore --list /tmp/backup.dump > /dev/null; then
+            echo "pg_restore cannot read this archive; it was likely written by a newer pg_dump than this one:"
+            pg_restore --version
+            exit 1
+          fi
 
           # Start a throwaway local cluster; nothing here touches production data.
           sudo service postgresql start
