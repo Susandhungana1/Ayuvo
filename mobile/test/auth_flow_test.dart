@@ -161,9 +161,22 @@ void main() {
     await pumpApp(tester);
 
     await signIn(tester);
+    // The home screen fetches five things on mount, and `signIn` only pumps
+    // far enough to get through the redirect. Without this the test ends with
+    // a request still in flight, which the binding reports as a pending timer.
+    await settle(tester);
 
     expect(greeting('Ram'), findsOneWidget);
-    expect(find.text('Medicines'), findsOneWidget, reason: 'the bottom bar');
+    // 'Medicines' is now both a bottom-bar tab and a home quick action,
+    // so the assertion is scoped to the bar it is actually about.
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('Medicines'),
+      ),
+      findsOneWidget,
+      reason: 'the bottom bar',
+    );
     // The dashboard loaded from the (empty) backend rather than sitting on a
     // skeleton: "Get started" renders only once both lists have arrived.
     expect(find.text('No medicines yet'), findsOneWidget);

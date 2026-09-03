@@ -14,7 +14,8 @@
 library;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show PlatformException;
+import 'package:flutter/services.dart'
+    show MissingPluginException, PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/error_codes.dart' as auth_error;
 import 'package:local_auth/local_auth.dart';

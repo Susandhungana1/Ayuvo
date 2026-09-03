@@ -64,6 +64,7 @@ void main() {
   });
 
   testWidgets('every core screen is one tap from home', (tester) async {
+    useTallViewport(tester);
     await pumpSignedIn(tester, backend());
 
     for (final label in [
@@ -170,6 +171,7 @@ void main() {
 
   testWidgets('the latest reading becomes one thin strip of chips',
       (tester) async {
+    useTallViewport(tester);
     final api = backend(vitals: [
       vitalRow(systolic: 118, diastolic: 76, heartRate: 72),
       vitalRow(id: 'vit-0', systolic: 150, diastolic: 95),
@@ -187,6 +189,7 @@ void main() {
 
   testWidgets('an out-of-range reading is named, not just coloured',
       (tester) async {
+    useTallViewport(tester);
     final api = backend(vitals: [vitalRow(systolic: 182, diastolic: 122)]);
     await pumpSignedIn(tester, api);
 
@@ -208,6 +211,7 @@ void main() {
 
   testWidgets('a backend that is down offers Retry rather than a blank screen',
       (tester) async {
+    useTallViewport(tester);
     final api = FakeApi()
       ..fails('GET /api/medicines', 503, 'Service unavailable')
       ..json('GET /api/vitals', {'vitals': const []});

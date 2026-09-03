@@ -99,6 +99,9 @@ void main() {
   testWidgets('the pencil corrects a misread value through the API', (
     tester,
   ) async {
+    // The correction sits inside the expanded row, below the fold on a default
+    // test viewport.
+    useTallViewport(tester);
     var corrected = false;
     final api = FakeApi()
       ..on(

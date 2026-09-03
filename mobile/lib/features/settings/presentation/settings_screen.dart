@@ -710,13 +710,6 @@ class _TwoFactorAuthState extends ConsumerState<_TwoFactorAuth> {
   }
 }
 
-/// Erase the account, for real.
-///
-/// Deliberately at the bottom and styled as a danger: a two-step confirm with
-/// the erasure spelled out, because the server really does delete everything
-/// and nothing here can undo it. On success the session ends the way a
-/// sign-out does — tokens cleared locally — but with the notice that the
-/// account is gone, not just the session.
 /// Security → biometric unlock.
 ///
 /// Absent entirely on a device with no enrolled sensor, rather than shown as a
@@ -802,6 +795,13 @@ class _About extends StatelessWidget {
   }
 }
 
+/// Erase the account, for real.
+///
+/// Deliberately at the bottom and styled as a danger: a two-step confirm with
+/// the erasure spelled out, because the server really does delete everything
+/// and nothing here can undo it. On success the session ends the way a
+/// sign-out does — tokens cleared locally — but with the notice that the
+/// account is gone, not just the session.
 class _DeleteAccount extends ConsumerWidget {
   const _DeleteAccount();
 

@@ -141,6 +141,20 @@ Future<void> settle(WidgetTester tester) async {
   await settle(tester);
 }
 
+/// Lays a whole screen out in one pass.
+///
+/// The default 800x600 test viewport cuts the home screen off partway down its
+/// list, and a widget below the fold is never built — `find.text` reads the
+/// element tree, so an assertion about the share card fails because it is
+/// off-screen rather than because it is wrong. A tall viewport is how
+/// `design_review_test.dart` solves the same problem; the width stays phone-
+/// sized so layout is still the one a phone gets.
+void useTallViewport(WidgetTester tester, {double width = 400}) {
+  tester.view.physicalSize = Size(width, 4000);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
+}
+
 /// Taps a bottom-bar destination and waits for the tab to arrive.
 Future<void> openTab(WidgetTester tester, String label) async {
   await tester.tap(find.descendant(

@@ -171,6 +171,8 @@ class _HealthSummary extends ConsumerWidget {
     final intakeLog = ref.watch(intakeLogProvider).valueOrNull ?? const [];
     final latestVital = ref.watch(latestVitalProvider);
 
+    // An account with no medicines still has readings, and they belong on the
+    // summary card just as much. Returning early here hid them completely.
     if (medicines.isEmpty) {
       return Card(
         child: Padding(
@@ -195,6 +197,7 @@ class _HealthSummary extends ConsumerWidget {
                 onPressed: () => context.go(Routes.medicines),
                 child: const Text('Add a medicine'),
               ),
+              if (latestVital != null) _VitalsStrip(latest: latestVital),
             ],
           ),
         ),
