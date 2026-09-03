@@ -33,3 +33,42 @@ jobs:
         # Tests use an isolated SQLite DB + temp local storage (see tests/conftest.py),
         # so no external Postgres/services are required.
         run: python -m pytest
+
+  mobile-checks:
+    name: Mobile (analyze + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned to the version the lockfile was resolved against. `channel:
+      # stable` alone silently moves under us, which is how a build starts
+      # failing on a day nobody changed anything.
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.2
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Zero tolerance: this repo shipped a `ListTileThemeData.splashColor`
+      # that does not exist, and nothing caught it because nothing here ran
+      # the analyzer. `--fatal-infos` keeps that from happening again.
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Test
+        run: flutter test
+
+      # The Vercel deployment is a `flutter build web` artifact. When that
+      # build fails, Vercel keeps serving the last one that worked, so a broken
+      # commit looks like a frozen site rather than an error. Building here
+      # turns that silence into a failed check.
+      - name: Build web
+        run: flutter build web --release
