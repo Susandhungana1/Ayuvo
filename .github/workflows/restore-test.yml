@@ -73,7 +73,7 @@ jobs:
               -d "$gpg_file" > /tmp/backup.dump
           echo "Decrypted dump size:"; ls -lh /tmp/backup.dump | awk '{print $5}'
 
-          # Two checks before the restore, so a failure names its own cause
+          # Three checks before the restore, so a failure names its own cause
           # instead of surfacing as a wall of pg_restore output. A wrong
           # passphrase leaves a short or non-PGDMP file; a version mismatch
           # fails `--list` on the header while the file itself is perfectly
